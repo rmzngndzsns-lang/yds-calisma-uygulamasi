@@ -7,7 +7,6 @@ import google.generativeai as genai
 import edge_tts
 import asyncio
 import os
-import re
 
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
@@ -121,37 +120,59 @@ def get_gemini_text(passage, question, options):
     except Exception as e:
         return f"Hata oluştu: {e}"
 
-# --- 7. SENKRON SES FONKSİYONU (TAM METİN - DONMADAN) ---
-def generate_audio_sync(text, rate_str):
-    """
-    Sesi senkron olarak oluşturur ama yeni bir event loop açar.
-    Bu sayede Streamlit'i kilitlemez ve 'Full Metni' okuyabilir.
-    """
-    # AndrewMultilingual: Hem İngilizceyi Native okur, hem Türkçeyi anlaşılır okur.
-    voice = "en-US-AndrewMultilingualNeural" 
-    output_file = "output_audio.mp3"
+# --- 7. PARALEL SES FONKSİYONU (HIZ CANAVARI) ---
+async def generate_segment(text, voice, rate, index):
+    """Tek bir parçayı sese çevirir ve bytes döner"""
+    if not text.strip(): return b""
+    # Hızlandırmak için gereksiz karakterleri temizle
+    clean = text.replace('*', '').replace('[', '').replace(']', '').replace('`', '')
     
-    # Metni sese uygun hale getirelim (Sadece markdown yıldızlarını temizle, metni silme)
-    # Sesin "Yıldız yıldız" diye okumasını istemeyiz.
-    clean_text = text.replace('*', '').replace('#', '').replace('`', '')
-
-    async def _gen():
-        communicate = edge_tts.Communicate(clean_text, voice, rate=rate_str)
-        await communicate.save(output_file)
-        
+    temp_file = f"temp_{index}.mp3"
     try:
-        # En güvenli yöntem: Yeni bir loop açıp işi bitirip kapatmak.
+        communicate = edge_tts.Communicate(clean, voice, rate=rate)
+        await communicate.save(temp_file)
+        
+        with open(temp_file, "rb") as f:
+            data = f.read()
+        os.remove(temp_file) # Temizlik
+        return data
+    except:
+        return b""
+
+def generate_parallel_audio(full_text, speed_val):
+    voice = "en-US-AndrewMultilingualNeural"
+    rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
+    
+    # Metni bölümlere ayır
+    parts = full_text.split('[BÖLÜM')
+    # İlk parça genellikle boştur, onu atlayalım
+    text_segments = [p for p in parts if len(p.strip()) > 10]
+    
+    # Eğer bölümleme başarısızsa tüm metni tek parça al
+    if not text_segments:
+        text_segments = [full_text]
+
+    async def _main():
+        # Tüm parçalar için aynı anda (paralel) görev başlat
+        tasks = []
+        for i, segment in enumerate(text_segments):
+            # Segment başına "Bölüm X" ekleyerek anlam bütünlüğü sağla
+            # (split yaparken [BÖLÜM silindiği için geri eklemek okunabilirlik sağlar ama süre yer)
+            # Hız için eklemiyoruz, direkt içeriği okutuyoruz.
+            tasks.append(generate_segment(segment, voice, rate_str, i))
+        
+        # Hepsini bekle ve sonuçları topla
+        results = await asyncio.gather(*tasks)
+        return b"".join(results) # Byte'ları birleştir
+
+    try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(_gen())
+        final_audio = loop.run_until_complete(_main())
         loop.close()
-        
-        if os.path.exists(output_file):
-            with open(output_file, "rb") as f:
-                return f.read()
-        return None
+        return final_audio
     except Exception as e:
-        print(f"Ses hatası: {e}")
+        st.error(f"Ses Hatası: {e}")
         return None
 
 # --- 8. UYGULAMA GÖVDESİ ---
@@ -255,14 +276,14 @@ if df is not None:
                     st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
                     st.rerun()
 
-        # --- GÖRSELLEŞTİRME VE SES YÜKLEME ---
+        # --- GÖRSELLEŞTİRME ---
         if st.session_state.idx in st.session_state.gemini_res:
             data = st.session_state.gemini_res[st.session_state.idx]
             full_text = data['text']
             
             # --- SES OYNATICI ---
             if data['audio'] is not None:
-                st.success(f"🔊 Andrew Hoca Anlatıyor (Hız: {speed_val}%)")
+                st.success(f"🔊 Tam Metin Seslendiriliyor (Hız: {speed_val}%)")
                 st.audio(data['audio'], format='audio/mp3')
 
             # --- METİN GÖSTERİMİ ---
@@ -290,18 +311,16 @@ if df is not None:
                     clean_text = part.replace("4: ÇELDİRİCİLER]", "").strip()
                     st.markdown(f"""<div class="ai-header" style="color:#c0392b;">❌ NEDEN YANLIŞ?</div><div class="ai-text" style="border-left: 5px solid #c0392b;">{clean_text}</div>""", unsafe_allow_html=True)
             
-            # --- SES YOKSA OLUŞTUR (TAM METİN) ---
+            # --- SES OLUŞTURMA (PARALEL) ---
             if data['audio'] is None:
-                rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
-                with st.spinner("🔊 Tam metin seslendiriliyor... (Biraz sürebilir)"):
-                    # Burada full_text'i gönderiyoruz, özet yok!
-                    aud_bytes = generate_audio_sync(full_text, rate_str)
-                    
+                with st.spinner("🔊 Sesler birleştiriliyor... (Çok daha hızlı!)"):
+                    # PARALEL ÇAĞRI
+                    aud_bytes = generate_parallel_audio(full_text, speed_val)
                     if aud_bytes:
                         st.session_state.gemini_res[st.session_state.idx]['audio'] = aud_bytes
                         st.rerun()
                     else:
-                        st.error("Ses oluşturulamadı. Lütfen tekrar deneyin.")
+                        st.error("Ses oluşturulamadı.")
 
     else:
         st.title("Sonuçlar")
