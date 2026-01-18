@@ -125,8 +125,7 @@ def ask_ai(passage, question, options):
     
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        # Not: gemini-2.5-flash henüz yayında değil, 1.5-flash en güncelidir.
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""
         Sen uzman bir İngilizce öğretmenisin.
