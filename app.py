@@ -165,7 +165,7 @@ def ask_ai(passage, question, options):
         genai.configure(api_key=GEMINI_API_KEY)
         
         # --- GÜNCEL VE ÇALIŞAN MODEL ---
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""
         Sen uzman bir İngilizce öğretmenisin.
