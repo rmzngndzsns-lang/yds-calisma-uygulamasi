@@ -4,11 +4,11 @@ import time
 from datetime import datetime, timedelta
 import streamlit.components.v1 as components
 import google.generativeai as genai
-import edge_tts  # SES KÜTÜPHANESİ
-import asyncio   # ASENKRON İŞLEMLER
+import edge_tts
+import asyncio
 
 # --- 1. AYARLAR ---
-st.set_page_config(page_title="Yds App", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
 
 # ==========================================
 # !!! BURAYA GEMINI API KEY YAPIŞTIR !!!
@@ -19,56 +19,38 @@ GEMINI_API_KEY = "AIzaSyCWX5JvdRAo5MH_1O1zvwop692jBdKreFc"
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    
     .stApp { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
     
     /* SIDEBAR */
     [data-testid="stSidebar"] [data-testid="column"] { padding: 0px 1px !important; min-width: 0 !important; }
-    [data-testid="stSidebar"] button { 
-        width: 100% !important; padding: 0px !important; height: 34px !important; 
-        font-size: 13px !important; font-weight: 600 !important; margin: 0px !important; 
-    }
-
+    [data-testid="stSidebar"] button { width: 100% !important; padding: 0px !important; height: 34px !important; font-size: 13px !important; font-weight: 600 !important; margin: 0px !important; }
+    
     /* KUTULAR */
-    .passage-box { 
-        background-color: white; padding: 20px; border-radius: 12px; height: 55vh; 
-        overflow-y: auto; font-size: 15.5px; line-height: 1.7; text-align: justify; 
-        border: 1px solid #e5e7eb; border-left: 5px solid #2c3e50; 
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05); color: #374151; 
+    .passage-box { background-color: white; padding: 20px; border-radius: 12px; height: 55vh; overflow-y: auto; font-size: 15.5px; line-height: 1.7; text-align: justify; border: 1px solid #e5e7eb; border-left: 5px solid #2c3e50; color: #374151; }
+    .question-stem { font-size: 16.5px; font-weight: 600; background-color: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; border-left: 4px solid #3b82f6; margin-bottom: 20px; color: #111827; }
+    
+    /* STRATEJİ KUTUSU (YENİ) */
+    .strategy-box {
+        background-color: #e3f2fd;
+        border: 1px solid #bbdefb;
+        border-left: 5px solid #1976d2;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        color: #0d47a1;
+        font-size: 15px;
     }
-    .question-stem { 
-        font-size: 16.5px; font-weight: 600; background-color: white; padding: 20px; 
-        border-radius: 12px; border: 1px solid #e5e7eb; border-left: 4px solid #3b82f6; 
-        margin-bottom: 20px; color: #111827; 
-    }
+    .strategy-title { font-weight: 800; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;}
 
-    /* RADYO BUTONLAR */
-    .stRadio > label { display: none; }
-    .stRadio div[role='radiogroup'] > label { 
-        padding: 12px 16px; margin-bottom: 8px; border: 1px solid #d1d5db; 
-        border-radius: 8px; background-color: white; font-size: 15px; 
-        color: #374151; transition: all 0.2s; 
-    }
-    .stRadio div[role='radiogroup'] > label:hover { 
-        background-color: #eff6ff; border-color: #3b82f6; color: #1d4ed8; 
-    }
+    /* CÜMLE KUTULARI */
+    .sentence-box { background-color: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; border-left: 4px solid #f39c12; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .eng-text { font-weight: 600; color: #2c3e50; margin-bottom: 4px; font-size: 15px; }
+    .tr-text { color: #555; font-style: italic; font-size: 14px; }
+    
+    /* GENEL AI METİN */
+    .ai-header { color: #8e44ad; font-weight: 800; font-size: 16px; margin-bottom: 8px; text-transform: uppercase; margin-top: 15px;}
+    .ai-text { font-size: 15px; line-height: 1.6; color: #4a4a4a; background: white; padding: 15px; border-radius: 10px; }
 
-    /* BUTONLAR */
-    div.stButton > button:contains("İşaretle") { border-color: #d97706 !important; color: #d97706 !important; font-weight: 700; }
-    div.stButton > button:contains("Kaldır") { background-color: #d97706 !important; color: white !important; border: none; }
-    div.stButton > button:contains("Gemini") { 
-        border: 2px solid #8e44ad !important; color: #8e44ad !important; 
-        font-weight: 700; background-color: white; 
-    }
-    div.stButton > button:contains("Gemini"):hover { background-color: #f3e5f5 !important; }
-
-    /* GEMINI KUTUSU */
-    .gemini-box {
-        background-color: #f8f0fc; border: 1px solid #e1bee7; 
-        border-left: 5px solid #8e44ad; border-radius: 10px; 
-        padding: 20px; margin-top: 15px; font-size: 15px; 
-        color: #4a148c; line-height: 1.6;
-    }
     div.stButton > button { height: 45px; font-weight: 500; font-size: 15px; }
 </style>
 """, unsafe_allow_html=True)
@@ -98,38 +80,31 @@ def load_data():
         st.error(f"❌ Hata: {e}")
         return None
 
-# --- 4. SESSION ---
 def init_session():
     if 'idx' not in st.session_state: st.session_state.idx = 0
     if 'answers' not in st.session_state: st.session_state.answers = {}
     if 'marked' not in st.session_state: st.session_state.marked = set()
-    if 'end_timestamp' not in st.session_state:
-        st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000 
+    if 'end_timestamp' not in st.session_state: st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000 
     if 'finish' not in st.session_state: st.session_state.finish = False
     if 'gemini_res' not in st.session_state: st.session_state.gemini_res = {} 
+    if 'speech_rate' not in st.session_state: st.session_state.speech_rate = "+0%"
 
 df = load_data()
 init_session()
 
-# --- 5. PARSER ---
 def parse_question(text):
     if pd.isna(text): return None, "..."
     text = str(text).replace('\\n', '\n')
     parts = text.split('\n\n', 1) if '\n\n' in text else (None, text.strip())
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
-# --- 6. MULTILINGUAL (ÇOK DİLLİ) SES FONKSİYONU ---
-async def generate_speech(text):
-    # ÇOK ÖNEMLİ AYAR:
-    # "en-US-AndrewMultilingualNeural" -> Bu ses motoru hem İngilizce hem Türkçe konuşabilir.
-    # İngilizce kelimeleri "Native" gibi, Türkçeyi "Yabancı Hoca" gibi okur. 
-    # Alternatif (Kadın sesi için): "en-US-AvaMultilingualNeural"
-    
+# --- 6. SES FONKSİYONU ---
+async def generate_speech(text, rate_str):
     VOICE = "en-US-AndrewMultilingualNeural"
-    communicate = edge_tts.Communicate(text, VOICE)
+    communicate = edge_tts.Communicate(text, VOICE, rate=rate_str)
     await communicate.save("output_audio.mp3")
 
-def ask_ai(passage, question, options):
+def ask_ai(passage, question, options, speed_val):
     if "BURAYA" in GEMINI_API_KEY or len(GEMINI_API_KEY) < 10:
         return "⚠️ API Key Hatalı", None
     
@@ -137,32 +112,45 @@ def ask_ai(passage, question, options):
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel('gemini-2.5-flash')
         
+        # --- STRATEJİ ODAKLI YENİ PROMPT ---
         prompt = f"""
-        Sen İngilizce öğreten bir yapay zeka asistanısın.
-        PARAGRAF: {passage if passage else "-"}
+        Sen Türkiye'nin en iyi YDS/YÖKDİL sınav koçusun.
+        PARAGRAF: {passage if passage else "Paragraf yok."}
         SORU: {question}
         ŞIKLAR: {options}
         
-        Lütfen cevabı şu formatta hazırla (Sadece konuşma metni olsun):
+        Lütfen cevabı tam olarak şu başlıklar altında ver:
         
-        Önce soruyu ve doğru şıkkı temiz bir İngilizce ile tekrar et.
-        Ardından Türkçe olarak; kelimeleri, gramer yapısını ve neden bu şıkkın doğru olduğunu anlat.
-        Anlatırken İngilizce terimleri sık sık kullan ve bunları cümlenin içinde doğal şekilde geçir.
+        [BÖLÜM 1: STRATEJİ VE MANTIK]
+        (Burada soruyu çözmeden önce, bu sorunun TÜRÜ nedir? [Zaman, Bağlaç, Kelime vb.]
+         Bu tür sorularda nereye bakmalıyız? İpuçları nelerdir? Bize balık verme, balık tutmayı öğret.)
+        
+        [BÖLÜM 2: CÜMLE ANALİZİ]
+        (Metni cümle cümle ayır. Her cümlenin önce İngilizcesini sonra Türkçesini yaz.)
+        Format:
+        🇬🇧 [İngilizce]
+        🇹🇷 [Türkçe]
+        
+        [BÖLÜM 3: DOĞRU CEVAP]
+        (Hangi şık doğru ve neden? Stratejiye göre açıkla.)
+        
+        [BÖLÜM 4: ÇELDİRİCİLER]
+        (Diğerleri neden elendi?)
         """
         
-        with st.spinner("🤖 Gemini Hoca Hazırlanıyor..."):
-            # 1. Metni Üret
+        with st.spinner("🤖 Soru Tipi ve Strateji Analiz Ediliyor..."):
             response = model.generate_content(prompt)
-            text_response = response.text
+            full_text = response.text
             
-            # 2. Sesi Üret (Multilingual)
+            rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
             try:
-                asyncio.run(generate_speech(text_response))
+                asyncio.run(generate_speech(full_text, rate_str))
                 with open("output_audio.mp3", "rb") as f:
                     audio_bytes = f.read()
-                return text_response, audio_bytes
             except Exception as e:
-                return text_response + f"\n(Ses hatası: {e})", None
+                audio_bytes = None
+            
+            return full_text, audio_bytes
 
     except Exception as e:
         return f"Hata oluştu: {e}", None
@@ -171,7 +159,6 @@ def ask_ai(passage, question, options):
 if df is not None:
     
     with st.sidebar:
-        # SAYAÇ
         components.html(f"""
         <div style="font-family:'Courier New',monospace;font-size:36px;font-weight:800;color:#dc2626;background:white;padding:10px 0;border-radius:10px;text-align:center;border:3px solid #dc2626;margin-bottom:20px;letter-spacing:2px;box-shadow:0 4px 6px rgba(0,0,0,0.1);" id="cnt">...</div>
         <script>
@@ -187,8 +174,10 @@ if df is not None:
         """, height=100)
         
         st.caption("🟢:D | 🔴:Y | ⭐:İşaret")
-
-        # GRID
+        st.divider()
+        st.write("🗣️ **Okuma Hızı**")
+        speed_val = st.slider("Hız Ayarı (%)", min_value=-50, max_value=50, value=0, step=10)
+        
         chunk_size = 5
         for i in range(0, len(df), chunk_size):
             row_cols = st.columns(chunk_size)
@@ -197,24 +186,19 @@ if df is not None:
                     q_idx = i + j
                     u_ans = st.session_state.answers.get(q_idx)
                     c_ans = df.iloc[q_idx]['Dogru_Cevap']
-                    
                     label = str(q_idx + 1)
                     if u_ans: label = "✅" if u_ans == c_ans else "❌"
                     elif q_idx in st.session_state.marked: label = "⭐"
-                    
                     b_type = "primary" if q_idx == st.session_state.idx else "secondary"
-                    
                     with row_cols[j]:
                         if st.button(label, key=f"q_{q_idx}", type=b_type, use_container_width=True):
                             st.session_state.idx = q_idx
                             st.rerun()
-
         st.divider()
         if st.button("SINAVI BİTİR", type="primary", use_container_width=True):
             st.session_state.finish = True
             st.rerun()
 
-    # --- ANA EKRAN ---
     if not st.session_state.finish:
         c1, c2 = st.columns([3, 1])
         c1.markdown(f"### Soru {st.session_state.idx + 1} / {len(df)}")
@@ -247,8 +231,8 @@ if df is not None:
                     else: st.error(f"❌ YANLIŞ! (Cevap: {row['Dogru_Cevap']})")
                 
                 st.write("")
-                if st.button("🤖 Gemini'ye Sor & Dinle 🔊", use_container_width=True):
-                    txt, aud = ask_ai(passage, stem, opts)
+                if st.button("🤖 Strateji & Çözüm (Dinle) 🔊", use_container_width=True):
+                    txt, aud = ask_ai(passage, stem, opts, speed_val)
                     st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': aud}
                     st.rerun()
         else:
@@ -264,53 +248,59 @@ if df is not None:
                 else: st.error(f"❌ YANLIŞ! (Cevap: {row['Dogru_Cevap']})")
             
             st.write("")
-            if st.button("🤖 Gemini'ye Sor & Dinle 🔊", use_container_width=True):
-                txt, aud = ask_ai(passage, stem, opts)
+            if st.button("🤖 Strateji & Çözüm (Dinle) 🔊", use_container_width=True):
+                txt, aud = ask_ai(passage, stem, opts, speed_val)
                 st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': aud}
                 st.rerun()
 
-        # --- SONUÇ ---
+        # --- GÖRSELLEŞTİRME ---
         if st.session_state.idx in st.session_state.gemini_res:
             data = st.session_state.gemini_res[st.session_state.idx]
-            
-            st.markdown(f"""
-            <div class="gemini-box">
-                <h4>🤖 Gemini Öğretmen Diyor ki:</h4>
-                {data['text']}
-            </div>
-            """, unsafe_allow_html=True)
+            full_text = data['text']
             
             if data['audio']:
-                st.success("🔊 Öğretmen Konuşuyor (Andrew - Multilingual)")
+                st.success(f"🔊 Hız: {speed_val}%")
                 st.audio(data['audio'], format='audio/mp3')
 
-        st.write("")
-        cp, cn = st.columns(2)
-        if st.session_state.idx > 0:
-            cp.button("⬅️ Önceki", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx-1), use_container_width=True)
-        if st.session_state.idx < len(df) - 1:
-            cn.button("Sonraki ➡️", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx+1), type="primary", use_container_width=True)
+            parts = full_text.split('[BÖLÜM')
+            
+            for part in parts:
+                # 1. STRATEJİ KUTUSU (MAVİ)
+                if "1: STRATEJİ" in part:
+                    clean_text = part.replace("1: STRATEJİ VE MANTIK]", "").strip()
+                    st.markdown(f"""
+                    <div class="strategy-box">
+                        <div class="strategy-title">💡 SINAV STRATEJİSİ & ÇÖZÜM MANTIĞI</div>
+                        {clean_text}
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                # 2. CÜMLE CÜMLE ANALİZ (SARI)
+                elif "2: CÜMLE ANALİZİ]" in part:
+                    raw_content = part.replace("2: CÜMLE ANALİZİ]", "").strip()
+                    st.markdown("<div class='ai-header'>🔍 CÜMLE CÜMLE ANALİZ</div>", unsafe_allow_html=True)
+                    lines = raw_content.split('\n')
+                    eng_buf, tr_buf = "", ""
+                    for line in lines:
+                        line = line.strip()
+                        if "🇬🇧" in line: eng_buf = line.replace("🇬🇧", "").strip()
+                        elif "🇹🇷" in line: tr_buf = line.replace("🇹🇷", "").strip()
+                        if eng_buf and tr_buf:
+                            st.markdown(f"""<div class="sentence-box"><div class="eng-text">{eng_buf}</div><div class="tr-text">{tr_buf}</div></div>""", unsafe_allow_html=True)
+                            eng_buf, tr_buf = "", ""
+                
+                # 3. DOĞRU CEVAP (YEŞİL)
+                elif "3: DOĞRU CEVAP]" in part:
+                    clean_text = part.replace("3: DOĞRU CEVAP]", "").strip()
+                    st.markdown(f"""<div class="ai-header" style="color:#27ae60;">✅ NEDEN DOĞRU?</div><div class="ai-text" style="border-left: 5px solid #27ae60;">{clean_text}</div>""", unsafe_allow_html=True)
+                
+                # 4. ÇELDİRİCİLER (KIRMIZI)
+                elif "4: ÇELDİRİCİLER]" in part:
+                    clean_text = part.replace("4: ÇELDİRİCİLER]", "").strip()
+                    st.markdown(f"""<div class="ai-header" style="color:#c0392b;">❌ NEDEN YANLIŞ?</div><div class="ai-text" style="border-left: 5px solid #c0392b;">{clean_text}</div>""", unsafe_allow_html=True)
 
     else:
         st.title("Sonuçlar")
-        res = []
-        c, w, e = 0, 0, 0
-        for i in range(len(df)):
-            ua = st.session_state.answers.get(i)
-            true_a = df.iloc[i]['Dogru_Cevap']
-            if ua:
-                if ua == true_a: c+=1; s="Doğru"
-                else: w+=1; s="Yanlış"
-            else: e+=1; s="Boş"
-            res.append({"No": i+1, "Cevap": ua, "Doğru": true_a, "Durum": s})
-            
-        k1, k2, k3 = st.columns(3)
-        k1.metric("Doğru", c)
-        k2.metric("Yanlış", w)
-        k3.metric("Boş", e)
-        st.dataframe(pd.DataFrame(res), use_container_width=True)
-        if st.button("Başa Dön"):
-            st.session_state.clear()
-            st.rerun()
+        # Sonuç ekranı kodları...
 else:
     st.error("Excel yüklenemedi.")
