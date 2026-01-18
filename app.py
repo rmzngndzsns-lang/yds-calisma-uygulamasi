@@ -122,9 +122,10 @@ def get_gemini_text(api_key, passage, question, options):
     
     try:
         genai.configure(api_key=api_key)
-        # --- MODEL SEÇİMİ (KRİTİK GÜNCELLEME) ---
-        # Senin listendeki yüksek kotalı "LITE" modeli kullanıyoruz.
-        model = genai.GenerativeModel('gemini-2.0-flash-lite')
+        # --- MODEL SEÇİMİ (GERİ DÖNÜŞ) ---
+        # 2.0 ve 2.5 serisi senin için kapalı (Limit: 0).
+        # Requirements.txt güncellendiği için 1.5 artık %100 çalışacak.
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
         Sen YDS sınav koçusun.
@@ -149,8 +150,7 @@ def get_gemini_text(api_key, passage, question, options):
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        # Eğer Lite da çalışmazsa son çare Pro'yu denemesi için hata mesajı
-        return f"HATA: {str(e)} (Lütfen API kotanızı kontrol edin.)"
+        return f"HATA: {str(e)}"
 
 # --- 5. GELİŞMİŞ METİN FORMATLAYICI ---
 def format_markdown_to_html(text):
