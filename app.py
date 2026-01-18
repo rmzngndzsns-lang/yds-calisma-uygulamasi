@@ -112,7 +112,8 @@ st.markdown("""
 # --- 3. VERİ YÜKLEME ---
 @st.cache_data
 def load_data():
-    dosya_adi = "sorular.xlsx"
+    # Dosya adını buraya tam olarak yazıyoruz
+    dosya_adi = "YDS1_ingilizce (2).xlsx" 
     try:
         df = pd.read_excel(dosya_adi, engine="openpyxl")
         df.columns = df.columns.str.strip()
@@ -123,8 +124,14 @@ def load_data():
             return None
         return df
     except FileNotFoundError:
-        st.error(f"❌ Dosya Bulunamadı: '{dosya_adi}' dosyasının bu klasörde olduğundan emin ol.")
-        return None
+        # Eğer xlsx bulunamazsa csv dene (Yedek plan)
+        try:
+             df = pd.read_csv("YDS1_ingilizce (2).xlsx - Table 1.csv")
+             st.warning("Excel bulunamadı, CSV dosyası yüklendi.")
+             return df
+        except:
+            st.error(f"❌ Dosya Bulunamadı! Lütfen dosya adının '{dosya_adi}' olduğundan emin ol.")
+            return None
     except Exception as e:
         st.error(f"❌ Hata: {e}")
         return None
@@ -156,8 +163,9 @@ def ask_ai(passage, question, options):
     
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        # EN GÜVENLİ VE STABİL MODEL
-        model = genai.GenerativeModel('gemini-pro')
+        
+        # --- GÜNCEL VE ÇALIŞAN MODEL ---
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
         Sen uzman bir İngilizce öğretmenisin.
@@ -166,16 +174,16 @@ def ask_ai(passage, question, options):
         ŞIKLAR: {options}
         
         Lütfen Türkçe olarak:
-        1. Soruyu çevir.
+        1. Soruyu ve şıkları çevir.
         2. Doğru cevabı ve nedenini açıkla.
         3. Diğer şıkların neden yanlış olduğunu belirt.
         """
         
-        with st.spinner("🤖 Gemini Hoca inceliyor..."):
+        with st.spinner("🤖 Gemini 1.5 Flash Soruyu İnceliyor..."):
             res = model.generate_content(prompt)
             return res.text
     except Exception as e:
-        return f"Hata: {e}. Model ismini değiştirmeyi deneyin."
+        return f"Hata oluştu: {e}"
 
 # --- 7. UYGULAMA GÖVDESİ ---
 if df is not None:
