@@ -4,8 +4,8 @@ import time
 from datetime import datetime, timedelta
 import streamlit.components.v1 as components
 import google.generativeai as genai
-import edge_tts  # YENİ VE KALİTELİ SES KÜTÜPHANESİ
-import asyncio   # ASENKRON ÇALIŞTIRMA İÇİN
+import edge_tts  # SES KÜTÜPHANESİ
+import asyncio   # ASENKRON İŞLEMLER
 
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="Yds App", page_icon="🤖", layout="wide")
@@ -22,14 +22,14 @@ st.markdown("""
     
     .stApp { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
     
-    /* SIDEBAR BUTONLARI */
+    /* SIDEBAR */
     [data-testid="stSidebar"] [data-testid="column"] { padding: 0px 1px !important; min-width: 0 !important; }
     [data-testid="stSidebar"] button { 
         width: 100% !important; padding: 0px !important; height: 34px !important; 
         font-size: 13px !important; font-weight: 600 !important; margin: 0px !important; 
     }
 
-    /* KUTULAR VE METİNLER */
+    /* KUTULAR */
     .passage-box { 
         background-color: white; padding: 20px; border-radius: 12px; height: 55vh; 
         overflow-y: auto; font-size: 15.5px; line-height: 1.7; text-align: justify; 
@@ -118,11 +118,15 @@ def parse_question(text):
     parts = text.split('\n\n', 1) if '\n\n' in text else (None, text.strip())
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
-# --- 6. GEMINI & KALİTELİ SES FONKSİYONU ---
+# --- 6. MULTILINGUAL (ÇOK DİLLİ) SES FONKSİYONU ---
 async def generate_speech(text):
-    # Microsoft'un 'Ahmet' Neural sesini kullanıyoruz. Çok doğaldır.
-    # Alternatif: "tr-TR-EmelNeural" (Kadın sesi için)
-    communicate = edge_tts.Communicate(text, "tr-TR-AhmetNeural")
+    # ÇOK ÖNEMLİ AYAR:
+    # "en-US-AndrewMultilingualNeural" -> Bu ses motoru hem İngilizce hem Türkçe konuşabilir.
+    # İngilizce kelimeleri "Native" gibi, Türkçeyi "Yabancı Hoca" gibi okur. 
+    # Alternatif (Kadın sesi için): "en-US-AvaMultilingualNeural"
+    
+    VOICE = "en-US-AndrewMultilingualNeural"
+    communicate = edge_tts.Communicate(text, VOICE)
     await communicate.save("output_audio.mp3")
 
 def ask_ai(passage, question, options):
@@ -134,34 +138,31 @@ def ask_ai(passage, question, options):
         model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""
-        Sen uzman bir İngilizce öğretmenisin.
+        Sen İngilizce öğreten bir yapay zeka asistanısın.
         PARAGRAF: {passage if passage else "-"}
         SORU: {question}
         ŞIKLAR: {options}
         
-        Lütfen Türkçe olarak samimi ve öğretici bir dille anlat:
-        1. Soruyu ve şıkları çevir.
-        2. Doğru cevabı açıkla.
-        3. Diğer şıkların neden yanlış olduğunu belirt.
+        Lütfen cevabı şu formatta hazırla (Sadece konuşma metni olsun):
+        
+        Önce soruyu ve doğru şıkkı temiz bir İngilizce ile tekrar et.
+        Ardından Türkçe olarak; kelimeleri, gramer yapısını ve neden bu şıkkın doğru olduğunu anlat.
+        Anlatırken İngilizce terimleri sık sık kullan ve bunları cümlenin içinde doğal şekilde geçir.
         """
         
-        with st.spinner("🤖 Gemini Hoca düşünüyor ve konuşuyor..."):
+        with st.spinner("🤖 Gemini Hoca Hazırlanıyor..."):
             # 1. Metni Üret
             response = model.generate_content(prompt)
             text_response = response.text
             
-            # 2. Sesi Üret (Edge TTS - Neural)
+            # 2. Sesi Üret (Multilingual)
             try:
-                # Asenkron fonksiyonu burada çalıştırıyoruz
                 asyncio.run(generate_speech(text_response))
-                
-                # Dosyayı okuyup Streamlit'e veriyoruz
                 with open("output_audio.mp3", "rb") as f:
                     audio_bytes = f.read()
-                
                 return text_response, audio_bytes
             except Exception as e:
-                return text_response, None # Ses üretilemezse sadece metni dön
+                return text_response + f"\n(Ses hatası: {e})", None
 
     except Exception as e:
         return f"Hata oluştu: {e}", None
@@ -246,7 +247,6 @@ if df is not None:
                     else: st.error(f"❌ YANLIŞ! (Cevap: {row['Dogru_Cevap']})")
                 
                 st.write("")
-                # BUTON: Hem metni hem sesi iste
                 if st.button("🤖 Gemini'ye Sor & Dinle 🔊", use_container_width=True):
                     txt, aud = ask_ai(passage, stem, opts)
                     st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': aud}
@@ -269,11 +269,10 @@ if df is not None:
                 st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': aud}
                 st.rerun()
 
-        # --- GEMINI SONUÇ GÖSTERİMİ (METİN + SES) ---
+        # --- SONUÇ ---
         if st.session_state.idx in st.session_state.gemini_res:
             data = st.session_state.gemini_res[st.session_state.idx]
             
-            # 1. Metni Göster
             st.markdown(f"""
             <div class="gemini-box">
                 <h4>🤖 Gemini Öğretmen Diyor ki:</h4>
@@ -281,9 +280,8 @@ if df is not None:
             </div>
             """, unsafe_allow_html=True)
             
-            # 2. Sesi Oynat (Eğer varsa)
             if data['audio']:
-                st.success("🔊 Ses Hazır! Aşağıdan dinleyebilirsin.")
+                st.success("🔊 Öğretmen Konuşuyor (Andrew - Multilingual)")
                 st.audio(data['audio'], format='audio/mp3')
 
         st.write("")
