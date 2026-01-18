@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 import google.generativeai as genai
 
 # --- 1. AYARLAR ---
-st.set_page_config(page_title="YDS AI", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="Yds App", page_icon="🤖", layout="wide")
 
 # ==========================================
 # !!! BURAYA GEMINI API KEY YAPIŞTIR !!!
