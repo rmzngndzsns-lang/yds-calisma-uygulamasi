@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 import google.generativeai as genai
 
 # --- 1. AYARLAR ---
-st.set_page_config(page_title="YDS Pro AI", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="Yds App", page_icon="🤖", layout="wide")
 
 # ==========================================
 # !!! BURAYA GEMINI API KEY YAPIŞTIR !!!
@@ -113,7 +113,7 @@ st.markdown("""
 @st.cache_data
 def load_data():
     # Dosya adını buraya tam olarak yazıyoruz
-    dosya_adi = "YDS1_ingilizce (2).xlsx" 
+    dosya_adi = "sorular.xlsx" 
     try:
         df = pd.read_excel(dosya_adi, engine="openpyxl")
         df.columns = df.columns.str.strip()
