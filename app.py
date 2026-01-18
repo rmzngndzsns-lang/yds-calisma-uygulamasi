@@ -234,7 +234,7 @@ if df is not None:
         # --- API KEY (SABİT) ---
         st.info("🔑 **API Anahtarı**")
         # 👇👇👇 BURAYA KENDİ KEYİNİ YAPIŞTIR 👇👇👇
-        user_api_key = "AIzaSyAiuriJuQLwsa54EwnY9Zy8zk1jj_Tajsg" 
+        user_api_key = "AIzaSyBieaJ-pyHstD1hzvTspVaU58BPyT12Uxs" 
         # 👆👆👆 BURAYA KENDİ KEYİNİ YAPIŞTIR 👆👆👆
         
         if "BURAYA" in user_api_key:
