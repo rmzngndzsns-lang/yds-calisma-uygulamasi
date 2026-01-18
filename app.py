@@ -13,23 +13,47 @@ st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
 # ==========================================
 # !!! BURAYA GEMINI API KEY YAPIŞTIR !!!
 # ==========================================
-GEMINI_API_KEY = "AIzaSyCWX5JvdRAo5MH_1O1zvwop692jBdKreFc"
+GEMINI_API_KEY = "BURAYA_API_KEY_YAZILACAK"
 
 # --- 2. CSS TASARIMI ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     .stApp { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
     
-    /* SIDEBAR */
     [data-testid="stSidebar"] [data-testid="column"] { padding: 0px 1px !important; min-width: 0 !important; }
-    [data-testid="stSidebar"] button { width: 100% !important; padding: 0px !important; height: 34px !important; font-size: 13px !important; font-weight: 600 !important; margin: 0px !important; }
+    [data-testid="stSidebar"] button { width: 100% !important; padding: 0px !important; height: 34px !important; font-size: 13px !important; font-weight: 700 !important; margin: 0px !important; }
     
-    /* KUTULAR */
-    .passage-box { background-color: white; padding: 20px; border-radius: 12px; height: 55vh; overflow-y: auto; font-size: 15.5px; line-height: 1.7; text-align: justify; border: 1px solid #e5e7eb; border-left: 5px solid #2c3e50; color: #374151; }
-    .question-stem { font-size: 16.5px; font-weight: 600; background-color: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; border-left: 4px solid #3b82f6; margin-bottom: 20px; color: #111827; }
+    /* OKUMA PARÇASI - GÜNCELLENDİ (SORU KÖKÜ GİBİ BOLD YAPILDI) */
+    .passage-box { 
+        background-color: white; 
+        padding: 20px; 
+        border-radius: 12px; 
+        height: 55vh; 
+        overflow-y: auto; 
+        font-size: 16px;      /* Hafif büyütüldü */
+        font-weight: 700;     /* ARTIK BOLD (KALIN) */
+        line-height: 1.8; 
+        text-align: justify; 
+        border: 1px solid #e5e7eb; 
+        border-left: 5px solid #2c3e50; 
+        color: #111827;       /* Koyu siyah */
+    }
     
-    /* STRATEJİ KUTUSU (YENİ) */
+    /* SORU KÖKÜ (BOLD) */
+    .question-stem { 
+        font-size: 17px; 
+        font-weight: 800;     /* EKSTRA BOLD */
+        background-color: white; 
+        padding: 20px; 
+        border-radius: 12px; 
+        border: 1px solid #e5e7eb; 
+        border-left: 4px solid #3b82f6; 
+        margin-bottom: 20px; 
+        color: #000000; 
+    }
+    
+    /* STRATEJİ KUTUSU */
     .strategy-box {
         background-color: #e3f2fd;
         border: 1px solid #bbdefb;
@@ -39,19 +63,26 @@ st.markdown("""
         margin-bottom: 20px;
         color: #0d47a1;
         font-size: 15px;
+        font-weight: 600;
     }
-    .strategy-title { font-weight: 800; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;}
+    .strategy-title { font-weight: 900; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;}
 
     /* CÜMLE KUTULARI */
     .sentence-box { background-color: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; border-left: 4px solid #f39c12; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .eng-text { font-weight: 600; color: #2c3e50; margin-bottom: 4px; font-size: 15px; }
-    .tr-text { color: #555; font-style: italic; font-size: 14px; }
+    .eng-text { font-weight: 700; color: #2c3e50; margin-bottom: 4px; font-size: 15px; }
+    .tr-text { color: #555; font-weight: 600; font-style: italic; font-size: 14px; }
     
     /* GENEL AI METİN */
-    .ai-header { color: #8e44ad; font-weight: 800; font-size: 16px; margin-bottom: 8px; text-transform: uppercase; margin-top: 15px;}
-    .ai-text { font-size: 15px; line-height: 1.6; color: #4a4a4a; background: white; padding: 15px; border-radius: 10px; }
+    .ai-header { color: #8e44ad; font-weight: 900; font-size: 16px; margin-bottom: 8px; text-transform: uppercase; margin-top: 15px;}
+    .ai-text { font-size: 15px; font-weight: 600; line-height: 1.6; color: #333; background: white; padding: 15px; border-radius: 10px; }
 
-    div.stButton > button { height: 45px; font-weight: 500; font-size: 15px; }
+    div.stButton > button { height: 45px; font-weight: 700; font-size: 15px; }
+
+    /* ŞIKLARIN FONTU */
+    .stRadio div[role='radiogroup'] > label { 
+        font-weight: 600 !important; 
+        color: #1f2937 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -112,7 +143,6 @@ def ask_ai(passage, question, options, speed_val):
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel('gemini-2.5-flash')
         
-        # --- STRATEJİ ODAKLI YENİ PROMPT ---
         prompt = f"""
         Sen Türkiye'nin en iyi YDS/YÖKDİL sınav koçusun.
         PARAGRAF: {passage if passage else "Paragraf yok."}
@@ -265,7 +295,6 @@ if df is not None:
             parts = full_text.split('[BÖLÜM')
             
             for part in parts:
-                # 1. STRATEJİ KUTUSU (MAVİ)
                 if "1: STRATEJİ" in part:
                     clean_text = part.replace("1: STRATEJİ VE MANTIK]", "").strip()
                     st.markdown(f"""
@@ -275,7 +304,6 @@ if df is not None:
                     </div>
                     """, unsafe_allow_html=True)
 
-                # 2. CÜMLE CÜMLE ANALİZ (SARI)
                 elif "2: CÜMLE ANALİZİ]" in part:
                     raw_content = part.replace("2: CÜMLE ANALİZİ]", "").strip()
                     st.markdown("<div class='ai-header'>🔍 CÜMLE CÜMLE ANALİZ</div>", unsafe_allow_html=True)
@@ -289,18 +317,34 @@ if df is not None:
                             st.markdown(f"""<div class="sentence-box"><div class="eng-text">{eng_buf}</div><div class="tr-text">{tr_buf}</div></div>""", unsafe_allow_html=True)
                             eng_buf, tr_buf = "", ""
                 
-                # 3. DOĞRU CEVAP (YEŞİL)
                 elif "3: DOĞRU CEVAP]" in part:
                     clean_text = part.replace("3: DOĞRU CEVAP]", "").strip()
                     st.markdown(f"""<div class="ai-header" style="color:#27ae60;">✅ NEDEN DOĞRU?</div><div class="ai-text" style="border-left: 5px solid #27ae60;">{clean_text}</div>""", unsafe_allow_html=True)
                 
-                # 4. ÇELDİRİCİLER (KIRMIZI)
                 elif "4: ÇELDİRİCİLER]" in part:
                     clean_text = part.replace("4: ÇELDİRİCİLER]", "").strip()
                     st.markdown(f"""<div class="ai-header" style="color:#c0392b;">❌ NEDEN YANLIŞ?</div><div class="ai-text" style="border-left: 5px solid #c0392b;">{clean_text}</div>""", unsafe_allow_html=True)
 
     else:
         st.title("Sonuçlar")
-        # Sonuç ekranı kodları...
+        res = []
+        c, w, e = 0, 0, 0
+        for i in range(len(df)):
+            ua = st.session_state.answers.get(i)
+            true_a = df.iloc[i]['Dogru_Cevap']
+            if ua:
+                if ua == true_a: c+=1; s="Doğru"
+                else: w+=1; s="Yanlış"
+            else: e+=1; s="Boş"
+            res.append({"No": i+1, "Cevap": ua, "Doğru": true_a, "Durum": s})
+            
+        k1, k2, k3 = st.columns(3)
+        k1.metric("Doğru", c)
+        k2.metric("Yanlış", w)
+        k3.metric("Boş", e)
+        st.dataframe(pd.DataFrame(res), use_container_width=True)
+        if st.button("Başa Dön"):
+            st.session_state.clear()
+            st.rerun()
 else:
     st.error("Excel yüklenemedi.")
