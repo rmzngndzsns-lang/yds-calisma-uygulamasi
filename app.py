@@ -122,7 +122,7 @@ def get_gemini_text(api_key, passage, question, options):
     
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         prompt = f"""
         Sen YDS sınav koçusun.
         PARAGRAF: {passage if passage else "Paragraf yok."}
