@@ -7,33 +7,16 @@ import streamlit.components.v1 as components
 # --- 1. SAYFA AYARLARI ---
 st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 
-# --- 2. PROFESYONEL CSS TASARIMI ---
+# --- 2. PROFESYONEL CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&display=swap'); /* Sayaç İçin Kalın Font */
     
     .stApp {
         font-family: 'Inter', sans-serif;
         background-color: #f3f4f6;
     }
     
-    /* YAN MENÜDEKİ SAYAÇ (BÜYÜK VE KALIN) */
-    .sidebar-timer {
-        font-family: 'Roboto Mono', monospace;
-        font-size: 34px;       /* Daha Büyük */
-        font-weight: 900;      /* Çok Kalın (Bold) */
-        color: #c0392b;        /* Alarm Kırmızısı */
-        background-color: #ffffff;
-        padding: 15px 5px;
-        border-radius: 8px;
-        text-align: center;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 2px solid #e74c3c;
-        letter-spacing: 2px;   /* Rakamlar arası boşluk */
-    }
-
     /* Okuma Parçası Kutusu */
     .passage-box {
         background-color: white;
@@ -47,6 +30,7 @@ st.markdown("""
         border: 1px solid #e5e7eb;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         color: #374151;
+        border-left: 5px solid #2c3e50;
     }
 
     /* Soru Alanı */
@@ -56,7 +40,7 @@ st.markdown("""
         background-color: white;
         padding: 20px;
         border: 1px solid #e5e7eb;
-        border-left: 5px solid #3b82f6; /* Modern Mavi */
+        border-left: 4px solid #3b82f6;
         border-radius: 12px;
         color: #111827;
         margin-bottom: 20px;
@@ -64,7 +48,7 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
-    /* Radyo Butonlar (Şıklar) */
+    /* Radyo Butonlar */
     .stRadio > label { display: none; }
     .stRadio div[role='radiogroup'] > label {
         padding: 12px 16px;
@@ -74,19 +58,19 @@ st.markdown("""
         background-color: white;
         font-size: 15px;
         color: #374151;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.2s;
     }
     .stRadio div[role='radiogroup'] > label:hover {
-        background-color: #f9fafb;
+        background-color: #eff6ff;
         border-color: #3b82f6;
-        color: #2563eb;
+        color: #1d4ed8;
     }
 
     /* İşaretle Butonu (Gold/Sarı) */
     div.stButton > button:contains("İşaretle") {
         border-color: #d97706 !important;
         color: #d97706 !important;
-        font-weight: 600;
+        font-weight: 700;
     }
     div.stButton > button:contains("Kaldır") {
         background-color: #d97706 !important;
@@ -94,7 +78,7 @@ st.markdown("""
         border: none;
     }
     
-    /* Navigasyon Butonları (Sidebar) */
+    /* Yan Menü Butonları */
     div[data-testid="stSidebar"] button {
         padding: 0px;
         height: 38px;
@@ -103,7 +87,7 @@ st.markdown("""
         border-radius: 6px;
     }
     
-    /* Ana Ekran Navigasyon Butonları (İleri/Geri) */
+    /* Ana Navigasyon */
     div.stButton > button {
         height: 45px;
         font-weight: 500;
@@ -129,7 +113,6 @@ def init_session():
     if 'marked' not in st.session_state: st.session_state.marked = set()
     
     if 'end_timestamp' not in st.session_state:
-        # Şu an + 180 dakika
         future = datetime.now() + timedelta(minutes=180)
         st.session_state.end_timestamp = future.timestamp() * 1000 
 
@@ -152,10 +135,23 @@ if df is not None:
     
     # --- SIDEBAR ---
     with st.sidebar:
-        # SAYAÇ (JS - BÜYÜK VE KALIN)
+        # SAYAÇ (STYLES DOĞRUDAN HTML İÇİNE GÖMÜLDÜ - GARANTİ ÇÖZÜM)
         end_ts = st.session_state.end_timestamp
         timer_html = f"""
-        <div class="sidebar-timer" id="countdown">Loading...</div>
+        <div style="
+            font-family: 'Courier New', monospace;
+            font-size: 42px; 
+            font-weight: 900; 
+            color: #dc2626; 
+            background-color: #ffffff;
+            padding: 10px 0px;
+            border-radius: 10px;
+            text-align: center;
+            border: 3px solid #dc2626;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        " id="countdown">Loading...</div>
         <script>
             var countDownDate = {end_ts};
             var x = setInterval(function() {{
@@ -170,7 +166,7 @@ if df is not None:
             }}, 1000);
         </script>
         """
-        components.html(timer_html, height=85) # Yükseklik artırıldı
+        components.html(timer_html, height=100) # Yükseklik artırıldı
         
         st.caption("🟢:Doğru | 🔴:Yanlış | ⭐:İşaretli")
         
@@ -201,7 +197,7 @@ if df is not None:
 
     # --- ANA EKRAN ---
     if not st.session_state.finish:
-        # Temiz Başlık
+        # Başlık
         st.markdown(f"### Soru {st.session_state.idx + 1} / {len(df)}")
         
         row = df.iloc[st.session_state.idx]
@@ -271,7 +267,7 @@ if df is not None:
                 if sel_char == true_char: st.success("✅ DOĞRU")
                 else: st.error(f"❌ YANLIŞ! (Cevap: {true_char})")
 
-        # ALT NAVİGASYON
+        # NAVİGASYON
         st.markdown("<br>", unsafe_allow_html=True)
         col_prev, col_next = st.columns([1, 1])
         
