@@ -8,137 +8,68 @@ import edge_tts
 import asyncio
 import os
 import re
+import nest_asyncio
 
-# --- 1. AYARLAR ---
+# Döngü çakışmalarını önleyen yama
+nest_asyncio.apply()
+
+# --- 1. SAYFA AYARLARI ---
 st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
 
-# ==========================================
-# !!! BURAYA GEMINI API KEY YAPIŞTIR !!!
-# ==========================================
-GEMINI_API_KEY = "AIzaSyDu9xpibnjd8pjtczu7GG-AkP7QaoBWsG0"
-
-# --- 2. PREMIUM CSS TASARIMI ---
+# --- 2. PROFESYONEL CSS TASARIMI ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
     
-    .stApp { 
-        font-family: 'Roboto', sans-serif; 
-        background-color: #f8f9fa; 
+    .stApp { font-family: 'Roboto', sans-serif; background-color: #f8f9fa; }
+    
+    div.stButton > button { 
+        width: 100%; border-radius: 8px; font-weight: 600; height: 40px;
+        transition: all 0.2s ease;
     }
     
-    /* BUTONLAR */
-    div.stButton > button { 
-        width: 100%; 
-        border-radius: 8px; 
-        font-weight: 600; 
-        height: 40px;
-        transition: all 0.3s ease;
-    }
-
-    /* OKUMA PARÇASI KUTUSU (Sol Taraf) */
+    /* OKUMA PARÇASI KUTUSU */
     .passage-box { 
-        background-color: #ffffff; 
-        padding: 25px; 
-        border-radius: 15px; 
-        height: 60vh; 
-        overflow-y: auto; 
-        font-size: 16px; 
-        font-weight: 500; 
-        line-height: 1.8; 
-        text-align: justify; /* İKİ YANA YASLAMA */
-        border: 1px solid #e9ecef; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        background-color: #ffffff; padding: 25px; border-radius: 15px; height: 60vh; 
+        overflow-y: auto; font-size: 16px; font-weight: 500; line-height: 1.8; 
+        text-align: justify; border: 1px solid #e9ecef; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         color: #2d3436; 
     }
     
-    /* SORU KÖKÜ */
+    /* SORU KÖKÜ KUTUSU */
     .question-stem { 
-        font-size: 18px; 
-        font-weight: 700; 
-        background-color: #ffffff; 
-        padding: 20px; 
-        border-radius: 12px; 
-        border-left: 5px solid #0984e3; 
-        margin-bottom: 25px; 
-        color: #2d3436;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        font-size: 18px; font-weight: 700; background-color: #ffffff; padding: 20px; 
+        border-radius: 12px; border-left: 5px solid #0984e3; margin-bottom: 25px; 
+        color: #2d3436; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* STRATEJİ KUTUSU (Mavi) */
+    /* ANALİZ KUTULARI */
     .strategy-box { 
-        background-color: #e8f4fd; 
-        border-left: 5px solid #3498db; 
-        padding: 20px; 
-        border-radius: 10px; 
-        margin-bottom: 20px; 
-        color: #2c3e50; 
-        font-size: 15px; 
-        line-height: 1.6;
-        text-align: justify; /* İKİ YANA YASLAMA */
+        background-color: #e8f4fd; border-left: 5px solid #3498db; padding: 20px; 
+        border-radius: 10px; margin-bottom: 20px; color: #2c3e50; font-size: 15px; 
+        line-height: 1.6; text-align: justify;
     }
     
-    /* CÜMLE KUTULARI (Sarı) */
     .sentence-box { 
-        background-color: #fffbf2; 
-        border-left: 5px solid #f1c40f; 
-        padding: 15px; 
-        border-radius: 10px; 
-        margin-bottom: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        background-color: #fffbf2; border-left: 5px solid #f1c40f; padding: 15px; 
+        border-radius: 10px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .eng-text { 
-        font-weight: 700; 
-        color: #2c3e50; 
-        margin-bottom: 8px; 
-        font-size: 16px;
-    }
-    .tr-text { 
-        color: #576574; 
-        font-style: italic; 
-        font-size: 15px; 
-        font-weight: 400;
-    }
+    .eng-text { font-weight: 700; color: #2c3e50; margin-bottom: 8px; font-size: 16px; }
+    .tr-text { color: #576574; font-style: italic; font-size: 15px; font-weight: 400; }
 
-    /* AI BAŞLIKLARI */
     .ai-header { 
-        color: #8e44ad; 
-        font-weight: 900; 
-        font-size: 14px; 
-        letter-spacing: 1px; 
-        margin-bottom: 10px; 
-        text-transform: uppercase; 
-        margin-top: 20px;
-        border-bottom: 2px solid #ecf0f1;
-        padding-bottom: 5px;
+        color: #8e44ad; font-weight: 900; font-size: 14px; letter-spacing: 1px; 
+        margin-bottom: 10px; text-transform: uppercase; margin-top: 20px;
+        border-bottom: 2px solid #ecf0f1; padding-bottom: 5px;
     }
     
-    /* DOĞRU/YANLIŞ KUTULARI */
-    .answer-box-correct {
-        background-color: #eafaf1;
-        border-left: 5px solid #2ecc71;
-        padding: 15px;
-        border-radius: 8px;
-        text-align: justify;
-        color: #27ae60;
-        font-weight: 500;
-    }
-    .answer-box-wrong {
-        background-color: #fdedec;
-        border-left: 5px solid #e74c3c;
-        padding: 15px;
-        border-radius: 8px;
-        text-align: justify;
-        color: #c0392b;
-        font-weight: 500;
-    }
+    .answer-box-correct { background-color: #eafaf1; border-left: 5px solid #2ecc71; padding: 15px; border-radius: 8px; text-align: justify; color: #27ae60; font-weight: 500; }
+    .answer-box-wrong { background-color: #fdedec; border-left: 5px solid #e74c3c; padding: 15px; border-radius: 8px; text-align: justify; color: #c0392b; font-weight: 500; }
 
-    /* Scrollbar Güzelleştirme */
+    /* SCROLLBAR */
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -166,7 +97,6 @@ def init_session():
     if 'end_timestamp' not in st.session_state: st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000 
     if 'finish' not in st.session_state: st.session_state.finish = False
     if 'gemini_res' not in st.session_state: st.session_state.gemini_res = {} 
-    if 'speech_rate' not in st.session_state: st.session_state.speech_rate = "+0%"
 
 df = load_data()
 init_session()
@@ -178,10 +108,12 @@ def parse_question(text):
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
 # --- 4. HIZLI GEMINI ---
-def get_gemini_text(passage, question, options):
-    if "BURAYA" in GEMINI_API_KEY or len(GEMINI_API_KEY) < 10: return "⚠️ API Key Hatalı"
+def get_gemini_text(api_key, passage, question, options):
+    if "BURAYA" in api_key or len(api_key) < 10:
+        return "⚠️ Lütfen kodun içindeki API Key kısmını düzenleyin!"
+    
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
+        genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = f"""
         Sen YDS sınav koçusun.
@@ -189,7 +121,7 @@ def get_gemini_text(passage, question, options):
         SORU: {question}
         ŞIKLAR: {options}
         
-        Cevabı şu başlıklarla ver (Markdown yıldızlarını abartma):
+        Cevabı ETİKETLERİ BOZMADAN şu formatta ver:
         
         [BÖLÜM 1: STRATEJİ VE MANTIK]
         (Soru türü ve çözüm ipucu)
@@ -206,32 +138,31 @@ def get_gemini_text(passage, question, options):
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        return f"Hata oluştu: {e}"
+        return f"HATA: {str(e)}"
 
-# --- 5. GÖRSEL TEMİZLİK FONKSİYONU ---
-def clean_visual_text(text):
-    """Ekranda görünen metindeki *** gibi kirlilikleri temizler."""
-    # 3 yıldızları sil veya normale çevir
-    text = text.replace('***', '') 
-    # Gereksiz markdown bold işaretlerini temizle (İsteğe bağlı)
-    # text = text.replace('**', '') 
-    return text
+# --- 5. FORMAT DÖNÜŞTÜRÜCÜ VE TEMİZLİK ---
+def format_markdown_to_html(text):
+    """**kelime** formatını <b>kelime</b> yapar (HTML Görünüm için)"""
+    if not text: return ""
+    formatted_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    return formatted_text
 
-# --- 6. SES TEMİZLİK FONKSİYONU ---
 def clean_text_for_tts(text):
-    """Sese gitmeden önce metni temizler."""
-    text = re.sub(r'[\#\*\_\`]', '', text) # Yıldız, kare, alt tire sil
+    """Sese gitmeden önce metni temizler"""
+    text = text.replace('**', '') # Yıldızları sil
+    text = re.sub(r'[\#\_\`]', '', text)
     text = text.replace('🇬🇧', '').replace('🇹🇷', '').replace('💡', '').replace('✅', '').replace('❌', '').replace('🔍', '')
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-# --- 7. PARALEL SES OLUŞTURMA (HIZ AYARI DÜZELTİLDİ) ---
+# --- 6. ULTRA-HIZLI (PARALEL) SES FONKSİYONU ---
 async def generate_segment(text, voice, rate, index):
     if not text.strip(): return b""
+    if len(text) < 2: return b"" 
+    
     cleaned_text = clean_text_for_tts(text)
     temp_file = f"temp_{index}.mp3"
     try:
-        # HIZ AYARI BURADA DEVREYE GİRİYOR (rate parametresi)
         communicate = edge_tts.Communicate(cleaned_text, voice, rate=rate)
         await communicate.save(temp_file)
         with open(temp_file, "rb") as f: data = f.read()
@@ -241,21 +172,20 @@ async def generate_segment(text, voice, rate, index):
         return b""
 
 def generate_parallel_audio(full_text, speed_val):
-    voice = "en-US-BrianMultilingualNeural" # Brian daha profesyonel ve nettir.
-    
-    # HIZ FORMATI KONTROLÜ
-    # Edge-TTS için format: "+10%" veya "-10%"
+    if full_text.startswith("HATA") or full_text.startswith("⚠️"): return None
+
+    voice = "en-US-BrianMultilingualNeural" # Net ve Profesyonel Ses
     rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
     
-    parts = full_text.split('[BÖLÜM')
-    text_segments = [p for p in parts if len(p.strip()) > 10]
-    if not text_segments: text_segments = [full_text]
+    # Metni SATIRLARA bölerek maksimum paralellik sağlıyoruz
+    lines = full_text.split('\n')
+    text_segments = [line for line in lines if len(line.strip()) > 5]
 
     async def _main():
         tasks = []
         for i, segment in enumerate(text_segments):
-            # rate_str'yi her parçaya gönderiyoruz
             tasks.append(generate_segment(segment, voice, rate_str, i))
+        
         results = await asyncio.gather(*tasks)
         return b"".join(results)
 
@@ -269,7 +199,7 @@ def generate_parallel_audio(full_text, speed_val):
         st.error(f"Ses Hatası: {e}")
         return None
 
-# --- 8. UYGULAMA GÖVDESİ ---
+# --- 7. UYGULAMA GÖVDESİ ---
 if df is not None:
     with st.sidebar:
         # SAYAÇ
@@ -287,13 +217,21 @@ if df is not None:
         </script>""", height=90)
         
         st.write("---")
-        st.markdown("### ⚙️ Ayarlar")
+        
+        # --- API KEY (SABİT) ---
+        st.info("🔑 **API Anahtarı**")
+        # 👇👇👇 BURAYA KENDİ KEYİNİ YAPIŞTIR 👇👇👇
+        user_api_key = "AIzaSyAiuriJuQLwsa54EwnY9Zy8zk1jj_Tajsg" 
+        # 👆👆👆 BURAYA KENDİ KEYİNİ YAPIŞTIR 👆👆👆
+        
+        if "BURAYA" in user_api_key:
+            st.error("Lütfen kodun 234. satırına API Key'inizi girin!")
+
+        st.write("---")
         st.write("🗣️ **Okuma Hızı**")
-        # Slider'ı session_state'e bağlayalım ki değeri kaybolmasın
-        speed_val = st.slider("Hız Ayarı (%)", min_value=-50, max_value=50, value=0, step=10, key="speed_slider")
+        speed_val = st.slider("Hız Ayarı (%)", min_value=-50, max_value=50, value=0, step=10)
         
         st.write("---")
-        st.markdown("### 🧩 Sorular")
         
         chunk_size = 5
         for i in range(0, len(df), chunk_size):
@@ -318,7 +256,6 @@ if df is not None:
             st.rerun()
 
     if not st.session_state.finish:
-        # ÜST BAR
         c1, c2 = st.columns([3, 1])
         c1.markdown(f"## 📝 Soru {st.session_state.idx + 1} / {len(df)}")
         is_marked = st.session_state.idx in st.session_state.marked
@@ -331,14 +268,15 @@ if df is not None:
         passage, stem = parse_question(row['Soru'])
         opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
         
-        # SORU ALANI
         if passage:
             col_l, col_r = st.columns([1, 1], gap="medium")
             with col_l:
                 st.markdown("#### 📖 Okuma Parçası")
-                st.markdown(f"<div class='passage-box'>{passage}</div>", unsafe_allow_html=True)
+                formatted_passage = format_markdown_to_html(passage)
+                st.markdown(f"<div class='passage-box'>{formatted_passage}</div>", unsafe_allow_html=True)
             with col_r:
-                st.markdown(f"<div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
+                formatted_stem = format_markdown_to_html(stem)
+                st.markdown(f"<div class='question-stem'>{formatted_stem}</div>", unsafe_allow_html=True)
                 curr = st.session_state.answers.get(st.session_state.idx)
                 idx_s = next((k for k,v in enumerate(opts) if v.startswith(curr + ")")), None) if curr else None
                 sel = st.radio("Cevabınız:", opts, index=idx_s, key=f"rad_{st.session_state.idx}")
@@ -352,12 +290,12 @@ if df is not None:
                 st.write("")
                 if st.button("🤖 Çözümle ve Seslendir 🔊", use_container_width=True):
                     with st.spinner("🧠 Yapay Zeka Düşünüyor..."):
-                        txt = get_gemini_text(passage, stem, opts)
+                        txt = get_gemini_text(user_api_key, passage, stem, opts)
                         st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
                         st.rerun()
         else:
-            # Paragrafsız Soru
-            st.markdown(f"<div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
+            formatted_stem = format_markdown_to_html(stem)
+            st.markdown(f"<div class='question-stem'>{formatted_stem}</div>", unsafe_allow_html=True)
             curr = st.session_state.answers.get(st.session_state.idx)
             idx_s = next((k for k,v in enumerate(opts) if v.startswith(curr + ")")), None) if curr else None
             sel = st.radio("Cevabınız:", opts, index=idx_s, key=f"rad_{st.session_state.idx}")
@@ -371,59 +309,64 @@ if df is not None:
             st.write("")
             if st.button("🤖 Çözümle ve Seslendir 🔊", use_container_width=True):
                 with st.spinner("🧠 Yapay Zeka Düşünüyor..."):
-                    txt = get_gemini_text(passage, stem, opts)
+                    txt = get_gemini_text(user_api_key, passage, stem, opts)
                     st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
                     st.rerun()
 
         # SONUÇ GÖSTERİMİ
         if st.session_state.idx in st.session_state.gemini_res:
             data = st.session_state.gemini_res[st.session_state.idx]
-            full_text = clean_visual_text(data['text']) # EKRAN İÇİN TEMİZLEME
             
-            st.markdown("---")
-            
-            # SES OYNATICI
-            if data['audio'] is not None:
-                st.success(f"🔊 Seslendirme Hazır (Hız: {speed_val}%)")
-                st.audio(data['audio'], format='audio/mp3')
+            if data['text'].startswith("HATA") or data['text'].startswith("⚠️"):
+                 st.error(data['text'])
+            else:
+                full_text = data['text'] 
+                
+                st.markdown("---")
+                
+                if data['audio'] is not None:
+                    st.success(f"🔊 Seslendirme Hazır (Hız: {speed_val}%)")
+                    st.audio(data['audio'], format='audio/mp3')
 
-            # PARÇALI GÖSTERİM (PROFESYONEL CSS İLE)
-            parts = full_text.split('[BÖLÜM')
-            for part in parts:
-                if "1: STRATEJİ" in part:
-                    clean_text = part.replace("1: STRATEJİ VE MANTIK]", "").strip()
-                    st.markdown(f"""<div class="strategy-box"><div class="ai-header">💡 STRATEJİ & İPUCU</div>{clean_text}</div>""", unsafe_allow_html=True)
-                elif "2: CÜMLE ANALİZİ]" in part:
-                    raw_content = part.replace("2: CÜMLE ANALİZİ]", "").strip()
-                    st.markdown("<div class='ai-header' style='margin-left:5px;'>🔍 DETAYLI CÜMLE ANALİZİ</div>", unsafe_allow_html=True)
-                    lines = raw_content.split('\n')
-                    eng_buf, tr_buf = "", ""
-                    for line in lines:
-                        line = line.strip()
-                        if "🇬🇧" in line: eng_buf = line.replace("🇬🇧", "").strip()
-                        elif "🇹🇷" in line: tr_buf = line.replace("🇹🇷", "").strip()
-                        if eng_buf and tr_buf:
-                            st.markdown(f"""<div class="sentence-box"><div class="eng-text">{eng_buf}</div><div class="tr-text">{tr_buf}</div></div>""", unsafe_allow_html=True)
-                            eng_buf, tr_buf = "", ""
-                elif "3: DOĞRU CEVAP]" in part:
-                    clean_text = part.replace("3: DOĞRU CEVAP]", "").strip()
-                    st.markdown(f"""<div class="answer-box-correct"><div class="ai-header" style="color:#27ae60; border-color:#27ae60;">✅ DOĞRU CEVAP</div>{clean_text}</div><br>""", unsafe_allow_html=True)
-                elif "4: ÇELDİRİCİLER]" in part:
-                    clean_text = part.replace("4: ÇELDİRİCİLER]", "").strip()
-                    st.markdown(f"""<div class="answer-box-wrong"><div class="ai-header" style="color:#c0392b; border-color:#c0392b;">❌ ÇELDİRİCİ ANALİZİ</div>{clean_text}</div>""", unsafe_allow_html=True)
-            
-            # SES YOKSA OLUŞTUR
-            if data['audio'] is None:
-                with st.spinner("🔊 Profesyonel ses oluşturuluyor..."):
-                    # Burada "speed_val" slider'dan gelen güncel değeri kullanıyoruz
-                    aud_bytes = generate_parallel_audio(data['text'], speed_val)
-                    if aud_bytes:
-                        st.session_state.gemini_res[st.session_state.idx]['audio'] = aud_bytes
-                        st.rerun()
-                    else:
-                        st.error("Ses oluşturulamadı.")
+                parts = full_text.split('[BÖLÜM')
+                for part in parts:
+                    if "1: STRATEJİ" in part:
+                        clean_text = part.replace("1: STRATEJİ VE MANTIK]", "").strip()
+                        html_text = format_markdown_to_html(clean_text)
+                        st.markdown(f"""<div class="strategy-box"><div class="ai-header">💡 STRATEJİ & İPUCU</div>{html_text}</div>""", unsafe_allow_html=True)
+                    elif "2: CÜMLE ANALİZİ]" in part:
+                        raw_content = part.replace("2: CÜMLE ANALİZİ]", "").strip()
+                        st.markdown("<div class='ai-header' style='margin-left:5px;'>🔍 DETAYLI CÜMLE ANALİZİ</div>", unsafe_allow_html=True)
+                        lines = raw_content.split('\n')
+                        eng_buf, tr_buf = "", ""
+                        for line in lines:
+                            line = line.strip()
+                            if "🇬🇧" in line: eng_buf = line.replace("🇬🇧", "").strip()
+                            elif "🇹🇷" in line: tr_buf = line.replace("🇹🇷", "").strip()
+                            if eng_buf and tr_buf:
+                                eng_html = format_markdown_to_html(eng_buf)
+                                tr_html = format_markdown_to_html(tr_buf)
+                                st.markdown(f"""<div class="sentence-box"><div class="eng-text">{eng_html}</div><div class="tr-text">{tr_html}</div></div>""", unsafe_allow_html=True)
+                                eng_buf, tr_buf = "", ""
+                    elif "3: DOĞRU CEVAP]" in part:
+                        clean_text = part.replace("3: DOĞRU CEVAP]", "").strip()
+                        html_text = format_markdown_to_html(clean_text)
+                        st.markdown(f"""<div class="answer-box-correct"><div class="ai-header" style="color:#27ae60; border-color:#27ae60;">✅ DOĞRU CEVAP</div>{html_text}</div><br>""", unsafe_allow_html=True)
+                    elif "4: ÇELDİRİCİLER]" in part:
+                        clean_text = part.replace("4: ÇELDİRİCİLER]", "").strip()
+                        html_text = format_markdown_to_html(clean_text)
+                        st.markdown(f"""<div class="answer-box-wrong"><div class="ai-header" style="color:#c0392b; border-color:#c0392b;">❌ ÇELDİRİCİ ANALİZİ</div>{html_text}</div>""", unsafe_allow_html=True)
+                
+                # SES OLUŞTURMA
+                if data['audio'] is None:
+                    with st.spinner("🔊 Ultra-Hızlı ses oluşturuluyor..."):
+                        aud_bytes = generate_parallel_audio(data['text'], speed_val)
+                        if aud_bytes:
+                            st.session_state.gemini_res[st.session_state.idx]['audio'] = aud_bytes
+                            st.rerun()
+                        else:
+                            st.error("Ses oluşturulamadı (Metin boş veya hatalı olabilir).")
     else:
         st.title("Sınav Sonuçları")
-        # Sonuç ekranı kodları...
 else:
     st.error("Veri dosyası yüklenemedi.")
