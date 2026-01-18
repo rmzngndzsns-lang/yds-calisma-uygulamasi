@@ -11,27 +11,27 @@ st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap'); /* Sayaç İçin */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&display=swap'); /* Sayaç İçin Kalın Font */
     
     .stApp {
         font-family: 'Inter', sans-serif;
         background-color: #f3f4f6;
     }
     
-    /* Yan Menüdeki Sayaç (Dijital Saat Görünümü) */
+    /* YAN MENÜDEKİ SAYAÇ (BÜYÜK VE KALIN) */
     .sidebar-timer {
         font-family: 'Roboto Mono', monospace;
-        font-size: 26px;
-        font-weight: 600;
-        color: #1f2937;
+        font-size: 34px;       /* Daha Büyük */
+        font-weight: 900;      /* Çok Kalın (Bold) */
+        color: #c0392b;        /* Alarm Kırmızısı */
         background-color: #ffffff;
-        padding: 12px;
+        padding: 15px 5px;
         border-radius: 8px;
         text-align: center;
         margin-bottom: 20px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e5e7eb;
-        letter-spacing: 1px;
+        border: 2px solid #e74c3c;
+        letter-spacing: 2px;   /* Rakamlar arası boşluk */
     }
 
     /* Okuma Parçası Kutusu */
@@ -56,7 +56,7 @@ st.markdown("""
         background-color: white;
         padding: 20px;
         border: 1px solid #e5e7eb;
-        border-left: 4px solid #3b82f6; /* Modern Mavi */
+        border-left: 5px solid #3b82f6; /* Modern Mavi */
         border-radius: 12px;
         color: #111827;
         margin-bottom: 20px;
@@ -152,7 +152,7 @@ if df is not None:
     
     # --- SIDEBAR ---
     with st.sidebar:
-        # SAYAÇ (JS - Temiz ve Modern)
+        # SAYAÇ (JS - BÜYÜK VE KALIN)
         end_ts = st.session_state.end_timestamp
         timer_html = f"""
         <div class="sidebar-timer" id="countdown">Loading...</div>
@@ -170,9 +170,9 @@ if df is not None:
             }}, 1000);
         </script>
         """
-        components.html(timer_html, height=70)
+        components.html(timer_html, height=85) # Yükseklik artırıldı
         
-        st.caption("🟢 Doğru | 🔴 Yanlış | ⭐ İşaretli")
+        st.caption("🟢:Doğru | 🔴:Yanlış | ⭐:İşaretli")
         
         # SORU PALETİ
         cols = st.columns(5)
