@@ -4,8 +4,8 @@ import time
 from datetime import datetime, timedelta
 import streamlit.components.v1 as components
 import google.generativeai as genai
-from gtts import gTTS  # SESLENDİRME İÇİN GEREKLİ
-import io              # SES DOSYASI İŞLEMLERİ İÇİN
+import edge_tts  # YENİ VE KALİTELİ SES KÜTÜPHANESİ
+import asyncio   # ASENKRON ÇALIŞTIRMA İÇİN
 
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="Yds App", page_icon="🤖", layout="wide")
@@ -118,7 +118,13 @@ def parse_question(text):
     parts = text.split('\n\n', 1) if '\n\n' in text else (None, text.strip())
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
-# --- 6. GEMINI & SES FONKSİYONU ---
+# --- 6. GEMINI & KALİTELİ SES FONKSİYONU ---
+async def generate_speech(text):
+    # Microsoft'un 'Ahmet' Neural sesini kullanıyoruz. Çok doğaldır.
+    # Alternatif: "tr-TR-EmelNeural" (Kadın sesi için)
+    communicate = edge_tts.Communicate(text, "tr-TR-AhmetNeural")
+    await communicate.save("output_audio.mp3")
+
 def ask_ai(passage, question, options):
     if "BURAYA" in GEMINI_API_KEY or len(GEMINI_API_KEY) < 10:
         return "⚠️ API Key Hatalı", None
@@ -139,18 +145,23 @@ def ask_ai(passage, question, options):
         3. Diğer şıkların neden yanlış olduğunu belirt.
         """
         
-        with st.spinner("🤖 Gemini Hoca inceliyor ve seslendiriyor..."):
+        with st.spinner("🤖 Gemini Hoca düşünüyor ve konuşuyor..."):
             # 1. Metni Üret
             response = model.generate_content(prompt)
             text_response = response.text
             
-            # 2. Sesi Üret (gTTS)
-            tts = gTTS(text=text_response, lang='tr')
-            audio_buffer = io.BytesIO()
-            tts.write_to_fp(audio_buffer)
-            audio_buffer.seek(0)
-            
-            return text_response, audio_buffer
+            # 2. Sesi Üret (Edge TTS - Neural)
+            try:
+                # Asenkron fonksiyonu burada çalıştırıyoruz
+                asyncio.run(generate_speech(text_response))
+                
+                # Dosyayı okuyup Streamlit'e veriyoruz
+                with open("output_audio.mp3", "rb") as f:
+                    audio_bytes = f.read()
+                
+                return text_response, audio_bytes
+            except Exception as e:
+                return text_response, None # Ses üretilemezse sadece metni dön
 
     except Exception as e:
         return f"Hata oluştu: {e}", None
@@ -270,9 +281,9 @@ if df is not None:
             </div>
             """, unsafe_allow_html=True)
             
-            # 2. Ses Oynatıcıyı Göster (Eğer ses varsa)
+            # 2. Sesi Oynat (Eğer varsa)
             if data['audio']:
-                st.write("🔊 **Açıklamayı Dinle:**")
+                st.success("🔊 Ses Hazır! Aşağıdan dinleyebilirsin.")
                 st.audio(data['audio'], format='audio/mp3')
 
         st.write("")
