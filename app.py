@@ -3,122 +3,136 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta
 
-# --- 1. SAYFA YAPILANDIRMASI (OSYM STİLİ) ---
-st.set_page_config(page_title="ÖSYM E-Sınav Sistemi", page_icon="📝", layout="wide")
+# --- 1. SAYFA AYARLARI ---
+st.set_page_config(page_title="ÖSYM E-Sınav", page_icon="📝", layout="wide")
 
-# --- 2. PROFESYONEL CSS (ÖSYM ARAYÜZÜ) ---
+# --- 2. PROFESYONEL CSS & JS ---
 st.markdown("""
 <style>
+    /* Genel Font ve Arkaplan */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
     
-    body {
+    .stApp {
+        background-color: #f4f6f9;
         font-family: 'Roboto', sans-serif;
-        background-color: #f0f2f5;
     }
-    
-    /* Üst Bar (Header) */
-    .header-bar {
-        background-color: #2c3e50;
-        color: white;
-        padding: 15px;
+
+    /* Sayaç Kutusu (Header Sağ) */
+    .timer-container {
+        font-size: 26px;
+        font-weight: 800;
+        color: #d63031;
+        background-color: white;
+        padding: 10px 25px;
         border-radius: 8px;
-        display: flex;
-        justify_content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
+        border: 2px solid #d63031;
+        text-align: center;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    
-    /* Sayaç Kutusu */
-    .timer-box {
-        font-size: 24px;
-        font-weight: bold;
-        color: #e74c3c;
-        background-color: #fff;
-        padding: 5px 15px;
-        border-radius: 5px;
-        border: 2px solid #e74c3c;
-    }
 
-    /* Sol Taraf: Soru Paleti */
-    .grid-container {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 8px;
-        padding: 10px;
-    }
-    .grid-btn {
-        width: 100%;
-        padding: 8px 0;
-        text-align: center;
-        font-size: 12px;
-        font-weight: bold;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        cursor: pointer;
+    /* Sol Okuma Parçası (Sabit Yükseklik + Scroll) */
+    .passage-box {
         background-color: white;
-        color: #333;
-        transition: all 0.2s;
-    }
-    /* Durum Renkleri */
-    .grid-btn.active { border: 2px solid #2c3e50; font-weight: 900; transform: scale(1.1); }
-    .grid-btn.answered { background-color: #3498db; color: white; border-color: #2980b9; }
-    .grid-btn.marked { background-color: #f39c12; color: white; border-color: #d35400; }
-    
-    /* Okuma Parçası (Scrollable) */
-    .passage-container {
-        background-color: white;
-        border: 1px solid #ddd;
-        border-left: 5px solid #2c3e50;
-        padding: 20px;
-        border-radius: 8px;
-        height: 600px; /* Sabit yükseklik */
-        overflow-y: auto; /* Scroll */
-        font-size: 16px;
+        padding: 25px;
+        border-radius: 10px;
+        border-left: 6px solid #2d3436;
+        height: 65vh; /* Ekranın %65'i kadar yükseklik */
+        overflow-y: auto; /* İçinde kaydırma çubuğu çıksın */
+        font-size: 17px;
         line-height: 1.8;
         text-align: justify;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        color: #2d3436;
     }
-    
-    /* Soru Alanı */
-    .question-container {
+
+    /* Sağ Soru Alanı */
+    .question-box {
         background-color: white;
-        border: 1px solid #ddd;
-        padding: 20px;
-        border-radius: 8px;
-        min-height: 600px;
+        padding: 25px;
+        border-radius: 10px;
+        border: 1px solid #dfe6e9;
+        min-height: 65vh;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
+
     .question-stem {
         font-size: 18px;
-        font-weight: bold;
-        margin-bottom: 20px;
+        font-weight: 700;
+        background-color: #f1f2f6;
         padding: 15px;
-        background-color: #ecf0f1;
-        border-radius: 5px;
+        border-radius: 8px;
         color: #2c3e50;
+        margin-bottom: 20px;
+        line-height: 1.5;
     }
-    
-    /* Şık Butonları */
-    .stButton > button {
-        width: 100%;
-        text-align: left;
-        padding: 15px;
-        border: 1px solid #bdc3c7;
-        background-color: #fff;
-        border-radius: 6px;
-        margin-bottom: 8px;
+
+    /* Radyo Butonlarını Özelleştirme (Şıklar) */
+    .stRadio > label {
+        font-weight: bold;
         font-size: 16px;
-        transition: 0.2s;
     }
-    .stButton > button:hover {
-        background-color: #eaf2f8;
-        border-color: #3498db;
-        color: #2980b9;
+    .stRadio div[role='radiogroup'] > label {
+        background-color: #ffffff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: 1px solid #b2bec3;
+        margin-bottom: 8px;
+        width: 100%;
+        display: flex;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .stRadio div[role='radiogroup'] > label:hover {
+        border-color: #0984e3;
+        background-color: #f0f9ff;
     }
     
+    /* Navigasyon Butonları (Önceki/Sonraki) */
+    div.stButton > button {
+        width: 100%;
+        font-weight: bold;
+        border-radius: 8px;
+        height: 50px;
+        font-size: 16px;
+    }
+    
+    /* İleri Butonu Özel Renk */
+    div[data-testid="column"] button:contains("Sonraki") {
+        background-color: #0984e3 !important;
+        color: white !important;
+    }
 </style>
+
+<script>
+// JavaScript Canlı Sayaç
+function startTimer(duration, display) {
+    var timer = duration, minutes, seconds;
+    setInterval(function () {
+        hours = parseInt(timer / 3600, 10);
+        minutes = parseInt((timer % 3600) / 60, 10);
+        seconds = parseInt(timer % 60, 10);
+
+        hours = hours < 10 ? "0" + hours : hours;
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        seconds = seconds < 10 ? "0" + seconds : seconds;
+
+        display.textContent = hours + ":" + minutes + ":" + seconds;
+
+        if (--timer < 0) {
+            timer = 0;
+            // Süre bitince uyarı verebiliriz
+        }
+    }, 1000);
+}
+
+window.onload = function () {
+    // Python'dan gelen kalan saniyeyi al (Streamlit iframe içinde çalıştığı için trick gerekir)
+    // Şimdilik basitçe JS tarafında başlatıyoruz, sayfa yenilenince süre sunucudan güncellenir.
+};
+</script>
 """, unsafe_allow_html=True)
 
-# --- 3. VERİ VE DURUM YÖNETİMİ ---
+# --- 3. VERİ YÖNETİMİ ---
 @st.cache_data
 def load_data():
     try:
@@ -129,32 +143,15 @@ def load_data():
 
 def init_session():
     if 'idx' not in st.session_state: st.session_state.idx = 0
-    if 'answers' not in st.session_state: st.session_state.answers = {} # {0: 'A', 1: 'C'}
-    if 'marked' not in st.session_state: st.session_state.marked = set() # {3, 15} (İşaretli sorular)
+    if 'answers' not in st.session_state: st.session_state.answers = {} 
+    if 'marked' not in st.session_state: st.session_state.marked = set()
     if 'start_time' not in st.session_state: st.session_state.start_time = datetime.now()
-    if 'exam_finished' not in st.session_state: st.session_state.exam_finished = False
+    if 'finish' not in st.session_state: st.session_state.finish = False
 
 df = load_data()
 init_session()
 
-# --- 4. ZAMANLAYICI MANTIĞI ---
-def get_timer():
-    now = datetime.now()
-    elapsed = now - st.session_state.start_time
-    total_duration = timedelta(minutes=180)
-    remaining = total_duration - elapsed
-    
-    if remaining.total_seconds() <= 0:
-        st.session_state.exam_finished = True
-        return "00:00:00"
-    
-    # Formatlama HH:MM:SS
-    seconds = int(remaining.total_seconds())
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    return f"{h:02d}:{m:02d}:{s:02d}"
-
-# --- 5. PARSER ---
+# --- 4. PARSER ---
 def parse_question(text):
     if pd.isna(text): return None, "Soru yüklenemedi."
     text = str(text).replace('\\n', '\n')
@@ -163,171 +160,247 @@ def parse_question(text):
         return parts[0].strip(), parts[1].strip()
     return None, text.strip()
 
-# --- 6. UYGULAMA GÖVDESİ ---
-if df is not None and not st.session_state.exam_finished:
+# --- 5. UYGULAMA MANTIĞI ---
+if df is not None:
     
-    # --- ÜST BAR (HEADER) ---
-    timer_str = get_timer()
-    c1, c2, c3 = st.columns([2, 6, 2])
-    with c1:
-        st.markdown(f"**2021-YDS/1 İngilizce**")
-    with c3:
-        st.markdown(f"<div class='timer-box'>⏳ {timer_str}</div>", unsafe_allow_html=True)
+    # --- HEADER (ZAMANLAYICI) ---
+    # Kalan saniyeyi hesapla
+    now = datetime.now()
+    elapsed = (now - st.session_state.start_time).total_seconds()
+    total_seconds = 180 * 60
+    remaining_seconds = max(0, int(total_seconds - elapsed))
+    
+    # Kalan süreyi HH:MM:SS formatına çevir
+    m, s = divmod(remaining_seconds, 60)
+    h, m = divmod(m, 60)
+    time_str = f"{h:02d}:{m:02d}:{s:02d}"
+
+    # Header Dizilimi
+    c_head_1, c_head_2, c_head_3 = st.columns([2, 6, 2])
+    with c_head_1:
+        st.markdown(f"### 🇹🇷 YDS 2021/1")
+    with c_head_3:
+        # Bu kısım JS ile de güncellenebilir ama Streamlit'te native olarak her işlemde yenilenir
+        # Canlı akış için HTML/JS inject ediyoruz:
+        st.markdown(
+            f"""
+            <div class="timer-container" id="safeTimerDisplay">{time_str}</div>
+            <script>
+            // Basit JS Sayacı (Görsel Akıcılık İçin)
+            var timeleft = {remaining_seconds};
+            var downloadTimer = setInterval(function(){{
+              if(timeleft <= 0){{
+                clearInterval(downloadTimer);
+                document.getElementById("safeTimerDisplay").innerHTML = "00:00:00";
+              }} else {{
+                var h = Math.floor(timeleft / 3600);
+                var m = Math.floor((timeleft % 3600) / 60);
+                var s = Math.floor(timeleft % 60);
+                document.getElementById("safeTimerDisplay").innerHTML = 
+                    (h<10?"0":"")+h + ":" + (m<10?"0":"")+m + ":" + (s<10?"0":"")+s;
+              }}
+              timeleft -= 1;
+            }}, 1000);
+            </script>
+            """, 
+            unsafe_allow_html=True
+        )
 
     st.markdown("---")
 
-    # --- YAN PANEL (SORU PALETİ) ---
+    # --- YAN MENÜ (SORU PALETİ) ---
     with st.sidebar:
-        st.header("Soru Gezgini")
-        st.write("⚪ Boş | 🔵 Cevaplı | 🟠 İşaretli")
+        st.header("Soru Paleti")
+        st.caption("🔵: Cevaplı | ⚪: Boş | 🟠: İşaretli")
         
-        # Grid Oluşturma
-        cols = st.columns(5)
+        # Grid Sistemi (5 kolonlu)
+        col_list = st.columns(5)
         for i in range(len(df)):
-            # Durum Belirleme
-            style_class = "grid-btn"
-            if i == st.session_state.idx: style_class += " active"
-            elif i in st.session_state.marked: style_class += " marked"
-            elif i in st.session_state.answers: style_class += " answered"
+            label = str(i+1)
             
-            # Buton Rengi (CSS ile)
-            color_map = {
-                "active": "border: 2px solid black; font-weight:bold;",
-                "marked": "background-color: #f39c12; color: white;",
-                "answered": "background-color: #3498db; color: white;",
-                "default": "background-color: white;"
-            }
+            # Durum Kontrolü
+            is_answered = i in st.session_state.answers
+            is_marked = i in st.session_state.marked
+            is_active = (i == st.session_state.idx)
             
-            # Basit Streamlit butonu ile navigasyon
-            # Not: Streamlit butonlarına CSS class atamak zordur, o yüzden görsel hile yapıyoruz
-            label = f"{i+1}"
-            if i in st.session_state.marked: label += " 🚩"
+            # İkon Ekleme
+            if is_marked: label = "🚩"
+            elif is_answered: label = "✅"
             
-            # Soruya Git Butonu
-            if cols[i % 5].button(label, key=f"nav_{i}", use_container_width=True):
+            # Buton Rengi (Streamlit'te dinamik renk zordur, 'type' ile oynuyoruz)
+            btn_type = "primary" if (is_answered or is_active) else "secondary"
+            
+            if col_list[i % 5].button(label, key=f"nav_{i}", type=btn_type, use_container_width=True):
                 st.session_state.idx = i
                 st.rerun()
-
+        
         st.divider()
-        if st.button("🏁 Sınavı Bitir", type="primary"):
-            st.session_state.exam_finished = True
+        if st.button("SINAVI BİTİR", type="primary", use_container_width=True):
+            st.session_state.finish = True
             st.rerun()
 
-    # --- ANA SORU EKRANI ---
-    row = df.iloc[st.session_state.idx]
-    passage, stem = parse_question(row['Soru'])
-    
-    # Araç Çubuğu (Tool Bar)
-    t_col1, t_col2, t_col3 = st.columns([1, 4, 1])
-    with t_col1:
-        # İşaretle Butonu (Toggle)
-        is_marked = st.session_state.idx in st.session_state.marked
-        btn_label = "🚩 İşaretle" if not is_marked else "🏳️ İşareti Kaldır"
-        if st.button(btn_label):
-            if is_marked: st.session_state.marked.remove(st.session_state.idx)
-            else: st.session_state.marked.add(st.session_state.idx)
-            st.rerun()
-
-    # Düzen (Split View)
-    if passage:
-        col_left, col_right = st.columns([1, 1], gap="medium")
+    # --- ANA İÇERİK (SORU) ---
+    if not st.session_state.finish:
+        row = df.iloc[st.session_state.idx]
+        passage, stem = parse_question(row['Soru'])
         
-        with col_left:
-            st.markdown("### 📖 Okuma Parçası")
-            st.markdown(f"<div class='passage-container'>{passage}</div>", unsafe_allow_html=True)
-            
-        with col_right:
-            st.markdown(f"### Soru {st.session_state.idx + 1}")
-            st.markdown(f"<div class='question-container'><div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
-            
-            # Şıklar
-            for s in ['A', 'B', 'C', 'D', 'E']:
-                if pd.notna(row[s]):
-                    # Eğer daha önce cevap verdiyse onu göster
-                    user_ans = st.session_state.answers.get(st.session_state.idx)
-                    
-                    if st.button(f"{s}) {row[s]}", key=f"q_{st.session_state.idx}_{s}"):
-                        st.session_state.answers[st.session_state.idx] = s
-                        st.rerun()
-            
-            # Seçili Cevabı Göster
-            if st.session_state.idx in st.session_state.answers:
-                st.info(f"✅ Seçtiğiniz Cevap: **{st.session_state.answers[st.session_state.idx]}**")
-            
-            st.markdown("</div>", unsafe_allow_html=True) # Kapatma div'i
+        # Üst Araç Çubuğu
+        col_tool1, col_tool2 = st.columns([1, 5])
+        with col_tool1:
+            marked_label = "🏳️ Kaldır" if st.session_state.idx in st.session_state.marked else "🚩 İşaretle"
+            if st.button(marked_label, key="mark_btn"):
+                if st.session_state.idx in st.session_state.marked:
+                    st.session_state.marked.remove(st.session_state.idx)
+                else:
+                    st.session_state.marked.add(st.session_state.idx)
+                st.rerun()
 
-    else:
-        # Tek Sütun (Paragrafsız)
-        st.markdown(f"### Soru {st.session_state.idx + 1}")
-        st.markdown(f"<div class='question-container'><div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
+        # --- GÖRÜNÜM (SPLIT vs FULL) ---
+        if passage:
+            # OKUMA MODU
+            c_left, c_right = st.columns([1.1, 1], gap="medium")
+            
+            with c_left:
+                st.info("Okuma Parçası")
+                st.markdown(f"<div class='passage-box'>{passage}</div>", unsafe_allow_html=True)
+                
+            with c_right:
+                st.markdown(f"**Soru {st.session_state.idx + 1}**")
+                st.markdown(f"<div class='question-box'><div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
+                
+                # RADYO BUTON SİSTEMİ
+                options = []
+                mapping = {}
+                for opt in ['A', 'B', 'C', 'D', 'E']:
+                    if pd.notna(row[opt]):
+                        full_opt = f"{opt}) {row[opt]}"
+                        options.append(full_opt)
+                        mapping[full_opt] = opt # "A) Apple" -> "A"
+                
+                # Daha önce verilmiş cevap varsa seçili getir
+                current_ans = st.session_state.answers.get(st.session_state.idx)
+                default_idx = None
+                if current_ans:
+                    # Kayıtlı şıkkı (örn 'A') tam metinle eşleştir
+                    for i, o in enumerate(options):
+                        if o.startswith(current_ans + ")"):
+                            default_idx = i
+                            break
+                
+                selected = st.radio(
+                    "Cevabınız:", 
+                    options, 
+                    index=default_idx, 
+                    key=f"radio_{st.session_state.idx}",
+                    label_visibility="collapsed"
+                )
+                
+                # Seçimi Kaydet
+                if selected:
+                    choice_char = mapping[selected]
+                    st.session_state.answers[st.session_state.idx] = choice_char
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        else:
+            # NORMAL MOD (TEK SÜTUN)
+            c_spacer_1, c_mid, c_spacer_2 = st.columns([1, 3, 1])
+            with c_mid:
+                st.markdown(f"**Soru {st.session_state.idx + 1}**")
+                st.markdown(f"<div class='question-box'><div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
+                
+                options = []
+                mapping = {}
+                for opt in ['A', 'B', 'C', 'D', 'E']:
+                    if pd.notna(row[opt]):
+                        full_opt = f"{opt}) {row[opt]}"
+                        options.append(full_opt)
+                        mapping[full_opt] = opt
+                
+                current_ans = st.session_state.answers.get(st.session_state.idx)
+                default_idx = None
+                if current_ans:
+                    for i, o in enumerate(options):
+                        if o.startswith(current_ans + ")"):
+                            default_idx = i
+                            break
+
+                selected = st.radio(
+                    "Cevabınız:", 
+                    options, 
+                    index=default_idx, 
+                    key=f"radio_{st.session_state.idx}",
+                    label_visibility="collapsed"
+                )
+                
+                if selected:
+                    st.session_state.answers[st.session_state.idx] = mapping[selected]
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        # --- ALT NAVİGASYON ---
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_nav1, col_nav2, col_nav3 = st.columns([1, 2, 1])
         
-        for s in ['A', 'B', 'C', 'D', 'E']:
-            if pd.notna(row[s]):
-                if st.button(f"{s}) {row[s]}", key=f"q_{st.session_state.idx}_{s}"):
-                    st.session_state.answers[st.session_state.idx] = s
+        with col_nav1:
+            if st.session_state.idx > 0:
+                if st.button("⬅️ Önceki Soru", use_container_width=True):
+                    st.session_state.idx -= 1
                     st.rerun()
         
-        if st.session_state.idx in st.session_state.answers:
-            st.info(f"✅ Seçtiğiniz Cevap: **{st.session_state.answers[st.session_state.idx]}**")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+        with col_nav3:
+            if st.session_state.idx < len(df) - 1:
+                # Buton metnini Sonraki Soru yap, CSS ile rengini değiştiriyoruz
+                if st.button("Sonraki Soru ➡️", use_container_width=True):
+                    st.session_state.idx += 1
+                    st.rerun()
 
-    # --- ALT NAVİGASYON ---
-    st.markdown("---")
-    b_col1, b_col2 = st.columns([1, 1])
-    with b_col1:
-        if st.session_state.idx > 0:
-            if st.button("⬅️ Önceki Soru", use_container_width=True):
-                st.session_state.idx -= 1
-                st.rerun()
-    with b_col2:
-        if st.session_state.idx < len(df) - 1:
-            if st.button("Sonraki Soru ➡️", type="primary", use_container_width=True):
-                st.session_state.idx += 1
-                st.rerun()
-
-# --- SINAV SONUÇ EKRANI ---
-elif st.session_state.exam_finished:
-    st.title("🏁 Sınav Tamamlandı!")
-    
-    score_t = 0
-    score_f = 0
-    empty = 0
-    
-    results = []
-    
-    for i in range(len(df)):
-        user_choice = st.session_state.answers.get(i)
-        correct_choice = str(df.iloc[i]['Dogru_Cevap']).strip().upper()
+    # --- SINAV BİTİŞ EKRANI ---
+    else:
+        st.balloons()
+        st.title("🏁 Sınav Sonucu")
         
-        if user_choice:
-            if user_choice == correct_choice:
-                score_t += 1
-                status = "✅ Doğru"
-            else:
-                score_f += 1
-                status = f"❌ Yanlış (Cevap: {correct_choice})"
-        else:
-            empty += 1
-            status = f"⚪ Boş (Cevap: {correct_choice})"
+        correct_count = 0
+        wrong_count = 0
+        empty_count = 0
+        
+        results_data = []
+        
+        for i in range(len(df)):
+            user_ans = st.session_state.answers.get(i)
+            true_ans = str(df.iloc[i]['Dogru_Cevap']).strip().upper()
             
-        results.append({"Soru": i+1, "Cevabın": user_choice, "Durum": status})
-    
-    # Özet Kartları
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Toplam Soru", len(df))
-    k2.metric("Doğru", score_t)
-    k3.metric("Yanlış", score_f)
-    k4.metric("Boş", empty)
-    
-    st.divider()
-    st.markdown("### 📊 Detaylı Analiz")
-    st.dataframe(pd.DataFrame(results))
-    
-    if st.button("🔄 Sınavı Yeniden Başlat"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
+            status = "Boş"
+            if user_ans:
+                if user_ans == true_ans:
+                    correct_count += 1
+                    status = "Doğru"
+                else:
+                    wrong_count += 1
+                    status = "Yanlış"
+            else:
+                empty_count += 1
+                
+            results_data.append({
+                "No": i+1,
+                "Cevabın": user_ans if user_ans else "-",
+                "Doğru Cevap": true_ans,
+                "Durum": status
+            })
+            
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Toplam", len(df))
+        c2.metric("Doğru", correct_count, delta_color="normal")
+        c3.metric("Yanlış", wrong_count, delta_color="inverse")
+        c4.metric("Boş", empty_count)
+        
+        st.divider()
+        st.dataframe(pd.DataFrame(results_data), use_container_width=True)
+        
+        if st.button("Yeniden Başla"):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
 
 else:
-    st.error("Dosya yüklenemedi.")
+    st.error("Veri dosyası (sorular.xlsx) bulunamadı.")
