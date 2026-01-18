@@ -7,7 +7,7 @@ import google.generativeai as genai
 import edge_tts
 import asyncio
 import os
-import re # Metin temizliği için regex
+import re
 
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
@@ -102,76 +102,56 @@ def get_gemini_text(passage, question, options):
         SORU: {question}
         ŞIKLAR: {options}
         
-        Cevabı ETİKETLERİ BOZMADAN şu formatta ver:
+        Cevabı şu başlıklarla ver:
         
         [BÖLÜM 1: STRATEJİ VE MANTIK]
         (Soru türü ve çözüm ipucu)
         
         [BÖLÜM 2: CÜMLE ANALİZİ]
-        (Her cümle için)
-        🇬🇧 [İngilizce]
-        🇹🇷 [Türkçe]
+        (Her cümle için İngilizce ve Türkçe çeviri)
         
         [BÖLÜM 3: DOĞRU CEVAP]
-        (Doğru şık ve nedeni)
+        (Neden doğru?)
         
         [BÖLÜM 4: ÇELDİRİCİLER]
-        (Neden yanlışlar)
+        (Neden yanlışlar?)
         """
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
         return f"Hata oluştu: {e}"
 
-# --- 7. OPTİMİZE EDİLMİŞ SES FONKSİYONU ---
-async def generate_audio_file(text, rate_str):
-    # BURASI DEĞİŞTİ: Artık AHMET Hoca (Türkçe Native) kullanıyoruz.
-    # Ahmet, Türkçeyi mükemmel okur. İngilizceyi de Türk aksanıyla ama net okur.
-    voice = "tr-TR-AhmetNeural" 
+# --- 7. SENKRON SES FONKSİYONU (TAM METİN - DONMADAN) ---
+def generate_audio_sync(text, rate_str):
+    """
+    Sesi senkron olarak oluşturur ama yeni bir event loop açar.
+    Bu sayede Streamlit'i kilitlemez ve 'Full Metni' okuyabilir.
+    """
+    # AndrewMultilingual: Hem İngilizceyi Native okur, hem Türkçeyi anlaşılır okur.
+    voice = "en-US-AndrewMultilingualNeural" 
     output_file = "output_audio.mp3"
-    communicate = edge_tts.Communicate(text, voice, rate=rate_str)
-    await communicate.save(output_file)
-    return output_file
-
-def clean_text_for_speed(text):
-    """
-    Sesi hızlandırmak için metni temizler.
-    Gereksiz başlıkları, emojileri ve [BÖLÜM] yazılarını siler.
-    Böylece ses motoru %40 daha az kelime okur.
-    """
-    # 1. Köşeli parantez içindeki başlıkları sil (Örn: [BÖLÜM 1...])
-    text = re.sub(r'\[.*?\]', '', text)
-    # 2. Emojileri ve yıldızları sil
-    text = text.replace('🇬🇧', '').replace('🇹🇷', '').replace('*', '').replace('💡', '').replace('✅', '').replace('❌', '').replace('🔍', '')
-    # 3. Fazla boşlukları temizle
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
-
-def get_audio_bytes(text, speed_val):
-    rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
     
-    # HIZ İÇİN TEMİZLİK: Sadece okunacak öz metni gönderiyoruz
-    optimized_text = clean_text_for_speed(text)
-    
-    try:
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-        import nest_asyncio
-        nest_asyncio.apply()
+    # Metni sese uygun hale getirelim (Sadece markdown yıldızlarını temizle, metni silme)
+    # Sesin "Yıldız yıldız" diye okumasını istemeyiz.
+    clean_text = text.replace('*', '').replace('#', '').replace('`', '')
+
+    async def _gen():
+        communicate = edge_tts.Communicate(clean_text, voice, rate=rate_str)
+        await communicate.save(output_file)
         
-        if loop.is_running():
-            loop.run_until_complete(generate_audio_file(optimized_text, rate_str))
-        else:
-            loop.run_until_complete(generate_audio_file(optimized_text, rate_str))
-            
-        if os.path.exists("output_audio.mp3"):
-            with open("output_audio.mp3", "rb") as f:
+    try:
+        # En güvenli yöntem: Yeni bir loop açıp işi bitirip kapatmak.
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(_gen())
+        loop.close()
+        
+        if os.path.exists(output_file):
+            with open(output_file, "rb") as f:
                 return f.read()
+        return None
     except Exception as e:
+        print(f"Ses hatası: {e}")
         return None
 
 # --- 8. UYGULAMA GÖVDESİ ---
@@ -275,16 +255,16 @@ if df is not None:
                     st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
                     st.rerun()
 
-        # --- GÖRSELLEŞTİRME VE SES ---
+        # --- GÖRSELLEŞTİRME VE SES YÜKLEME ---
         if st.session_state.idx in st.session_state.gemini_res:
             data = st.session_state.gemini_res[st.session_state.idx]
             full_text = data['text']
             
             # --- SES OYNATICI ---
             if data['audio'] is not None:
-                st.success(f"🔊 Ahmet Hoca Anlatıyor (Hız: {speed_val}%)")
+                st.success(f"🔊 Andrew Hoca Anlatıyor (Hız: {speed_val}%)")
                 st.audio(data['audio'], format='audio/mp3')
-            
+
             # --- METİN GÖSTERİMİ ---
             parts = full_text.split('[BÖLÜM')
             for part in parts:
@@ -309,16 +289,21 @@ if df is not None:
                 elif "4: ÇELDİRİCİLER]" in part:
                     clean_text = part.replace("4: ÇELDİRİCİLER]", "").strip()
                     st.markdown(f"""<div class="ai-header" style="color:#c0392b;">❌ NEDEN YANLIŞ?</div><div class="ai-text" style="border-left: 5px solid #c0392b;">{clean_text}</div>""", unsafe_allow_html=True)
-
-            # --- SES YOKSA OLUŞTUR ---
+            
+            # --- SES YOKSA OLUŞTUR (TAM METİN) ---
             if data['audio'] is None:
-                with st.spinner("🔊 Ses hazırlanıyor..."):
-                    aud_bytes = get_audio_bytes(full_text, speed_val)
-                    st.session_state.gemini_res[st.session_state.idx]['audio'] = aud_bytes
-                    st.rerun()
+                rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
+                with st.spinner("🔊 Tam metin seslendiriliyor... (Biraz sürebilir)"):
+                    # Burada full_text'i gönderiyoruz, özet yok!
+                    aud_bytes = generate_audio_sync(full_text, rate_str)
+                    
+                    if aud_bytes:
+                        st.session_state.gemini_res[st.session_state.idx]['audio'] = aud_bytes
+                        st.rerun()
+                    else:
+                        st.error("Ses oluşturulamadı. Lütfen tekrar deneyin.")
 
     else:
         st.title("Sonuçlar")
-        # Sonuç ekranı
 else:
     st.error("Excel yüklenemedi.")
