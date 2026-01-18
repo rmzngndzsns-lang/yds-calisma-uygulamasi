@@ -122,10 +122,10 @@ def get_gemini_text(api_key, passage, question, options):
     
     try:
         genai.configure(api_key=api_key)
-        # --- MODEL SEÇİMİ (GERİ DÖNÜŞ) ---
-        # 2.0 ve 2.5 serisi senin için kapalı (Limit: 0).
-        # Requirements.txt güncellendiği için 1.5 artık %100 çalışacak.
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # --- MODEL SEÇİMİ (JOKER YÖNTEMİ) ---
+        # Senin listende bu vardı. Bu, "elindeki en yeni çalışan Flash modeli neyse onu ver" demektir.
+        # Sürüm hatası vermez.
+        model = genai.GenerativeModel('gemini-flash-latest')
         
         prompt = f"""
         Sen YDS sınav koçusun.
