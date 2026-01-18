@@ -11,7 +11,7 @@ st.set_page_config(page_title="YDS Pro AI", page_icon="🤖", layout="wide")
 # ==========================================
 # !!! BURAYA GEMINI API KEY YAPIŞTIR !!!
 # ==========================================
-GEMINI_API_KEY = "BURAYA_API_KEY_YAZILACAK" 
+GEMINI_API_KEY = "AIzaSyBYhFhLXc2mz7D9MgcGzAXZmxgzrTpL_Mg" 
 # Örnek: "AIzaSyD_OrnekAnahtar..."
 
 # --- 2. CSS TASARIMI ---
