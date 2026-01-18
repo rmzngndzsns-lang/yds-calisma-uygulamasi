@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 # --- 1. SAYFA AYARLARI ---
 st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 
-# --- 2. PROFESYONEL VE RESPONSIVE CSS ---
+# --- 2. ZORLANMIŞ GRID CSS (MOBİLDE ASLA BOZULMAZ) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -17,42 +17,80 @@ st.markdown("""
         background-color: #f3f4f6;
     }
     
+    /* BU KISIM ÇOK ÖNEMLİ:
+       Streamlit'in mobilde kolonları alt alta atmasını engelliyoruz.
+       Sidebar içindeki tüm kolonları zorla yan yana (flex) tutuyoruz.
+    */
+    [data-testid="stSidebar"] [data-testid="column"] {
+        flex: 1 1 0% !important; /* Esnek genişlik */
+        width: 20% !important;   /* Zorla 5'e böl */
+        min-width: 0px !important; /* Küçülmeye sınır koyma */
+        padding: 0px 1px !important; /* Aradaki boşlukları minimum yap */
+    }
+    
+    /* Sidebar Buton Ayarları */
+    [data-testid="stSidebar"] button {
+        width: 100% !important;
+        padding: 0px !important;
+        margin: 0px !important;
+        height: 35px !important;
+        border-radius: 4px !important;
+        white-space: nowrap !important; /* Yazı taşmasın */
+        overflow: hidden !important;
+        
+        /* Font Ayarları */
+        font-weight: 700 !important;
+    }
+
+    /* MOBİLDE (TELEFONDA) BUTON YAZISINI KÜÇÜLT */
+    @media (max-width: 768px) {
+        [data-testid="stSidebar"] button {
+            font-size: 10px !important; /* Telefon için küçük font */
+            height: 30px !important;    /* Telefon için kısa buton */
+        }
+    }
+    
+    /* MASAÜSTÜNDE NORMAL FONT */
+    @media (min-width: 769px) {
+        [data-testid="stSidebar"] button {
+            font-size: 13px !important;
+        }
+    }
+
     /* Okuma Parçası Kutusu */
     .passage-box {
         background-color: white;
-        padding: 20px;
+        padding: 15px;
         border-radius: 12px;
-        height: 55vh;
+        height: 50vh;
         overflow-y: auto;
-        font-size: 15.5px;
-        line-height: 1.7;
+        font-size: 15px;
+        line-height: 1.6;
         text-align: justify;
         border: 1px solid #e5e7eb;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        color: #374151;
         border-left: 5px solid #2c3e50;
+        color: #374151;
     }
 
     /* Soru Alanı */
     .question-stem {
-        font-size: 16.5px;
+        font-size: 16px;
         font-weight: 600;
         background-color: white;
-        padding: 20px;
+        padding: 15px;
         border: 1px solid #e5e7eb;
         border-left: 4px solid #3b82f6;
         border-radius: 12px;
         color: #111827;
         margin-bottom: 20px;
-        line-height: 1.6;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        line-height: 1.5;
     }
 
     /* Radyo Butonlar */
     .stRadio > label { display: none; }
     .stRadio div[role='radiogroup'] > label {
-        padding: 12px 16px;
-        margin-bottom: 8px;
+        padding: 10px 12px;
+        margin-bottom: 6px;
         border: 1px solid #d1d5db;
         border-radius: 8px;
         background-color: white;
@@ -66,8 +104,6 @@ st.markdown("""
         color: #1d4ed8;
     }
 
-    /* --- BUTON VE NAVİGASYON ÖZELLEŞTİRMELERİ --- */
-
     /* İşaretle Butonu (Gold/Sarı) */
     div.stButton > button:contains("İşaretle") {
         border-color: #d97706 !important;
@@ -80,46 +116,7 @@ st.markdown("""
         border: none;
     }
     
-    /* YAN MENÜ GRID SİSTEMİ (RESPONSIVE AYARI BURADA) */
-    /* Sidebar içindeki butonların genişliğini ve boşluklarını optimize eder */
-    
-    [data-testid="stSidebar"] [data-testid="column"] {
-        padding: 0px 1px !important; /* Kolonlar arası boşluğu minimum yap */
-        min-width: 0px !important;   /* Küçülmeye izin ver */
-        flex: 1 1 0px !important;    /* Esnek genişlik */
-    }
-    
-    /* Sidebar Butonları */
-    [data-testid="stSidebar"] button {
-        width: 100% !important;      /* Kutuyu doldur */
-        padding: 0px !important;     /* İç boşluğu sıfırla */
-        margin: 0px !important;
-        height: 32px !important;     /* Yükseklik */
-        border-radius: 4px !important;
-        
-        /* Yazı Ayarları */
-        font-weight: 700 !important;
-        white-space: nowrap !important; /* Yazı taşmasın */
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-    
-    /* MASAÜSTÜ İÇİN FONT (Geniş Ekran) */
-    @media (min-width: 1024px) {
-        [data-testid="stSidebar"] button {
-            font-size: 13px !important;
-        }
-    }
-    
-    /* MOBİL İÇİN FONT (Dar Ekran) */
-    @media (max-width: 1023px) {
-        [data-testid="stSidebar"] button {
-            font-size: 11px !important; /* Mobilde yazıyı küçült */
-            height: 30px !important;    /* Butonu biraz daha küçült */
-        }
-    }
-    
-    /* Ana Navigasyon Butonları */
+    /* Ana Navigasyon */
     div.stButton > button {
         height: 45px;
         font-weight: 500;
@@ -167,22 +164,22 @@ if df is not None:
     
     # --- SIDEBAR ---
     with st.sidebar:
-        # SAYAÇ (Senin beğendiğin devasa ve kalın versiyon)
+        # SAYAÇ
         end_ts = st.session_state.end_timestamp
         timer_html = f"""
         <div style="
             font-family: 'Courier New', monospace;
-            font-size: 36px; 
+            font-size: 34px; 
             font-weight: 800; 
             color: #dc2626; 
             background-color: #ffffff;
-            padding: 10px 0px;
-            border-radius: 10px;
+            padding: 5px 0px;
+            border-radius: 8px;
             text-align: center;
             border: 3px solid #dc2626;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         " id="countdown">Loading...</div>
         <script>
             var countDownDate = {end_ts};
@@ -198,11 +195,12 @@ if df is not None:
             }}, 1000);
         </script>
         """
-        components.html(timer_html, height=100)
+        components.html(timer_html, height=80)
         
         st.caption("🟢:Doğru | 🔴:Yanlış | ⭐:İşaretli")
         
-        # SORU PALETİ (Responsive 5 Kolon)
+        # SORU PALETİ (ZORLANMIŞ GRID)
+        # cols = st.columns(5) mantığını kullanıyoruz ama CSS ile mobilde kırılmasını engelledik.
         cols = st.columns(5)
         for i in range(len(df)):
             u_ans = st.session_state.answers.get(i)
@@ -218,7 +216,7 @@ if df is not None:
             
             b_type = "primary" if i == st.session_state.idx else "secondary"
             
-            # CSS ile sıkıştırılmış kolonlar sayesinde burası ekrana sığacak
+            # CSS sayesinde bu butonlar mobilde de yan yana duracak
             if cols[i%5].button(label, key=f"n{i}", type=b_type, use_container_width=True):
                 st.session_state.idx = i
                 st.rerun()
