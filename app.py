@@ -13,7 +13,7 @@ st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
 # ==========================================
 # !!! BURAYA GEMINI API KEY YAPIŞTIR !!!
 # ==========================================
-GEMINI_API_KEY = "BURAYA_API_KEY_YAZILACAK"
+GEMINI_API_KEY = "AIzaSyAiuriJuQLwsa54EwnY9Zy8zk1jj_Tajsg"
 
 # --- 2. CSS TASARIMI ---
 st.markdown("""
