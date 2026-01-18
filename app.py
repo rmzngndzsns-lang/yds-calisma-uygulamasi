@@ -10,66 +10,74 @@ import os
 import re
 import nest_asyncio
 
-# Döngü çakışmalarını önleyen yama
+# Döngü yaması
 nest_asyncio.apply()
 
-# --- 1. SAYFA AYARLARI ---
-st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
+# --- 1. AYARLAR ---
+st.set_page_config(page_title="Yds Pro", page_icon="🎓", layout="wide")
 
-# --- 2. PROFESYONEL CSS TASARIMI ---
+# --- 2. PREMIUM CSS TASARIMI (GÜNCELLENDİ) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
     
-    .stApp { font-family: 'Roboto', sans-serif; background-color: #f8f9fa; }
+    .stApp { font-family: 'Roboto', sans-serif; background-color: #f0f2f6; }
     
     div.stButton > button { 
-        width: 100%; border-radius: 8px; font-weight: 600; height: 40px;
-        transition: all 0.2s ease;
+        width: 100%; border-radius: 8px; font-weight: 600; height: 45px;
+        transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    /* OKUMA PARÇASI KUTUSU */
+    /* OKUMA PARÇASI - DAHA OKUNAKLI */
     .passage-box { 
-        background-color: #ffffff; padding: 25px; border-radius: 15px; height: 60vh; 
-        overflow-y: auto; font-size: 16px; font-weight: 500; line-height: 1.8; 
-        text-align: justify; border: 1px solid #e9ecef; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        color: #2d3436; 
+        background-color: #ffffff; padding: 30px; border-radius: 12px; height: 60vh; 
+        overflow-y: auto; font-size: 17px; font-weight: 500; line-height: 2.0; 
+        text-align: justify; border: 1px solid #dfe6e9; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        color: #2d3436; font-family: 'Georgia', serif; /* Okuma parçası için serif font */
     }
     
-    /* SORU KÖKÜ KUTUSU */
+    /* SORU KÖKÜ */
     .question-stem { 
-        font-size: 18px; font-weight: 700; background-color: #ffffff; padding: 20px; 
-        border-radius: 12px; border-left: 5px solid #0984e3; margin-bottom: 25px; 
-        color: #2d3436; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        font-size: 19px; font-weight: 700; background-color: #ffffff; padding: 25px; 
+        border-radius: 12px; border-left: 6px solid #0984e3; margin-bottom: 25px; 
+        color: #1e272e; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* ANALİZ KUTULARI */
+    /* ANALİZ KUTULARI - RENK AYRIMI */
     .strategy-box { 
-        background-color: #e8f4fd; border-left: 5px solid #3498db; padding: 20px; 
-        border-radius: 10px; margin-bottom: 20px; color: #2c3e50; font-size: 15px; 
+        background-color: #e3f2fd; border-left: 5px solid #2196f3; padding: 20px; 
+        border-radius: 8px; margin-bottom: 20px; color: #0d47a1; font-size: 16px; 
         line-height: 1.6; text-align: justify;
     }
     
     .sentence-box { 
-        background-color: #fffbf2; border-left: 5px solid #f1c40f; padding: 15px; 
-        border-radius: 10px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        background-color: #ffffff; border-left: 5px solid #f1c40f; padding: 20px; 
+        border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        border: 1px solid #f9f9f9;
     }
-    .eng-text { font-weight: 700; color: #2c3e50; margin-bottom: 8px; font-size: 16px; }
-    .tr-text { color: #576574; font-style: italic; font-size: 15px; font-weight: 400; }
+    /* İNGİLİZCE CÜMLE - KOYU VE BELİRGİN */
+    .eng-text { 
+        font-weight: 700; color: #2c3e50; margin-bottom: 10px; font-size: 17px; 
+        border-bottom: 1px dashed #ecf0f1; padding-bottom: 8px;
+    }
+    /* TÜRKÇE CÜMLE - GRİ VE İTALİK (KARIŞMAMASI İÇİN) */
+    .tr-text { 
+        color: #7f8c8d; font-style: italic; font-size: 16px; font-weight: 400; line-height: 1.6;
+    }
 
     .ai-header { 
-        color: #8e44ad; font-weight: 900; font-size: 14px; letter-spacing: 1px; 
-        margin-bottom: 10px; text-transform: uppercase; margin-top: 20px;
+        color: #8e44ad; font-weight: 900; font-size: 15px; letter-spacing: 1px; 
+        margin-bottom: 15px; text-transform: uppercase; margin-top: 25px;
         border-bottom: 2px solid #ecf0f1; padding-bottom: 5px;
     }
     
-    .answer-box-correct { background-color: #eafaf1; border-left: 5px solid #2ecc71; padding: 15px; border-radius: 8px; text-align: justify; color: #27ae60; font-weight: 500; }
-    .answer-box-wrong { background-color: #fdedec; border-left: 5px solid #e74c3c; padding: 15px; border-radius: 8px; text-align: justify; color: #c0392b; font-weight: 500; }
+    .answer-box-correct { background-color: #e8f5e9; border-left: 5px solid #2ecc71; padding: 20px; border-radius: 8px; text-align: justify; color: #27ae60; font-weight: 600; font-size: 16px;}
+    .answer-box-wrong { background-color: #ffebee; border-left: 5px solid #e74c3c; padding: 20px; border-radius: 8px; text-align: justify; color: #c0392b; font-weight: 600; font-size: 16px;}
 
     /* SCROLLBAR */
-    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar { width: 10px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
-    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #b2bec3; border-radius: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -110,7 +118,7 @@ def parse_question(text):
 # --- 4. HIZLI GEMINI ---
 def get_gemini_text(api_key, passage, question, options):
     if "BURAYA" in api_key or len(api_key) < 10:
-        return "⚠️ Lütfen kodun içindeki API Key kısmını düzenleyin!"
+        return "⚠️ Lütfen kodun 326. satırına API Key'inizi girin!"
     
     try:
         genai.configure(api_key=api_key)
@@ -140,22 +148,28 @@ def get_gemini_text(api_key, passage, question, options):
     except Exception as e:
         return f"HATA: {str(e)}"
 
-# --- 5. FORMAT DÖNÜŞTÜRÜCÜ VE TEMİZLİK ---
+# --- 5. GELİŞMİŞ METİN FORMATLAYICI ---
 def format_markdown_to_html(text):
-    """**kelime** formatını <b>kelime</b> yapar (HTML Görünüm için)"""
+    """
+    Hem **çift yıldız** hem *tek yıldız* kalın (bold) yapılır.
+    """
     if not text: return ""
-    formatted_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-    return formatted_text
+    # Çift yıldızları bold yap
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    # Tek yıldızları da bold yap (Artık karışıklık olmayacak)
+    text = re.sub(r'\*(.*?)\*', r'<b>\1</b>', text)
+    return text
 
 def clean_text_for_tts(text):
     """Sese gitmeden önce metni temizler"""
-    text = text.replace('**', '') # Yıldızları sil
+    # Yıldızların hepsini sil (Seste duyulmasın)
+    text = text.replace('**', '').replace('*', '')
     text = re.sub(r'[\#\_\`]', '', text)
     text = text.replace('🇬🇧', '').replace('🇹🇷', '').replace('💡', '').replace('✅', '').replace('❌', '').replace('🔍', '')
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-# --- 6. ULTRA-HIZLI (PARALEL) SES FONKSİYONU ---
+# --- 6. PARALEL SES ---
 async def generate_segment(text, voice, rate, index):
     if not text.strip(): return b""
     if len(text) < 2: return b"" 
@@ -171,13 +185,12 @@ async def generate_segment(text, voice, rate, index):
     except:
         return b""
 
-def generate_parallel_audio(full_text, speed_val):
+def generate_parallel_audio(full_text):
     if full_text.startswith("HATA") or full_text.startswith("⚠️"): return None
 
-    voice = "en-US-BrianMultilingualNeural" # Net ve Profesyonel Ses
-    rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
+    voice = "en-US-BrianMultilingualNeural" 
+    rate_str = "+0%" # SABİT HIZ (İdeal)
     
-    # Metni SATIRLARA bölerek maksimum paralellik sağlıyoruz
     lines = full_text.split('\n')
     text_segments = [line for line in lines if len(line.strip()) > 5]
 
@@ -221,16 +234,12 @@ if df is not None:
         # --- API KEY (SABİT) ---
         st.info("🔑 **API Anahtarı**")
         # 👇👇👇 BURAYA KENDİ KEYİNİ YAPIŞTIR 👇👇👇
-        user_api_key = "AIzaSyBieaJ-pyHstD1hzvTspVaU58BPyT12Uxs" 
+        user_api_key = "AIzaSyAiuriJuQLwsa54EwnY9Zy8zk1jj_Tajsg" 
         # 👆👆👆 BURAYA KENDİ KEYİNİ YAPIŞTIR 👆👆👆
         
         if "BURAYA" in user_api_key:
-            st.error("Lütfen kodun 234. satırına API Key'inizi girin!")
+            st.error("Lütfen kodun 326. satırına API Key'inizi girin!")
 
-        st.write("---")
-        st.write("🗣️ **Okuma Hızı**")
-        speed_val = st.slider("Hız Ayarı (%)", min_value=-50, max_value=50, value=0, step=10)
-        
         st.write("---")
         
         chunk_size = 5
@@ -325,7 +334,7 @@ if df is not None:
                 st.markdown("---")
                 
                 if data['audio'] is not None:
-                    st.success(f"🔊 Seslendirme Hazır (Hız: {speed_val}%)")
+                    st.success(f"🔊 Seslendirme Hazır")
                     st.audio(data['audio'], format='audio/mp3')
 
                 parts = full_text.split('[BÖLÜM')
@@ -360,7 +369,7 @@ if df is not None:
                 # SES OLUŞTURMA
                 if data['audio'] is None:
                     with st.spinner("🔊 Ultra-Hızlı ses oluşturuluyor..."):
-                        aud_bytes = generate_parallel_audio(data['text'], speed_val)
+                        aud_bytes = generate_parallel_audio(data['text'])
                         if aud_bytes:
                             st.session_state.gemini_res[st.session_state.idx]['audio'] = aud_bytes
                             st.rerun()
