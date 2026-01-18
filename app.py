@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 # --- 1. SAYFA AYARLARI ---
 st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 
-# --- 2. PROFESYONEL CSS ---
+# --- 2. PROFESYONEL VE RESPONSIVE CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -66,6 +66,8 @@ st.markdown("""
         color: #1d4ed8;
     }
 
+    /* --- BUTON VE NAVİGASYON ÖZELLEŞTİRMELERİ --- */
+
     /* İşaretle Butonu (Gold/Sarı) */
     div.stButton > button:contains("İşaretle") {
         border-color: #d97706 !important;
@@ -78,16 +80,26 @@ st.markdown("""
         border: none;
     }
     
-    /* Yan Menü Butonları */
-    div[data-testid="stSidebar"] button {
-        padding: 0px;
-        height: 38px;
-        font-size: 14px;
-        font-weight: 600;
-        border-radius: 6px;
+    /* YAN MENÜ GRID SİSTEMİ (RESPONSIVE AYARI BURADA) */
+    /* Sidebar içindeki butonların genişliğini ve boşluklarını optimize eder */
+    
+    [data-testid="stSidebar"] [data-testid="column"] {
+        padding: 0px 2px !important; /* Kolonlar arası boşluğu sıkıştır */
+        min-width: 0px !important;   /* Küçülmeye izin ver */
     }
     
-    /* Ana Navigasyon */
+    /* Sidebar Butonları */
+    [data-testid="stSidebar"] button {
+        width: 100% !important;      /* Kutuyu doldur */
+        padding: 0px !important;     /* İç boşluğu sıfırla */
+        margin: 0px !important;
+        height: 35px !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        border-radius: 4px !important;
+    }
+    
+    /* Ana Navigasyon Butonları */
     div.stButton > button {
         height: 45px;
         font-weight: 500;
@@ -135,7 +147,7 @@ if df is not None:
     
     # --- SIDEBAR ---
     with st.sidebar:
-        # SAYAÇ (STYLES DOĞRUDAN HTML İÇİNE GÖMÜLDÜ - GARANTİ ÇÖZÜM)
+        # SAYAÇ (Senin beğendiğin devasa ve kalın versiyon)
         end_ts = st.session_state.end_timestamp
         timer_html = f"""
         <div style="
@@ -166,11 +178,11 @@ if df is not None:
             }}, 1000);
         </script>
         """
-        components.html(timer_html, height=100) # Yükseklik artırıldı
+        components.html(timer_html, height=100)
         
         st.caption("🟢:Doğru | 🔴:Yanlış | ⭐:İşaretli")
         
-        # SORU PALETİ
+        # SORU PALETİ (Responsive 5 Kolon)
         cols = st.columns(5)
         for i in range(len(df)):
             u_ans = st.session_state.answers.get(i)
@@ -186,6 +198,7 @@ if df is not None:
             
             b_type = "primary" if i == st.session_state.idx else "secondary"
             
+            # CSS ile sıkıştırılmış kolonlar sayesinde burası ekrana sığacak
             if cols[i%5].button(label, key=f"n{i}", type=b_type, use_container_width=True):
                 st.session_state.idx = i
                 st.rerun()
