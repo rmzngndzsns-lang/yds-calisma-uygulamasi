@@ -84,8 +84,9 @@ st.markdown("""
     /* Sidebar içindeki butonların genişliğini ve boşluklarını optimize eder */
     
     [data-testid="stSidebar"] [data-testid="column"] {
-        padding: 0px 2px !important; /* Kolonlar arası boşluğu sıkıştır */
+        padding: 0px 1px !important; /* Kolonlar arası boşluğu minimum yap */
         min-width: 0px !important;   /* Küçülmeye izin ver */
+        flex: 1 1 0px !important;    /* Esnek genişlik */
     }
     
     /* Sidebar Butonları */
@@ -93,10 +94,29 @@ st.markdown("""
         width: 100% !important;      /* Kutuyu doldur */
         padding: 0px !important;     /* İç boşluğu sıfırla */
         margin: 0px !important;
-        height: 35px !important;
-        font-size: 13px !important;
-        font-weight: 700 !important;
+        height: 32px !important;     /* Yükseklik */
         border-radius: 4px !important;
+        
+        /* Yazı Ayarları */
+        font-weight: 700 !important;
+        white-space: nowrap !important; /* Yazı taşmasın */
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    
+    /* MASAÜSTÜ İÇİN FONT (Geniş Ekran) */
+    @media (min-width: 1024px) {
+        [data-testid="stSidebar"] button {
+            font-size: 13px !important;
+        }
+    }
+    
+    /* MOBİL İÇİN FONT (Dar Ekran) */
+    @media (max-width: 1023px) {
+        [data-testid="stSidebar"] button {
+            font-size: 11px !important; /* Mobilde yazıyı küçült */
+            height: 30px !important;    /* Butonu biraz daha küçült */
+        }
     }
     
     /* Ana Navigasyon Butonları */
