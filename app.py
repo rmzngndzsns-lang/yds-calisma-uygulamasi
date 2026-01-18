@@ -5,103 +5,109 @@ from datetime import datetime, timedelta
 import streamlit.components.v1 as components
 
 # --- 1. SAYFA AYARLARI ---
-st.set_page_config(page_title="YDS Pro", page_icon="📝", layout="wide")
+st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 
-# --- 2. CSS (GÖRÜNÜM VE RENKLER) ---
+# --- 2. PROFESYONEL CSS TASARIMI ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap'); /* Sayaç İçin */
     
     .stApp {
         font-family: 'Inter', sans-serif;
-        background-color: #f8f9fa;
+        background-color: #f3f4f6;
     }
     
-    /* Yan Menüdeki Sayaç Kutusu */
+    /* Yan Menüdeki Sayaç (Dijital Saat Görünümü) */
     .sidebar-timer {
-        font-family: 'Courier New', monospace;
-        font-size: 24px;
-        font-weight: 900;
-        color: #ffffff;
-        background-color: #2c3e50; /* Lacivert */
-        padding: 10px;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 26px;
+        font-weight: 600;
+        color: #1f2937;
+        background-color: #ffffff;
+        padding: 12px;
         border-radius: 8px;
         text-align: center;
         margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        border: 2px solid #34495e;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        letter-spacing: 1px;
     }
 
-    /* Okuma Parçası (Scroll) */
+    /* Okuma Parçası Kutusu */
     .passage-box {
         background-color: white;
-        padding: 15px;
-        border-radius: 8px;
-        height: 50vh;
+        padding: 20px;
+        border-radius: 12px;
+        height: 55vh;
         overflow-y: auto;
-        font-size: 15px;
-        line-height: 1.6;
+        font-size: 15.5px;
+        line-height: 1.7;
         text-align: justify;
-        border: 1px solid #dfe6e9;
-        border-left: 5px solid #2c3e50;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        color: #374151;
     }
 
     /* Soru Alanı */
     .question-stem {
-        font-size: 16px;
+        font-size: 16.5px;
         font-weight: 600;
         background-color: white;
-        padding: 15px;
-        border: 1px solid #dfe6e9;
-        border-left: 5px solid #0984e3;
-        border-radius: 8px;
-        color: #2d3436;
-        margin-bottom: 15px;
-        line-height: 1.5;
+        padding: 20px;
+        border: 1px solid #e5e7eb;
+        border-left: 4px solid #3b82f6; /* Modern Mavi */
+        border-radius: 12px;
+        color: #111827;
+        margin-bottom: 20px;
+        line-height: 1.6;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     /* Radyo Butonlar (Şıklar) */
     .stRadio > label { display: none; }
     .stRadio div[role='radiogroup'] > label {
-        padding: 10px 15px;
-        margin-bottom: 5px;
-        border: 1px solid #bdc3c7;
-        border-radius: 6px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
         background-color: white;
         font-size: 15px;
-        color: #2c3e50;
-        transition: all 0.2s;
+        color: #374151;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .stRadio div[role='radiogroup'] > label:hover {
-        background-color: #f1f2f6;
-        border-color: #0984e3;
+        background-color: #f9fafb;
+        border-color: #3b82f6;
+        color: #2563eb;
     }
 
-    /* --- BUTON RENKLENDİRMELERİ --- */
-    
-    /* İşaretle Butonu (SARI / GOLD) */
+    /* İşaretle Butonu (Gold/Sarı) */
     div.stButton > button:contains("İşaretle") {
-        border-color: #f1c40f !important;
-        color: #d35400 !important; /* Koyu Turuncu Yazı */
-        font-weight: bold;
+        border-color: #d97706 !important;
+        color: #d97706 !important;
+        font-weight: 600;
     }
-    /* İşareti Kaldır Butonu (SARI DOLGU) */
     div.stButton > button:contains("Kaldır") {
-        background-color: #f1c40f !important;
+        background-color: #d97706 !important;
         color: white !important;
         border: none;
     }
     
-    /* Sidebar'daki SARI BAYRAK Butonları */
-    /* Streamlit'te butonu içeriğine göre seçmek zordur ama emoji ile yakalarız */
-    /* Bu kısım görsel düzeltme içindir */
-    
-    /* Navigasyon Butonları Genel */
+    /* Navigasyon Butonları (Sidebar) */
     div[data-testid="stSidebar"] button {
         padding: 0px;
-        height: 35px;
+        height: 38px;
         font-size: 14px;
-        font-weight: bold;
+        font-weight: 600;
+        border-radius: 6px;
+    }
+    
+    /* Ana Ekran Navigasyon Butonları (İleri/Geri) */
+    div.stButton > button {
+        height: 45px;
+        font-weight: 500;
+        font-size: 15px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -122,9 +128,8 @@ def init_session():
     if 'answers' not in st.session_state: st.session_state.answers = {}
     if 'marked' not in st.session_state: st.session_state.marked = set()
     
-    # Bitiş zamanını SADECE BİR KERE hesapla ve sabitle
     if 'end_timestamp' not in st.session_state:
-        # Şu an + 180 dakika (Unix timestamp olarak sakla)
+        # Şu an + 180 dakika
         future = datetime.now() + timedelta(minutes=180)
         st.session_state.end_timestamp = future.timestamp() * 1000 
 
@@ -147,7 +152,7 @@ if df is not None:
     
     # --- SIDEBAR ---
     with st.sidebar:
-        # SAYAÇ (JS)
+        # SAYAÇ (JS - Temiz ve Modern)
         end_ts = st.session_state.end_timestamp
         timer_html = f"""
         <div class="sidebar-timer" id="countdown">Loading...</div>
@@ -161,15 +166,13 @@ if df is not None:
                 var s = Math.floor((distance % (1000 * 60)) / 1000);
                 h = h < 10 ? "0" + h : h; m = m < 10 ? "0" + m : m; s = s < 10 ? "0" + s : s;
                 document.getElementById("countdown").innerHTML = h + ":" + m + ":" + s;
-                if (distance < 0) {{ clearInterval(x); document.getElementById("countdown").innerHTML = "BİTTİ"; }}
+                if (distance < 0) {{ clearInterval(x); document.getElementById("countdown").innerHTML = "00:00:00"; }}
             }}, 1000);
         </script>
         """
         components.html(timer_html, height=70)
-        st.divider()
-
-        # PALET LEJANTI
-        st.caption("🟢:Doğru | 🔴:Yanlış | ⭐:İşaretli (Sarı)")
+        
+        st.caption("🟢 Doğru | 🔴 Yanlış | ⭐ İşaretli")
         
         # SORU PALETİ
         cols = st.columns(5)
@@ -177,19 +180,14 @@ if df is not None:
             u_ans = st.session_state.answers.get(i)
             c_ans = df.iloc[i]['Dogru_Cevap']
             
-            # --- LABEL VE İKON MANTIĞI ---
             label = str(i+1)
             
             if u_ans:
                 if u_ans == c_ans: label = "✅"
                 else: label = "❌"
             elif i in st.session_state.marked:
-                # Sarı Bayrak Unicode olmadığı için "Yıldız" veya "Sarı Kare" en iyi alternatiftir.
-                # Ancak kullanıcı Sarı Bayrak istediği için Beyaz Bayrak koyup CSS ile sarartmayı denedik,
-                # fakat Streamlit sidebar'da bu zordur. En net çözüm ⭐ (Yıldız) ikonudur.
-                label = "⭐" 
+                label = "⭐"
             
-            # Aktif Soru Rengi (Koyu)
             b_type = "primary" if i == st.session_state.idx else "secondary"
             
             if cols[i%5].button(label, key=f"n{i}", type=b_type, use_container_width=True):
@@ -197,24 +195,23 @@ if df is not None:
                 st.rerun()
 
         st.divider()
-        if st.button("SINAVI BİTİR", type="primary"):
+        if st.button("SINAVI BİTİR", type="primary", use_container_width=True):
             st.session_state.finish = True
             st.rerun()
 
     # --- ANA EKRAN ---
     if not st.session_state.finish:
-        # Başlık
-        st.markdown(f"### 🇹🇷 Soru {st.session_state.idx + 1}")
+        # Temiz Başlık
+        st.markdown(f"### Soru {st.session_state.idx + 1} / {len(df)}")
         
         row = df.iloc[st.session_state.idx]
         passage, stem = parse_question(row['Soru'])
 
-        # İŞARETLEME BUTONU (SARI)
+        # İşaretleme Butonu
         is_marked = st.session_state.idx in st.session_state.marked
-        # İkonu Beyaz Bayrak yapıyoruz ama CSS ile sarı görünecek/algılanacak
         btn_txt = "🏳️ İşareti Kaldır" if is_marked else "🏳️ Bu Soruyu İşaretle"
         
-        c_mark, c_dummy = st.columns([2, 5])
+        c_mark, c_dummy = st.columns([1.8, 5])
         if c_mark.button(btn_txt, key="mark_q"):
             if is_marked: st.session_state.marked.remove(st.session_state.idx)
             else: st.session_state.marked.add(st.session_state.idx)
@@ -279,14 +276,13 @@ if df is not None:
         col_prev, col_next = st.columns([1, 1])
         
         if st.session_state.idx > 0:
-            col_prev.button("⬅️ Önceki", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx-1), use_container_width=True)
+            col_prev.button("⬅️ Önceki Soru", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx-1), use_container_width=True)
         
         if st.session_state.idx < len(df) - 1:
-            st.markdown("""<style>div[data-testid="column"]:nth-of-type(2) button {background-color:#0984e3; color:white; border:none;}</style>""", unsafe_allow_html=True)
-            col_next.button("Sonraki ➡️", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx+1), use_container_width=True)
+            st.markdown("""<style>div[data-testid="column"]:nth-of-type(2) button {background-color:#3b82f6; color:white; border:none;}</style>""", unsafe_allow_html=True)
+            col_next.button("Sonraki Soru ➡️", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx+1), use_container_width=True)
 
     else:
-        # SONUÇ EKRANI
         st.title("Sınav Sonuçları")
         c, w, e = 0, 0, 0
         data = []
