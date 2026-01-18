@@ -6,6 +6,7 @@ import streamlit.components.v1 as components
 import google.generativeai as genai
 import edge_tts
 import asyncio
+import os # Dosya işlemleri için gerekli
 
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
@@ -85,23 +86,43 @@ def parse_question(text):
     parts = text.split('\n\n', 1) if '\n\n' in text else (None, text.strip())
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
-# --- 6. SES FONKSİYONU (DÜZELTİLMİŞ ASENKRON YAPI) ---
-async def generate_speech_async(text, rate_str):
-    VOICE = "en-US-AndrewMultilingualNeural"
-    communicate = edge_tts.Communicate(text, VOICE, rate=rate_str)
-    await communicate.save("output_audio.mp3")
+# --- 6. SES FONKSİYONU (TAMİR EDİLDİ) ---
+# Sorun çıkaran karmaşık asenkron yapı yerine, 
+# Streamlit'in kendi akışına uygun hale getirdik.
+def run_tts(text, rate_str):
+    """
+    Bu fonksiyon sesi oluşturur ve dosya yolunu döner.
+    Hata olursa None döner.
+    """
+    output_file = "output_audio.mp3"
+    voice = "en-US-AndrewMultilingualNeural"
+    
+    async def _generate():
+        communicate = edge_tts.Communicate(text, voice, rate=rate_str)
+        await communicate.save(output_file)
 
-def run_async_speech(text, rate_str):
-    """Asenkron işlemi güvenli bir şekilde çalıştıran yardımcı fonksiyon"""
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(generate_speech_async(text, rate_str))
-        loop.close()
-        return True
+        # Mevcut bir döngü varsa onu kullan, yoksa yeni aç
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+        if loop.is_running():
+            # Eğer zaten bir döngü çalışıyorsa (Streamlit bazen yapar)
+            # Bu durumda direkt task olarak ekleyemeyiz, alternatif bir yol deneriz
+            # Ancak Edge-TTS cli komutu kullanmak en temizidir.
+            import subprocess
+            cmd = f'edge-tts --text "{text}" --write-media {output_file} --voice {voice} --rate={rate_str}'
+            subprocess.run(cmd, shell=True, check=True)
+        else:
+            loop.run_until_complete(_generate())
+            
+        return output_file
     except Exception as e:
-        st.error(f"Ses Hatası: {e}")
-        return False
+        st.error(f"Ses oluşturma hatası: {e}")
+        return None
 
 def ask_ai(passage, question, options, speed_val):
     if "BURAYA" in GEMINI_API_KEY or len(GEMINI_API_KEY) < 10:
@@ -136,24 +157,25 @@ def ask_ai(passage, question, options, speed_val):
         (Diğerleri neden elendi?)
         """
         
+        # 1. Önce Metni Alalım (Bu hızlıdır)
         with st.spinner("🤖 Analiz Yapılıyor..."):
             response = model.generate_content(prompt)
             full_text = response.text
-            
-            rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
-            
-            # --- YENİ GÜVENLİ ÇAĞRI ---
-            success = run_async_speech(full_text, rate_str)
+        
+        # 2. Şimdi Sesi Oluşturalım (Bu biraz sürebilir)
+        rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
+        
+        with st.spinner("🔊 Ses Oluşturuluyor..."):
+            # Metin içindeki özel karakterleri (Tırnak vs) temizleyelim ki komut hata vermesin
+            clean_text_for_audio = full_text.replace('"', '').replace("'", "")
+            audio_file = run_tts(clean_text_for_audio, rate_str)
             
             audio_bytes = None
-            if success:
-                try:
-                    with open("output_audio.mp3", "rb") as f:
-                        audio_bytes = f.read()
-                except:
-                    pass # Dosya okunamazsa sessiz geç
+            if audio_file and os.path.exists(audio_file):
+                with open(audio_file, "rb") as f:
+                    audio_bytes = f.read()
             
-            return full_text, audio_bytes
+        return full_text, audio_bytes
 
     except Exception as e:
         return f"Hata oluştu: {e}", None
