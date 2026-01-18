@@ -14,7 +14,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 # --- 1. AYARLAR ---
-st.set_page_config(page_title="Yds Pro", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
 
 # --- 2. PREMIUM CSS TASARIMI (GÜNCELLENDİ) ---
 st.markdown("""
@@ -238,7 +238,7 @@ if df is not None:
         # --- API KEY (SABİT) ---
         st.info("🔑 **API Anahtarı**")
         # 👇👇👇 BURAYA KENDİ KEYİNİ YAPIŞTIR 👇👇👇
-        user_api_key = "AIzaSyBieaJ-pyHstD1hzvTspVaU58BPyT12Uxs" 
+        user_api_key = "AIzaSyBZ20OwQXQUNI2rTfVWjhouVw2LV8VZhWo" 
         # 👆👆👆 BURAYA KENDİ KEYİNİ YAPIŞTIR 👆👆👆
         
         if "BURAYA" in user_api_key:
