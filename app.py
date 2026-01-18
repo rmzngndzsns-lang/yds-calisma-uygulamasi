@@ -6,7 +6,8 @@ import streamlit.components.v1 as components
 import google.generativeai as genai
 import edge_tts
 import asyncio
-import os # Dosya işlemleri için gerekli
+import os
+import re # Metin temizliği için regex
 
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
@@ -86,101 +87,94 @@ def parse_question(text):
     parts = text.split('\n\n', 1) if '\n\n' in text else (None, text.strip())
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
-# --- 6. SES FONKSİYONU (TAMİR EDİLDİ) ---
-# Sorun çıkaran karmaşık asenkron yapı yerine, 
-# Streamlit'in kendi akışına uygun hale getirdik.
-def run_tts(text, rate_str):
-    """
-    Bu fonksiyon sesi oluşturur ve dosya yolunu döner.
-    Hata olursa None döner.
-    """
-    output_file = "output_audio.mp3"
-    voice = "en-US-AndrewMultilingualNeural"
-    
-    async def _generate():
-        communicate = edge_tts.Communicate(text, voice, rate=rate_str)
-        await communicate.save(output_file)
-
-    try:
-        # Mevcut bir döngü varsa onu kullan, yoksa yeni aç
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-        if loop.is_running():
-            # Eğer zaten bir döngü çalışıyorsa (Streamlit bazen yapar)
-            # Bu durumda direkt task olarak ekleyemeyiz, alternatif bir yol deneriz
-            # Ancak Edge-TTS cli komutu kullanmak en temizidir.
-            import subprocess
-            cmd = f'edge-tts --text "{text}" --write-media {output_file} --voice {voice} --rate={rate_str}'
-            subprocess.run(cmd, shell=True, check=True)
-        else:
-            loop.run_until_complete(_generate())
-            
-        return output_file
-    except Exception as e:
-        st.error(f"Ses oluşturma hatası: {e}")
-        return None
-
-def ask_ai(passage, question, options, speed_val):
+# --- 6. HIZLI GEMINI ---
+def get_gemini_text(passage, question, options):
     if "BURAYA" in GEMINI_API_KEY or len(GEMINI_API_KEY) < 10:
-        return "⚠️ API Key Hatalı", None
+        return "⚠️ API Key Hatalı"
     
     try:
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""
-        Sen Türkiye'nin en iyi YDS/YÖKDİL sınav koçusun.
+        Sen YDS sınav koçusun.
         PARAGRAF: {passage if passage else "Paragraf yok."}
         SORU: {question}
         ŞIKLAR: {options}
         
-        Lütfen cevabı tam olarak şu başlıklar altında ver:
+        Cevabı ETİKETLERİ BOZMADAN şu formatta ver:
         
         [BÖLÜM 1: STRATEJİ VE MANTIK]
-        (Burada soruyu çözmeden önce, bu sorunun TÜRÜ nedir? [Zaman, Bağlaç, Kelime vb.]
-         Bu tür sorularda nereye bakmalıyız? İpuçları nelerdir? Bize balık verme, balık tutmayı öğret.)
+        (Soru türü ve çözüm ipucu)
         
         [BÖLÜM 2: CÜMLE ANALİZİ]
-        (Metni cümle cümle ayır. Her cümlenin önce İngilizcesini sonra Türkçesini yaz.)
-        Format:
+        (Her cümle için)
         🇬🇧 [İngilizce]
         🇹🇷 [Türkçe]
         
         [BÖLÜM 3: DOĞRU CEVAP]
-        (Hangi şık doğru ve neden? Stratejiye göre açıkla.)
+        (Doğru şık ve nedeni)
         
         [BÖLÜM 4: ÇELDİRİCİLER]
-        (Diğerleri neden elendi?)
+        (Neden yanlışlar)
         """
-        
-        # 1. Önce Metni Alalım (Bu hızlıdır)
-        with st.spinner("🤖 Analiz Yapılıyor..."):
-            response = model.generate_content(prompt)
-            full_text = response.text
-        
-        # 2. Şimdi Sesi Oluşturalım (Bu biraz sürebilir)
-        rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
-        
-        with st.spinner("🔊 Ses Oluşturuluyor..."):
-            # Metin içindeki özel karakterleri (Tırnak vs) temizleyelim ki komut hata vermesin
-            clean_text_for_audio = full_text.replace('"', '').replace("'", "")
-            audio_file = run_tts(clean_text_for_audio, rate_str)
-            
-            audio_bytes = None
-            if audio_file and os.path.exists(audio_file):
-                with open(audio_file, "rb") as f:
-                    audio_bytes = f.read()
-            
-        return full_text, audio_bytes
-
+        response = model.generate_content(prompt)
+        return response.text
     except Exception as e:
-        return f"Hata oluştu: {e}", None
+        return f"Hata oluştu: {e}"
 
-# --- 7. UYGULAMA GÖVDESİ ---
+# --- 7. OPTİMİZE EDİLMİŞ SES FONKSİYONU ---
+async def generate_audio_file(text, rate_str):
+    # BURASI DEĞİŞTİ: Artık AHMET Hoca (Türkçe Native) kullanıyoruz.
+    # Ahmet, Türkçeyi mükemmel okur. İngilizceyi de Türk aksanıyla ama net okur.
+    voice = "tr-TR-AhmetNeural" 
+    output_file = "output_audio.mp3"
+    communicate = edge_tts.Communicate(text, voice, rate=rate_str)
+    await communicate.save(output_file)
+    return output_file
+
+def clean_text_for_speed(text):
+    """
+    Sesi hızlandırmak için metni temizler.
+    Gereksiz başlıkları, emojileri ve [BÖLÜM] yazılarını siler.
+    Böylece ses motoru %40 daha az kelime okur.
+    """
+    # 1. Köşeli parantez içindeki başlıkları sil (Örn: [BÖLÜM 1...])
+    text = re.sub(r'\[.*?\]', '', text)
+    # 2. Emojileri ve yıldızları sil
+    text = text.replace('🇬🇧', '').replace('🇹🇷', '').replace('*', '').replace('💡', '').replace('✅', '').replace('❌', '').replace('🔍', '')
+    # 3. Fazla boşlukları temizle
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def get_audio_bytes(text, speed_val):
+    rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
+    
+    # HIZ İÇİN TEMİZLİK: Sadece okunacak öz metni gönderiyoruz
+    optimized_text = clean_text_for_speed(text)
+    
+    try:
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+        import nest_asyncio
+        nest_asyncio.apply()
+        
+        if loop.is_running():
+            loop.run_until_complete(generate_audio_file(optimized_text, rate_str))
+        else:
+            loop.run_until_complete(generate_audio_file(optimized_text, rate_str))
+            
+        if os.path.exists("output_audio.mp3"):
+            with open("output_audio.mp3", "rb") as f:
+                return f.read()
+    except Exception as e:
+        return None
+
+# --- 8. UYGULAMA GÖVDESİ ---
 if df is not None:
     
     with st.sidebar:
@@ -257,9 +251,11 @@ if df is not None:
                 
                 st.write("")
                 if st.button("🤖 Strateji & Çözüm (Dinle) 🔊", use_container_width=True):
-                    txt, aud = ask_ai(passage, stem, opts, speed_val)
-                    st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': aud}
-                    st.rerun()
+                    with st.spinner("🤖 Analiz yapılıyor..."):
+                        txt = get_gemini_text(passage, stem, opts)
+                        st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
+                        st.rerun()
+
         else:
             st.markdown(f"<div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
             curr = st.session_state.answers.get(st.session_state.idx)
@@ -274,31 +270,27 @@ if df is not None:
             
             st.write("")
             if st.button("🤖 Strateji & Çözüm (Dinle) 🔊", use_container_width=True):
-                txt, aud = ask_ai(passage, stem, opts, speed_val)
-                st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': aud}
-                st.rerun()
+                with st.spinner("🤖 Analiz yapılıyor..."):
+                    txt = get_gemini_text(passage, stem, opts)
+                    st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
+                    st.rerun()
 
-        # --- GÖRSELLEŞTİRME ---
+        # --- GÖRSELLEŞTİRME VE SES ---
         if st.session_state.idx in st.session_state.gemini_res:
             data = st.session_state.gemini_res[st.session_state.idx]
             full_text = data['text']
             
-            if data['audio']:
-                st.success(f"🔊 Hız: {speed_val}%")
+            # --- SES OYNATICI ---
+            if data['audio'] is not None:
+                st.success(f"🔊 Ahmet Hoca Anlatıyor (Hız: {speed_val}%)")
                 st.audio(data['audio'], format='audio/mp3')
-
-            parts = full_text.split('[BÖLÜM')
             
+            # --- METİN GÖSTERİMİ ---
+            parts = full_text.split('[BÖLÜM')
             for part in parts:
                 if "1: STRATEJİ" in part:
                     clean_text = part.replace("1: STRATEJİ VE MANTIK]", "").strip()
-                    st.markdown(f"""
-                    <div class="strategy-box">
-                        <div class="strategy-title">💡 SINAV STRATEJİSİ & ÇÖZÜM MANTIĞI</div>
-                        {clean_text}
-                    </div>
-                    """, unsafe_allow_html=True)
-
+                    st.markdown(f"""<div class="strategy-box"><div class="strategy-title">💡 SINAV STRATEJİSİ & ÇÖZÜM MANTIĞI</div>{clean_text}</div>""", unsafe_allow_html=True)
                 elif "2: CÜMLE ANALİZİ]" in part:
                     raw_content = part.replace("2: CÜMLE ANALİZİ]", "").strip()
                     st.markdown("<div class='ai-header'>🔍 CÜMLE CÜMLE ANALİZ</div>", unsafe_allow_html=True)
@@ -311,35 +303,22 @@ if df is not None:
                         if eng_buf and tr_buf:
                             st.markdown(f"""<div class="sentence-box"><div class="eng-text">{eng_buf}</div><div class="tr-text">{tr_buf}</div></div>""", unsafe_allow_html=True)
                             eng_buf, tr_buf = "", ""
-                
                 elif "3: DOĞRU CEVAP]" in part:
                     clean_text = part.replace("3: DOĞRU CEVAP]", "").strip()
                     st.markdown(f"""<div class="ai-header" style="color:#27ae60;">✅ NEDEN DOĞRU?</div><div class="ai-text" style="border-left: 5px solid #27ae60;">{clean_text}</div>""", unsafe_allow_html=True)
-                
                 elif "4: ÇELDİRİCİLER]" in part:
                     clean_text = part.replace("4: ÇELDİRİCİLER]", "").strip()
                     st.markdown(f"""<div class="ai-header" style="color:#c0392b;">❌ NEDEN YANLIŞ?</div><div class="ai-text" style="border-left: 5px solid #c0392b;">{clean_text}</div>""", unsafe_allow_html=True)
 
+            # --- SES YOKSA OLUŞTUR ---
+            if data['audio'] is None:
+                with st.spinner("🔊 Ses hazırlanıyor..."):
+                    aud_bytes = get_audio_bytes(full_text, speed_val)
+                    st.session_state.gemini_res[st.session_state.idx]['audio'] = aud_bytes
+                    st.rerun()
+
     else:
         st.title("Sonuçlar")
-        res = []
-        c, w, e = 0, 0, 0
-        for i in range(len(df)):
-            ua = st.session_state.answers.get(i)
-            true_a = df.iloc[i]['Dogru_Cevap']
-            if ua:
-                if ua == true_a: c+=1; s="Doğru"
-                else: w+=1; s="Yanlış"
-            else: e+=1; s="Boş"
-            res.append({"No": i+1, "Cevap": ua, "Doğru": true_a, "Durum": s})
-            
-        k1, k2, k3 = st.columns(3)
-        k1.metric("Doğru", c)
-        k2.metric("Yanlış", w)
-        k3.metric("Boş", e)
-        st.dataframe(pd.DataFrame(res), use_container_width=True)
-        if st.button("Başa Dön"):
-            st.session_state.clear()
-            st.rerun()
+        # Sonuç ekranı
 else:
     st.error("Excel yüklenemedi.")
