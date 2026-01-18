@@ -3,54 +3,50 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta
 import streamlit.components.v1 as components
+import google.generativeai as genai
 
-# --- 1. PAGE SETTINGS ---
-st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
+# --- 1. AYARLAR ---
+st.set_page_config(page_title="YDS Pro AI", page_icon="🤖", layout="wide")
+
+# !!! BURAYA API KEY YAPIŞTIR !!!
+GEMINI_API_KEY = "AIzaSyBYhFhLXc2mz7D9MgcGzAXZmxgzrTpL_Mg"
 
 # --- 2. CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
-    .stApp {
-        font-family: 'Inter', sans-serif;
-        background-color: #f3f4f6;
-    }
+    .stApp { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
     
-    /* SIDEBAR BUTTON GRID STYLING */
-    /* Force smaller padding between columns in sidebar for tight grid */
-    [data-testid="stSidebar"] [data-testid="column"] {
-        padding: 0px 1px !important;
-        min-width: 0 !important;
-    }
-    
-    [data-testid="stSidebar"] button {
-        width: 100% !important;
-        padding: 0px !important;
-        height: 34px !important;
-        font-size: 13px !important;
-        font-weight: 600 !important;
-        margin: 0px !important;
+    /* SIDEBAR BUTON AYARLARI */
+    [data-testid="stSidebar"] [data-testid="column"] { padding: 0px 1px !important; min-width: 0 !important; }
+    [data-testid="stSidebar"] button { 
+        width: 100% !important; 
+        padding: 0px !important; 
+        height: 34px !important; 
+        font-size: 13px !important; 
+        font-weight: 600 !important; 
+        margin: 0px !important; 
     }
 
-    /* PASSAGE BOX */
-    .passage-box {
-        background-color: white;
-        padding: 20px;
-        border-radius: 12px;
-        height: 55vh;
-        overflow-y: auto;
-        font-size: 15.5px;
-        line-height: 1.7;
-        text-align: justify;
-        border: 1px solid #e5e7eb;
-        border-left: 5px solid #2c3e50;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        color: #374151;
+    /* OKUMA PARÇASI KUTUSU */
+    .passage-box { 
+        background-color: white; 
+        padding: 20px; 
+        border-radius: 12px; 
+        height: 55vh; 
+        overflow-y: auto; 
+        font-size: 15.5px; 
+        line-height: 1.7; 
+        text-align: justify; 
+        border: 1px solid #e5e7eb; 
+        border-left: 5px solid #2c3e50; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+        color: #374151; 
     }
 
-    /* QUESTION STEM */
-    .question-stem {
+    /* SORU KÖKÜ */
+    .question-stem { 
         font-size: 16.5px; 
         font-weight: 600; 
         background-color: white; 
@@ -59,12 +55,12 @@ st.markdown("""
         border: 1px solid #e5e7eb; 
         border-left: 4px solid #3b82f6; 
         margin-bottom: 20px; 
-        color: #111827;
+        color: #111827; 
     }
 
-    /* RADIO BUTTONS */
+    /* RADYO BUTONLAR */
     .stRadio > label { display: none; }
-    .stRadio div[role='radiogroup'] > label {
+    .stRadio div[role='radiogroup'] > label { 
         padding: 12px 16px; 
         margin-bottom: 8px; 
         border: 1px solid #d1d5db; 
@@ -72,22 +68,38 @@ st.markdown("""
         background-color: white; 
         font-size: 15px; 
         color: #374151; 
-        transition: all 0.2s;
+        transition: all 0.2s; 
     }
-    .stRadio div[role='radiogroup'] > label:hover {
-        background-color: #eff6ff; border-color: #3b82f6; color: #1d4ed8;
+    .stRadio div[role='radiogroup'] > label:hover { 
+        background-color: #eff6ff; 
+        border-color: #3b82f6; 
+        color: #1d4ed8; 
     }
 
-    /* SPECIAL BUTTONS */
+    /* ÖZEL BUTONLAR */
     div.stButton > button:contains("İşaretle") { border-color: #d97706 !important; color: #d97706 !important; font-weight: 700; }
     div.stButton > button:contains("Kaldır") { background-color: #d97706 !important; color: white !important; border: none; }
-    
-    /* NAV BUTTONS */
+    div.stButton > button:contains("Gemini") { border: 2px solid #8e44ad !important; color: #8e44ad !important; font-weight: 700; background-color: white; }
+    div.stButton > button:contains("Gemini"):hover { background-color: #f3e5f5 !important; }
+
+    /* GEMINI CEVAP KUTUSU */
+    .gemini-box {
+        background-color: #f8f0fc;
+        border: 1px solid #e1bee7;
+        border-left: 5px solid #8e44ad;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 15px;
+        font-size: 15px;
+        color: #4a148c;
+    }
+
+    /* NAVİGASYON */
     div.stButton > button { height: 45px; font-weight: 500; font-size: 15px; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. DATA LOAD ---
+# --- 3. VERİ YÜKLEME ---
 @st.cache_data
 def load_data():
     try:
@@ -105,6 +117,7 @@ def init_session():
     if 'end_timestamp' not in st.session_state:
         st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000 
     if 'finish' not in st.session_state: st.session_state.finish = False
+    if 'gemini_res' not in st.session_state: st.session_state.gemini_res = {} # AI cevapları hafızası
 
 df = load_data()
 init_session()
@@ -116,12 +129,38 @@ def parse_question(text):
     parts = text.split('\n\n', 1) if '\n\n' in text else (None, text.strip())
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
-# --- 6. APP LOGIC ---
+# --- 6. GEMINI FONKSİYONU ---
+def ask_ai(passage, question, options):
+    if "BURAYA" in GEMINI_API_KEY:
+        return "⚠️ Lütfen kodun içine geçerli bir API Key ekleyin."
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-pro')
+        prompt = f"""
+        Sen uzman bir YDS İngilizce öğretmenisin. Öğrenciye bu soruyu analiz et.
+        
+        PARAGRAF: {passage if passage else "-"}
+        SORU: {question}
+        ŞIKLAR: {options}
+        
+        Lütfen şunları yap:
+        1. Soruyu ve şıkları Türkçe'ye çevir.
+        2. Doğru cevabı açıkla ve neden doğru olduğunu anlat.
+        3. Çeldirici şıkların neden yanlış olduğunu kısaca belirt.
+        4. Varsa önemli gramer kuralını veya kelimeyi vurgula.
+        """
+        with st.spinner("🤖 Gemini öğretmeni inceliyor..."):
+            res = model.generate_content(prompt)
+            return res.text
+    except Exception as e:
+        return f"Hata: {e}"
+
+# --- 7. UYGULAMA GÖVDESİ ---
 if df is not None:
     
     # --- SIDEBAR ---
     with st.sidebar:
-        # TIMER
+        # SAYAÇ
         components.html(f"""
         <div style="font-family:'Courier New',monospace;font-size:36px;font-weight:800;color:#dc2626;background:white;padding:10px 0;border-radius:10px;text-align:center;border:3px solid #dc2626;margin-bottom:20px;letter-spacing:2px;box-shadow:0 4px 6px rgba(0,0,0,0.1);" id="cnt">...</div>
         <script>
@@ -138,29 +177,19 @@ if df is not None:
         
         st.caption("🟢:D | 🔴:Y | ⭐:İşaret")
 
-        # --- THE ROW-BASED GRID LOGIC (MOBILE FRIENDLY) ---
-        # We loop through questions in chunks of 5 (Row by Row)
-        # This ensures that Question 1, 2, 3, 4, 5 are in the first 'st.columns' block.
-        # On mobile, that block stacks 1, 2, 3, 4, 5 vertically. PERFECT ORDER.
-        
+        # --- DÜZELTİLMİŞ GRID YAPISI (Senin istediğin kod) ---
         chunk_size = 5
         for i in range(0, len(df), chunk_size):
-            # Create a row of 5 columns
             row_cols = st.columns(chunk_size)
-            
-            # Fill this row
             for j in range(chunk_size):
                 if i + j < len(df):
                     q_idx = i + j
-                    
                     u_ans = st.session_state.answers.get(q_idx)
                     c_ans = df.iloc[q_idx]['Dogru_Cevap']
                     
                     label = str(q_idx + 1)
-                    if u_ans:
-                        label = "✅" if u_ans == c_ans else "❌"
-                    elif q_idx in st.session_state.marked:
-                        label = "⭐"
+                    if u_ans: label = "✅" if u_ans == c_ans else "❌"
+                    elif q_idx in st.session_state.marked: label = "⭐"
                     
                     b_type = "primary" if q_idx == st.session_state.idx else "secondary"
                     
@@ -174,22 +203,24 @@ if df is not None:
             st.session_state.finish = True
             st.rerun()
 
-    # --- MAIN CONTENT ---
+    # --- ANA EKRAN ---
     if not st.session_state.finish:
-        # Header
-        c_title, c_mark = st.columns([3, 1])
-        c_title.markdown(f"### Soru {st.session_state.idx + 1} / {len(df)}")
+        # Başlık
+        c1, c2 = st.columns([3, 1])
+        c1.markdown(f"### Soru {st.session_state.idx + 1} / {len(df)}")
         
         is_marked = st.session_state.idx in st.session_state.marked
-        btn_txt = "🏳️ Kaldır" if is_marked else "🚩 İşaretle"
-        if c_mark.button(btn_txt, key="mark_main"):
+        if c2.button("🏳️ Kaldır" if is_marked else "🚩 İşaretle", key="mark_main"):
             if is_marked: st.session_state.marked.remove(st.session_state.idx)
             else: st.session_state.marked.add(st.session_state.idx)
             st.rerun()
 
         row = df.iloc[st.session_state.idx]
         passage, stem = parse_question(row['Soru'])
-
+        
+        opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
+        
+        # Soru İçeriği ve Gemini Entegrasyonu
         if passage:
             col_l, col_r = st.columns([1, 1], gap="medium")
             with col_l:
@@ -197,27 +228,52 @@ if df is not None:
                 st.markdown(f"<div class='passage-box'>{passage}</div>", unsafe_allow_html=True)
             with col_r:
                 st.markdown(f"<div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
-                opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
                 curr = st.session_state.answers.get(st.session_state.idx)
                 idx_s = next((k for k,v in enumerate(opts) if v.startswith(curr + ")")), None) if curr else None
-                sel = st.radio("Cevap", opts, index=idx_s, key=f"r{st.session_state.idx}")
+                sel = st.radio("Cevap", opts, index=idx_s, key=f"rad_{st.session_state.idx}")
+                
                 if sel:
                     char = sel.split(")")[0]
                     st.session_state.answers[st.session_state.idx] = char
                     if char == row['Dogru_Cevap']: st.success("✅ DOĞRU")
                     else: st.error(f"❌ YANLIŞ! (Cevap: {row['Dogru_Cevap']})")
+                
+                # Gemini Butonu (Sağ Kolon)
+                st.write("")
+                if st.button("🤖 Gemini'ye Sor & Açıkla", use_container_width=True):
+                    res = ask_ai(passage, stem, opts)
+                    st.session_state.gemini_res[st.session_state.idx] = res
+                    st.rerun()
+
         else:
             st.markdown(f"<div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
-            opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
             curr = st.session_state.answers.get(st.session_state.idx)
             idx_s = next((k for k,v in enumerate(opts) if v.startswith(curr + ")")), None) if curr else None
-            sel = st.radio("Cevap", opts, index=idx_s, key=f"r{st.session_state.idx}")
+            sel = st.radio("Cevap", opts, index=idx_s, key=f"rad_{st.session_state.idx}")
+            
             if sel:
                 char = sel.split(")")[0]
                 st.session_state.answers[st.session_state.idx] = char
                 if char == row['Dogru_Cevap']: st.success("✅ DOĞRU")
                 else: st.error(f"❌ YANLIŞ! (Cevap: {row['Dogru_Cevap']})")
+            
+            # Gemini Butonu (Tek Kolon)
+            st.write("")
+            if st.button("🤖 Gemini'ye Sor & Açıkla", use_container_width=True):
+                res = ask_ai(passage, stem, opts)
+                st.session_state.gemini_res[st.session_state.idx] = res
+                st.rerun()
 
+        # GEMINI CEVAP GÖSTERİMİ (Varsa)
+        if st.session_state.idx in st.session_state.gemini_res:
+            st.markdown(f"""
+            <div class="gemini-box">
+                <h4>🤖 Öğretmen Notu:</h4>
+                {st.session_state.gemini_res[st.session_state.idx]}
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Navigasyon
         st.write("")
         cp, cn = st.columns(2)
         if st.session_state.idx > 0:
@@ -227,25 +283,24 @@ if df is not None:
 
     else:
         st.title("Sonuçlar")
-        data = []
-        c,w,e = 0,0,0
+        res = []
+        c, w, e = 0, 0, 0
         for i in range(len(df)):
-            u = st.session_state.answers.get(i)
-            t = df.iloc[i]['Dogru_Cevap']
-            if u:
-                if u == t: c+=1; s="Doğru"
+            ua = st.session_state.answers.get(i)
+            true_a = df.iloc[i]['Dogru_Cevap']
+            if ua:
+                if ua == true_a: c+=1; s="Doğru"
                 else: w+=1; s="Yanlış"
             else: e+=1; s="Boş"
-            data.append({"Soru": i+1, "Cevap": u, "Doğru": t, "Durum": s})
-        
-        k1,k2,k3 = st.columns(3)
+            res.append({"No": i+1, "Cevap": ua, "Doğru": true_a, "Durum": s})
+            
+        k1, k2, k3 = st.columns(3)
         k1.metric("Doğru", c)
         k2.metric("Yanlış", w)
         k3.metric("Boş", e)
-        st.dataframe(pd.DataFrame(data), use_container_width=True)
+        st.dataframe(pd.DataFrame(res), use_container_width=True)
         if st.button("Başa Dön"):
             st.session_state.clear()
             st.rerun()
-
 else:
     st.error("Excel yüklenemedi.")
