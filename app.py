@@ -301,4 +301,4 @@ if df is not None:
             st.rerun()
 
 else:
-    st.error("Excel dosyası yüklenemedi.") bu kod üzerinden devam edelim en son attığını beğenmedim. 80 soruluk bar ekrana göre büyüyüp küçülsün otomatik ekrana sığsın kodunu kullan görseli bozmadan büyüyüp küçülsün. şuana kadar denediğin hiçbir yöntem işe yaramadı. ne yapacağız?
+    st.error("Excel dosyası yüklenemedi.")
