@@ -5,93 +5,114 @@ from datetime import datetime, timedelta
 import streamlit.components.v1 as components
 
 # --- 1. SAYFA AYARLARI ---
-st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="YDS Pro", page_icon="📱", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. PROFESYONEL CSS ---
+# --- 2. MOBİL UYUMLU CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&display=swap');
     
     .stApp {
         font-family: 'Inter', sans-serif;
         background-color: #f3f4f6;
     }
     
-    /* Okuma Parçası Kutusu */
+    /* DUYARLI SAYAÇ (MOBİLDE KÜÇÜLÜR, MASAÜSTÜNDE BÜYÜR) */
+    .sidebar-timer {
+        font-family: 'Roboto Mono', monospace;
+        color: #dc2626;
+        background-color: #ffffff;
+        padding: 10px 5px;
+        border-radius: 8px;
+        text-align: center;
+        border: 2px solid #dc2626;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Masaüstü Yazı Boyutu */
+    @media (min-width: 768px) {
+        .sidebar-timer { font-size: 32px; font-weight: 900; letter-spacing: 2px; }
+    }
+    /* Mobil Yazı Boyutu */
+    @media (max-width: 767px) {
+        .sidebar-timer { font-size: 22px; font-weight: 700; letter-spacing: 1px; padding: 8px; }
+    }
+
+    /* Okuma Parçası */
     .passage-box {
         background-color: white;
-        padding: 20px;
-        border-radius: 12px;
-        height: 55vh;
+        padding: 15px;
+        border-radius: 10px;
+        max-height: 50vh; /* Mobilde çok yer kaplamasın */
         overflow-y: auto;
-        font-size: 15.5px;
-        line-height: 1.7;
+        font-size: 15px;
+        line-height: 1.6;
         text-align: justify;
         border: 1px solid #e5e7eb;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        color: #374151;
-        border-left: 5px solid #2c3e50;
+        border-left: 4px solid #2c3e50;
+        margin-bottom: 15px;
     }
 
     /* Soru Alanı */
     .question-stem {
-        font-size: 16.5px;
+        font-size: 16px;
         font-weight: 600;
         background-color: white;
-        padding: 20px;
+        padding: 15px;
         border: 1px solid #e5e7eb;
         border-left: 4px solid #3b82f6;
-        border-radius: 12px;
+        border-radius: 10px;
         color: #111827;
-        margin-bottom: 20px;
-        line-height: 1.6;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        margin-bottom: 15px;
+        line-height: 1.5;
     }
 
     /* Radyo Butonlar */
     .stRadio > label { display: none; }
     .stRadio div[role='radiogroup'] > label {
-        padding: 12px 16px;
-        margin-bottom: 8px;
+        padding: 12px;
+        margin-bottom: 6px;
         border: 1px solid #d1d5db;
         border-radius: 8px;
         background-color: white;
         font-size: 15px;
         color: #374151;
-        transition: all 0.2s;
     }
     .stRadio div[role='radiogroup'] > label:hover {
         background-color: #eff6ff;
         border-color: #3b82f6;
-        color: #1d4ed8;
     }
 
-    /* İşaretle Butonu (Gold/Sarı) */
+    /* İşaretle Butonu */
     div.stButton > button:contains("İşaretle") {
         border-color: #d97706 !important;
         color: #d97706 !important;
-        font-weight: 700;
+        font-weight: 600;
+        width: 100%; /* Mobilde tam genişlik */
     }
     div.stButton > button:contains("Kaldır") {
         background-color: #d97706 !important;
         color: white !important;
-        border: none;
+        width: 100%;
     }
     
-    /* Yan Menü Butonları */
-    div[data-testid="stSidebar"] button {
-        padding: 0px;
-        height: 38px;
-        font-size: 14px;
-        font-weight: 600;
-        border-radius: 6px;
-    }
-    
-    /* Ana Navigasyon */
+    /* Navigasyon Butonları */
     div.stButton > button {
         height: 45px;
         font-weight: 500;
         font-size: 15px;
+        width: 100%;
+    }
+    
+    /* Sidebar Butonları (Masaüstü için 5'li, Mobil için Dropdown yapacağız) */
+    div[data-testid="stSidebar"] button {
+        padding: 0px;
+        height: 35px;
+        font-size: 13px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -133,25 +154,12 @@ def parse_question(text):
 # --- 6. UYGULAMA GÖVDESİ ---
 if df is not None:
     
-    # --- SIDEBAR ---
+    # --- SIDEBAR (MOBİL UYUMLU NAVİGASYON) ---
     with st.sidebar:
-        # SAYAÇ (STYLES DOĞRUDAN HTML İÇİNE GÖMÜLDÜ - GARANTİ ÇÖZÜM)
+        # SAYAÇ
         end_ts = st.session_state.end_timestamp
         timer_html = f"""
-        <div style="
-            font-family: 'Courier New', monospace;
-            font-size: 42px; 
-            font-weight: 900; 
-            color: #dc2626; 
-            background-color: #ffffff;
-            padding: 10px 0px;
-            border-radius: 10px;
-            text-align: center;
-            border: 3px solid #dc2626;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        " id="countdown">Loading...</div>
+        <div class="sidebar-timer" id="countdown">...</div>
         <script>
             var countDownDate = {end_ts};
             var x = setInterval(function() {{
@@ -166,29 +174,55 @@ if df is not None:
             }}, 1000);
         </script>
         """
-        components.html(timer_html, height=100) # Yükseklik artırıldı
+        components.html(timer_html, height=80)
+
+        # MOBİLDE DROPDOWN, MASAÜSTÜNDE GRID
+        # Streamlit'te ekran boyutunu Python ile algılayamayız, o yüzden kullanıcıya seçenek sunuyoruz
+        # VEYA basitçe "Soru Seç" listesi koyuyoruz ki mobilde kaymasın.
         
-        st.caption("🟢:Doğru | 🔴:Yanlış | ⭐:İşaretli")
+        st.markdown("### 🗺️ Soru Gezgini")
         
-        # SORU PALETİ
-        cols = st.columns(5)
+        # Seçenek 1: Hızlı Atlama Listesi (Mobilde Bozulmaz)
+        question_options = []
         for i in range(len(df)):
-            u_ans = st.session_state.answers.get(i)
-            c_ans = df.iloc[i]['Dogru_Cevap']
+            durum = "⚪"
+            if i in st.session_state.marked: durum = "⭐"
+            if i in st.session_state.answers:
+                if st.session_state.answers[i] == df.iloc[i]['Dogru_Cevap']: durum = "✅"
+                else: durum = "❌"
+            question_options.append(f"Soru {i+1} {durum}")
             
-            label = str(i+1)
+        selected_q_str = st.selectbox(
+            "Listeden Seç:", 
+            question_options, 
+            index=st.session_state.idx,
+            label_visibility="collapsed"
+        )
+        
+        # Seçim değiştiyse güncelle
+        new_idx = int(selected_q_str.split()[1]) - 1
+        if new_idx != st.session_state.idx:
+            st.session_state.idx = new_idx
+            st.rerun()
             
-            if u_ans:
-                if u_ans == c_ans: label = "✅"
-                else: label = "❌"
-            elif i in st.session_state.marked:
-                label = "⭐"
-            
-            b_type = "primary" if i == st.session_state.idx else "secondary"
-            
-            if cols[i%5].button(label, key=f"n{i}", type=b_type, use_container_width=True):
-                st.session_state.idx = i
-                st.rerun()
+        st.divider()
+        
+        # Klasik Grid Görünümü (İsteyen İçin Aşağıda)
+        with st.expander("Tüm Paleti Göster (Masaüstü)"):
+            cols = st.columns(5)
+            for i in range(len(df)):
+                u_ans = st.session_state.answers.get(i)
+                c_ans = df.iloc[i]['Dogru_Cevap']
+                label = str(i+1)
+                if u_ans:
+                    label = "✅" if u_ans == c_ans else "❌"
+                elif i in st.session_state.marked:
+                    label = "⭐"
+                
+                b_type = "primary" if i == st.session_state.idx else "secondary"
+                if cols[i%5].button(label, key=f"n{i}", type=b_type, use_container_width=True):
+                    st.session_state.idx = i
+                    st.rerun()
 
         st.divider()
         if st.button("SINAVI BİTİR", type="primary", use_container_width=True):
@@ -197,52 +231,55 @@ if df is not None:
 
     # --- ANA EKRAN ---
     if not st.session_state.finish:
-        # Başlık
-        st.markdown(f"### Soru {st.session_state.idx + 1} / {len(df)}")
-        
+        # Başlık ve İşaretle Butonu (Yan Yana)
+        c_title, c_mark = st.columns([2, 1])
+        with c_title:
+            st.markdown(f"**Soru {st.session_state.idx + 1}**")
+        with c_mark:
+            is_marked = st.session_state.idx in st.session_state.marked
+            btn_txt = "🏳️ Kaldır" if is_marked else "🚩 İşaretle"
+            if st.button(btn_txt, key="mark_q"):
+                if is_marked: st.session_state.marked.remove(st.session_state.idx)
+                else: st.session_state.marked.add(st.session_state.idx)
+                st.rerun()
+
         row = df.iloc[st.session_state.idx]
         passage, stem = parse_question(row['Soru'])
 
-        # İşaretleme Butonu
-        is_marked = st.session_state.idx in st.session_state.marked
-        btn_txt = "🏳️ İşareti Kaldır" if is_marked else "🏳️ Bu Soruyu İşaretle"
+        # İÇERİK DÜZENİ (Mobilde Alt Alta Olsun Diye Columns Kullanımını Şartlara Bağladık)
         
-        c_mark, c_dummy = st.columns([1.8, 5])
-        if c_mark.button(btn_txt, key="mark_q"):
-            if is_marked: st.session_state.marked.remove(st.session_state.idx)
-            else: st.session_state.marked.add(st.session_state.idx)
-            st.rerun()
-
-        # DÜZEN
+        # Paragraf Varsa
         if passage:
-            col_l, col_r = st.columns([1, 1], gap="medium")
-            with col_l:
-                st.info("Okuma Parçası")
-                st.markdown(f"<div class='passage-box'>{passage}</div>", unsafe_allow_html=True)
-            with col_r:
-                st.markdown(f"<div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
-                
-                opts, opt_map = [], {}
-                for char in ['A','B','C','D','E']:
-                    if pd.notna(row[char]):
-                        full = f"{char}) {row[char]}"
-                        opts.append(full)
-                        opt_map[full] = char
-                
-                curr = st.session_state.answers.get(st.session_state.idx)
-                idx_s = None
-                if curr:
-                    for k,v in enumerate(opts):
-                        if v.startswith(curr+")"): idx_s = k; break
-                
-                sel = st.radio("Cevap:", opts, index=idx_s, key=f"r{st.session_state.idx}", label_visibility="collapsed")
-                
-                if sel:
-                    sel_char = opt_map[sel]
-                    st.session_state.answers[st.session_state.idx] = sel_char
-                    true_char = row['Dogru_Cevap']
-                    if sel_char == true_char: st.success("✅ DOĞRU")
-                    else: st.error(f"❌ YANLIŞ! (Cevap: {true_char})")
+            # Streamlit columns mobilde otomatik alt alta düşer ama bazen sıkışır.
+            # Mobilde daha rahat okuma için önce Paragrafı tam genişlikte veriyoruz.
+            st.info("📖 Okuma Parçası")
+            st.markdown(f"<div class='passage-box'>{passage}</div>", unsafe_allow_html=True)
+            
+            st.markdown(f"<div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
+            
+            opts, opt_map = [], {}
+            for char in ['A','B','C','D','E']:
+                if pd.notna(row[char]):
+                    full = f"{char}) {row[char]}"
+                    opts.append(full)
+                    opt_map[full] = char
+            
+            curr = st.session_state.answers.get(st.session_state.idx)
+            idx_s = None
+            if curr:
+                for k,v in enumerate(opts):
+                    if v.startswith(curr+")"): idx_s = k; break
+            
+            sel = st.radio("Cevap:", opts, index=idx_s, key=f"r{st.session_state.idx}", label_visibility="collapsed")
+            
+            if sel:
+                sel_char = opt_map[sel]
+                st.session_state.answers[st.session_state.idx] = sel_char
+                true_char = row['Dogru_Cevap']
+                if sel_char == true_char: st.success("✅ DOĞRU")
+                else: st.error(f"❌ YANLIŞ! (Cevap: {true_char})")
+        
+        # Paragraf Yoksa
         else:
             st.markdown(f"<div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
             opts, opt_map = [], {}
@@ -267,16 +304,16 @@ if df is not None:
                 if sel_char == true_char: st.success("✅ DOĞRU")
                 else: st.error(f"❌ YANLIŞ! (Cevap: {true_char})")
 
-        # NAVİGASYON
-        st.markdown("<br>", unsafe_allow_html=True)
+        # ALT NAVİGASYON (MOBİL DOSTU)
+        st.write("") # Boşluk
         col_prev, col_next = st.columns([1, 1])
         
         if st.session_state.idx > 0:
-            col_prev.button("⬅️ Önceki Soru", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx-1), use_container_width=True)
+            col_prev.button("⬅️ Geri", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx-1), use_container_width=True)
         
         if st.session_state.idx < len(df) - 1:
             st.markdown("""<style>div[data-testid="column"]:nth-of-type(2) button {background-color:#3b82f6; color:white; border:none;}</style>""", unsafe_allow_html=True)
-            col_next.button("Sonraki Soru ➡️", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx+1), use_container_width=True)
+            col_next.button("İleri ➡️", on_click=lambda: setattr(st.session_state, 'idx', st.session_state.idx+1), use_container_width=True)
 
     else:
         st.title("Sınav Sonuçları")
