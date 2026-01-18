@@ -24,65 +24,21 @@ st.markdown("""
     [data-testid="stSidebar"] [data-testid="column"] { padding: 0px 1px !important; min-width: 0 !important; }
     [data-testid="stSidebar"] button { width: 100% !important; padding: 0px !important; height: 34px !important; font-size: 13px !important; font-weight: 700 !important; margin: 0px !important; }
     
-    /* OKUMA PARÇASI - GÜNCELLENDİ (SORU KÖKÜ GİBİ BOLD YAPILDI) */
-    .passage-box { 
-        background-color: white; 
-        padding: 20px; 
-        border-radius: 12px; 
-        height: 55vh; 
-        overflow-y: auto; 
-        font-size: 16px;      /* Hafif büyütüldü */
-        font-weight: 700;     /* ARTIK BOLD (KALIN) */
-        line-height: 1.8; 
-        text-align: justify; 
-        border: 1px solid #e5e7eb; 
-        border-left: 5px solid #2c3e50; 
-        color: #111827;       /* Koyu siyah */
-    }
+    .passage-box { background-color: white; padding: 20px; border-radius: 12px; height: 55vh; overflow-y: auto; font-size: 16px; font-weight: 700; line-height: 1.8; text-align: justify; border: 1px solid #e5e7eb; border-left: 5px solid #2c3e50; color: #111827; }
+    .question-stem { font-size: 17px; font-weight: 800; background-color: white; padding: 20px; border-radius: 12px; border: 1px solid #e5e7eb; border-left: 4px solid #3b82f6; margin-bottom: 20px; color: #000000; }
     
-    /* SORU KÖKÜ (BOLD) */
-    .question-stem { 
-        font-size: 17px; 
-        font-weight: 800;     /* EKSTRA BOLD */
-        background-color: white; 
-        padding: 20px; 
-        border-radius: 12px; 
-        border: 1px solid #e5e7eb; 
-        border-left: 4px solid #3b82f6; 
-        margin-bottom: 20px; 
-        color: #000000; 
-    }
-    
-    /* STRATEJİ KUTUSU */
-    .strategy-box {
-        background-color: #e3f2fd;
-        border: 1px solid #bbdefb;
-        border-left: 5px solid #1976d2;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        color: #0d47a1;
-        font-size: 15px;
-        font-weight: 600;
-    }
+    .strategy-box { background-color: #e3f2fd; border: 1px solid #bbdefb; border-left: 5px solid #1976d2; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #0d47a1; font-size: 15px; font-weight: 600; }
     .strategy-title { font-weight: 900; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 8px;}
 
-    /* CÜMLE KUTULARI */
     .sentence-box { background-color: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; border-left: 4px solid #f39c12; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     .eng-text { font-weight: 700; color: #2c3e50; margin-bottom: 4px; font-size: 15px; }
     .tr-text { color: #555; font-weight: 600; font-style: italic; font-size: 14px; }
     
-    /* GENEL AI METİN */
     .ai-header { color: #8e44ad; font-weight: 900; font-size: 16px; margin-bottom: 8px; text-transform: uppercase; margin-top: 15px;}
     .ai-text { font-size: 15px; font-weight: 600; line-height: 1.6; color: #333; background: white; padding: 15px; border-radius: 10px; }
 
     div.stButton > button { height: 45px; font-weight: 700; font-size: 15px; }
-
-    /* ŞIKLARIN FONTU */
-    .stRadio div[role='radiogroup'] > label { 
-        font-weight: 600 !important; 
-        color: #1f2937 !important;
-    }
+    .stRadio div[role='radiogroup'] > label { font-weight: 600 !important; color: #1f2937 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -129,11 +85,23 @@ def parse_question(text):
     parts = text.split('\n\n', 1) if '\n\n' in text else (None, text.strip())
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
-# --- 6. SES FONKSİYONU ---
-async def generate_speech(text, rate_str):
+# --- 6. SES FONKSİYONU (DÜZELTİLMİŞ ASENKRON YAPI) ---
+async def generate_speech_async(text, rate_str):
     VOICE = "en-US-AndrewMultilingualNeural"
     communicate = edge_tts.Communicate(text, VOICE, rate=rate_str)
     await communicate.save("output_audio.mp3")
+
+def run_async_speech(text, rate_str):
+    """Asenkron işlemi güvenli bir şekilde çalıştıran yardımcı fonksiyon"""
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(generate_speech_async(text, rate_str))
+        loop.close()
+        return True
+    except Exception as e:
+        st.error(f"Ses Hatası: {e}")
+        return False
 
 def ask_ai(passage, question, options, speed_val):
     if "BURAYA" in GEMINI_API_KEY or len(GEMINI_API_KEY) < 10:
@@ -168,17 +136,22 @@ def ask_ai(passage, question, options, speed_val):
         (Diğerleri neden elendi?)
         """
         
-        with st.spinner("🤖 Soru Tipi ve Strateji Analiz Ediliyor..."):
+        with st.spinner("🤖 Analiz Yapılıyor..."):
             response = model.generate_content(prompt)
             full_text = response.text
             
             rate_str = f"{speed_val}%" if speed_val < 0 else f"+{speed_val}%"
-            try:
-                asyncio.run(generate_speech(full_text, rate_str))
-                with open("output_audio.mp3", "rb") as f:
-                    audio_bytes = f.read()
-            except Exception as e:
-                audio_bytes = None
+            
+            # --- YENİ GÜVENLİ ÇAĞRI ---
+            success = run_async_speech(full_text, rate_str)
+            
+            audio_bytes = None
+            if success:
+                try:
+                    with open("output_audio.mp3", "rb") as f:
+                        audio_bytes = f.read()
+                except:
+                    pass # Dosya okunamazsa sessiz geç
             
             return full_text, audio_bytes
 
