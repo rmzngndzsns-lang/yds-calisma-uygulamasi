@@ -179,7 +179,7 @@ def ask_ai(passage, question, options):
         3. Diğer şıkların neden yanlış olduğunu belirt.
         """
         
-        with st.spinner("🤖 Gemini 1.5 Flash Soruyu İnceliyor..."):
+        with st.spinner("🤖 Gemini 2.5 Flash Soruyu İnceliyor..."):
             res = model.generate_content(prompt)
             return res.text
     except Exception as e:
