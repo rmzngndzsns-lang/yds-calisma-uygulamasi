@@ -164,7 +164,10 @@ def ask_ai(passage, question, options):
     
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
+        
+        # --- GÜNCELLEME BURADA YAPILDI ---
+        # gemini-pro yerine gemini-1.5-flash kullanıyoruz. Daha hızlı ve hatasız.
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
         Sen uzman bir YDS/YÖKDİL İngilizce sınav koçusun. Aşağıdaki soruyu öğrenciye detaylıca açıkla.
@@ -209,7 +212,6 @@ if df is not None:
         st.caption("🟢:D | 🔴:Y | ⭐:İşaret")
 
         # --- MOBİL UYUMLU GRID YAPISI (ROW-BASED) ---
-        # Burası telefonda sıralamanın 1,2,3 diye gitmesini sağlar.
         chunk_size = 5
         for i in range(0, len(df), chunk_size):
             row_cols = st.columns(chunk_size)
@@ -341,3 +343,5 @@ if df is not None:
         if st.button("Başa Dön"):
             st.session_state.clear()
             st.rerun()
+else:
+    st.error("Excel yüklenemedi.")
