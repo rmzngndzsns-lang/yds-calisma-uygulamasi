@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import streamlit.components.v1 as components # Sayaç için kritik kütüphane
+import streamlit.components.v1 as components
 import google.generativeai as genai
 import os
 import nest_asyncio
@@ -12,14 +12,67 @@ nest_asyncio.apply()
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 
-# --- 2. CSS (KESİN ÇÖZÜMLER) ---
+# --- 2. SESSION STATE (BAŞLANGIÇ AYARLARI) ---
+defaults = {
+    'username': None, 'selected_exam_id': 1, 'idx': 0, 'answers': {}, 
+    'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
+    'user_api_key': "", 'font_size': 18, 'exam_mode': False, 'end_timestamp': 0
+}
+for k, v in defaults.items():
+    if k not in st.session_state: st.session_state[k] = v
+
+# --- 3. CSS (KESİN VE SABİT ÖLÇÜLER) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
     .stApp { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
     
-    /* SIDEBAR GENİŞLİK SABİTLEME */
-    section[data-testid="stSidebar"] { min-width: 340px !important; max-width: 340px !important; }
+    /* SIDEBAR GENİŞLİK: Butonların sığması için genişlettik */
+    section[data-testid="stSidebar"] { min-width: 350px !important; max-width: 350px !important; }
+
+    /* --- SORU BUTONLARI (KESİN BOYUTLANDIRMA) --- */
+    /* Kolon genişliğini baştan geniş tutuyoruz ki sonradan büyümesin */
+    div[data-testid="stSidebar"] div[data-testid="column"] {
+        width: 50px !important;
+        min-width: 50px !important;
+        max-width: 50px !important;
+        flex: 0 0 50px !important; 
+        padding: 0 !important;
+        margin: 1px !important;
+    }
+
+    /* Butonun kendisi */
+    div[data-testid="stSidebar"] div[data-testid="column"] button {
+        width: 48px !important;      /* Genişlik SABİT */
+        height: 48px !important;     /* Yükseklik SABİT */
+        min-width: 48px !important;
+        max-width: 48px !important;
+        min-height: 48px !important;
+        max-height: 48px !important;
+        padding: 0 !important;
+        
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        
+        /* İçerik hizalama */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        
+        /* Metin Taşma Kontrolü */
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: clip !important;
+        line-height: 1 !important;
+    }
+    
+    /* Kolonlar arası boşluğu sıfırla */
+    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {
+        gap: 0px !important;
+        justify-content: center !important;
+    }
 
     /* GİRİŞ EKRANI */
     .login-container {
@@ -30,47 +83,15 @@ st.markdown("""
     }
     .stTextInput > div > div > input { width: 100% !important; }
     
-    /* GENEL BUTONLAR */
-    div.stButton > button { width: 100% !important; border-radius: 8px; font-weight: 600; }
+    /* DİĞER BUTONLAR */
+    div.stButton > button { width: 100% !important; border-radius: 8px; font-weight: 600; min-height: 45px; }
 
-    /* --- SORU HARİTASI (BETON ETKİSİ) --- */
-    /* Kolonun kendisini kısıtlıyoruz */
-    div[data-testid="stSidebar"] div[data-testid="column"] {
-        width: 44px !important;
-        min-width: 44px !important;
-        max-width: 44px !important;
-        flex: 0 0 44px !important; /* ASLA ESNEME */
-        padding: 0 !important;
-        margin: 1px !important;
-    }
-
-    /* Butonun kendisini kısıtlıyoruz */
-    div[data-testid="stSidebar"] div[data-testid="column"] button {
-        width: 42px !important;
-        height: 42px !important;
-        min-width: 42px !important;
-        max-width: 42px !important;
-        min-height: 42px !important;
-        max-height: 42px !important;
-        padding: 0 !important;
-        font-size: 10px !important;
-        font-weight: 700 !important;
-        border-radius: 6px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        line-height: 1 !important;
-        white-space: nowrap !important; /* Alt satıra geçme */
-        overflow: hidden !important;    /* Taşanı gizle */
-        text-overflow: clip !important;
-    }
-
-    /* OKUMA ALANI (DİNAMİK FONT) */
+    /* OKUMA ALANI (DİNAMİK FONT İÇİN) */
     .passage-box { 
         background-color: #ffffff; padding: 25px; border-radius: 12px; 
         border: 1px solid #dfe6e9; color: #2d3436; 
         overflow-y: auto; max-height: 70vh;
-        transition: font-size 0.2s ease; /* Yumuşak geçiş */
+        /* Font boyutu inline style ile verilecek */
     }
     
     .question-stem { 
@@ -81,7 +102,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. VERİ YÖNETİMİ ---
+# --- 4. VERİ YÖNETİMİ ---
 SCORES_FILE = "lms_scores.csv"
 
 @st.cache_data(show_spinner=False)
@@ -101,6 +122,7 @@ def save_score_to_csv(username, exam_name, score, correct, wrong, empty):
     try:
         if os.path.exists(SCORES_FILE): df = pd.read_csv(SCORES_FILE)
         else: df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih"])
+        
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
         mask = (df["Kullanıcı"] == username) & (df["Sınav"] == exam_name)
         if mask.any(): df.loc[mask, ["Puan", "Doğru", "Yanlış", "Boş", "Tarih"]] = [score, correct, wrong, empty, date_str]
@@ -117,15 +139,6 @@ def get_leaderboard_pivot():
         if df.empty: return None
         return df.pivot_table(index="Kullanıcı", columns="Sınav", values="Puan", aggfunc="max").fillna("-")
     except: return None
-
-# --- 4. SESSION ---
-defaults = {
-    'username': None, 'selected_exam_id': 1, 'idx': 0, 'answers': {}, 
-    'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
-    'user_api_key': "", 'font_size': 16, 'exam_mode': False, 'end_timestamp': 0
-}
-for k, v in defaults.items():
-    if k not in st.session_state: st.session_state[k] = v
 
 # --- 5. GİRİŞ EKRANI ---
 if st.session_state.username is None:
@@ -147,7 +160,7 @@ if st.session_state.username is None:
 with st.sidebar:
     st.success(f"👤 **{st.session_state.username}**")
     
-    # SAYAÇ (GERİ GELDİ!)
+    # SAYAÇ
     if not st.session_state.finish:
         components.html(
             f"""<div id="countdown" style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:bold;color:#dc2626;text-align:center;padding:8px;background:#fee2e2;border-radius:8px;border:1px solid #fecaca;">⏳ Hesapla...</div>
@@ -198,7 +211,7 @@ with st.sidebar:
                 u_a = st.session_state.answers.get(q_idx)
                 lbl = str(q_idx + 1)
                 
-                # İkon Eklense bile kutu bozulmaz (CSS overflow:hidden sayesinde)
+                # İkonlar
                 if u_a: 
                     if st.session_state.exam_mode: lbl += "🟦"
                     else: lbl += "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
@@ -220,15 +233,17 @@ if df is not None:
         c1, c2, c3, c4 = st.columns([5, 1, 1, 1])
         c1.subheader(f"Soru {st.session_state.idx + 1}")
         
-        # FONT BUTONLARI (KÜÇÜLT <- | -> BÜYÜT)
+        # --- METİN BÜYÜTME/KÜÇÜLTME (DÜZELTİLDİ) ---
         with c2:
             if st.button("A ➖", help="Küçült"):
-                if st.session_state.font_size > 12: st.session_state.font_size -= 2
-                st.rerun()
+                if st.session_state.font_size > 12: 
+                    st.session_state.font_size -= 2
+                    st.rerun()
         with c3:
             if st.button("A ➕", help="Büyüt"):
-                st.session_state.font_size += 2
-                st.rerun()
+                if st.session_state.font_size < 40:
+                    st.session_state.font_size += 2
+                    st.rerun()
                 
         with c4:
             is_m = st.session_state.idx in st.session_state.marked
@@ -244,8 +259,12 @@ if df is not None:
         if passage:
             l, r = st.columns(2)
             f_size = st.session_state.font_size
-            # Font boyutu CSS ile doğrudan uygulanıyor
-            l.markdown(f"<div class='passage-box' style='font-size:{f_size}px !important; line-height:{f_size*1.6}px !important'>{passage}</div>", unsafe_allow_html=True)
+            # FONT BOYUTUNU BURADA ZORLA UYGULUYORUZ
+            l.markdown(f"""
+            <div class='passage-box' style='font-size: {f_size}px !important; line-height: {f_size * 1.5}px !important;'>
+                {passage}
+            </div>
+            """, unsafe_allow_html=True)
             main_col = r
         else: main_col = st.container()
 
@@ -278,7 +297,6 @@ if df is not None:
         
         with c_act2:
             c_p, c_n = st.columns(2)
-            # İsimler düzeltildi
             if st.session_state.idx > 0 and c_p.button("⬅️ Önceki", use_container_width=True): st.session_state.idx -= 1; st.rerun()
             if st.session_state.idx < len(df)-1 and c_n.button("Sonraki ➡️", use_container_width=True): st.session_state.idx += 1; st.rerun()
 
