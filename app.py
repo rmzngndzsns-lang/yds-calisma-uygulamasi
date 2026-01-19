@@ -3,342 +3,262 @@ import pandas as pd
 from datetime import datetime, timedelta
 import streamlit.components.v1 as components
 import google.generativeai as genai
-import nest_asyncio
 import os
+import nest_asyncio
 
 nest_asyncio.apply()
 
-# --- 1. AYARLAR ---
-st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
+# -------------------------------------------------
+# SAYFA AYARI
+# -------------------------------------------------
+st.set_page_config(
+    page_title="YDS Pro",
+    page_icon="🎓",
+    layout="wide"
+)
 
-# --- 2. CSS (KESİN HİZALAMA VE KİLİTLEME) ---
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-    .stApp { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
-    
-    /* SIDEBAR GENİŞLİĞİ */
-    section[data-testid="stSidebar"] { min-width: 340px !important; max-width: 340px !important; }
-
-    /* --- 1. ÜST BAR HİZALAMA (HEADER FIX) --- */
-    /* Başlık ve butonları aynı hizaya, sıkı sıkıya kilitliyoruz */
-    div[data-testid="stHorizontalBlock"] {
-        align-items: center !important;
-    }
-    
-    /* Sağdaki buton grubu (Font ve İşaretleme) */
-    .header-tools {
-        display: flex;
-        justify-content: flex-end;
-        gap: 5px; /* Butonlar arası minik boşluk */
-    }
-    
-    /* --- 2. SIDEBAR KARELERİ (GRID FIX) --- */
-    /* Kolonların esnemesini %100 engelliyoruz */
-    div[data-testid="stSidebar"] div[data-testid="column"] {
-        width: 42px !important;
-        min-width: 42px !important;
-        max-width: 42px !important;
-        flex: 0 0 42px !important; /* Esneme payı YOK */
-        padding: 0 !important;
-        margin: 1px !important;
-    }
-
-    div[data-testid="stSidebar"] button {
-        width: 40px !important; height: 40px !important;
-        min-width: 40px !important; max-width: 40px !important;
-        min-height: 40px !important; max-height: 40px !important;
-        padding: 0 !important;
-        font-size: 10px !important; font-weight: 700 !important;
-        border-radius: 6px !important;
-        display: flex !important; align-items: center !important; justify-content: center !important;
-        line-height: 1 !important;
-        white-space: nowrap !important; overflow: hidden !important;
-    }
-    
-    /* Sidebar içindeki buton gruplarını ortala */
-    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {
-        justify-content: center !important;
-        gap: 0px !important;
-    }
-
-    /* --- 3. İÇERİK KUTULARI (SCROLL FIX) --- */
-    .passage-box { 
-        background-color: #ffffff; padding: 25px; border-radius: 12px; 
-        border: 1px solid #dfe6e9; color: #2d3436; 
-        height: 60vh !important; /* Yükseklik Sabit */
-        max-height: 60vh !important;
-        overflow-y: auto; 
-        transition: font-size 0.1s ease;
-    }
-    
-    .question-container {
-        background-color: #ffffff; padding: 20px; border-radius: 12px;
-        border: 1px solid #dfe6e9;
-        height: 60vh !important; /* Yükseklik Sabit */
-        max-height: 60vh !important;
-        overflow-y: auto;
-    }
-
-    /* GİRİŞ VE GENEL */
-    .login-container {
-        max-width: 400px; margin: 60px auto; padding: 40px;
-        background: white; border-radius: 16px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; border: 1px solid #eef2f6;
-    }
-    .stTextInput > div > div > input { width: 100% !important; }
-    div.stButton > button { width: 100% !important; border-radius: 8px; font-weight: 600; min-height: 40px; }
-    
-    .legend-box {
-        font-size: 11px; color: #334155; background: #ffffff;
-        padding: 8px; border-radius: 6px; margin-bottom: 10px;
-        display: flex; justify-content: space-between; font-weight: 600; border: 1px solid #e2e8f0;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# --- 3. VERİ YÖNETİMİ ---
+# -------------------------------------------------
+# SABİTLER
+# -------------------------------------------------
 SCORES_FILE = "lms_scores.csv"
+EXAM_DURATION_MIN = 180
 
-@st.cache_data(show_spinner=False)
-def load_exam_file_cached(exam_id):
-    names = [f"Sinav_{exam_id}.xlsx", f"sinav_{exam_id}.xlsx", f"Sinav_{exam_id}.csv"]
-    for name in names:
-        if os.path.exists(name):
-            try:
-                df = pd.read_excel(name, engine='openpyxl') if name.endswith('xlsx') else pd.read_csv(name)
-                df.columns = df.columns.str.strip()
-                if 'Dogru_Cevap' in df.columns: df['Dogru_Cevap'] = df['Dogru_Cevap'].astype(str).str.strip().str.upper()
-                return df
-            except: continue
+# -------------------------------------------------
+# VERİ YÜKLEME
+# -------------------------------------------------
+@st.cache_data(ttl=60, show_spinner=False)
+def load_exam(exam_id):
+    filenames = [
+        f"Sinav_{exam_id}.xlsx",
+        f"sinav_{exam_id}.xlsx",
+        f"Sinav_{exam_id}.csv"
+    ]
+    for f in filenames:
+        if os.path.exists(f):
+            df = pd.read_excel(f) if f.endswith("xlsx") else pd.read_csv(f)
+            df.columns = df.columns.str.strip()
+            df["Dogru_Cevap"] = df["Dogru_Cevap"].astype(str).str.strip().str.upper()
+            return df
     return None
 
-def save_score_to_csv(username, exam_name, score, correct, wrong, empty):
-    try:
-        if os.path.exists(SCORES_FILE): df = pd.read_csv(SCORES_FILE)
-        else: df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih"])
-        date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
-        mask = (df["Kullanıcı"] == username) & (df["Sınav"] == exam_name)
-        if mask.any(): df.loc[mask, ["Puan", "Doğru", "Yanlış", "Boş", "Tarih"]] = [score, correct, wrong, empty, date_str]
-        else:
-            new_row = pd.DataFrame({"Kullanıcı": [username], "Sınav": [exam_name], "Puan": [score], "Doğru": [correct], "Yanlış": [wrong], "Boş": [empty], "Tarih": [date_str]})
-            df = pd.concat([df, new_row], ignore_index=True)
-        df.to_csv(SCORES_FILE, index=False)
-    except: pass
-
-def get_leaderboard_pivot():
-    if not os.path.exists(SCORES_FILE): return None
-    try:
+def save_score(username, exam, score, correct, wrong, empty):
+    date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    if os.path.exists(SCORES_FILE):
         df = pd.read_csv(SCORES_FILE)
-        if df.empty: return None
-        return df.pivot_table(index="Kullanıcı", columns="Sınav", values="Puan", aggfunc="max").fillna("-")
-    except: return None
+    else:
+        df = pd.DataFrame(columns=[
+            "Kullanıcı","Sınav","Puan","Doğru","Yanlış","Boş","Tarih"
+        ])
+    df = pd.concat([df, pd.DataFrame([{
+        "Kullanıcı": username,
+        "Sınav": exam,
+        "Puan": score,
+        "Doğru": correct,
+        "Yanlış": wrong,
+        "Boş": empty,
+        "Tarih": date
+    }])], ignore_index=True)
+    df.to_csv(SCORES_FILE, index=False)
 
-# --- 4. SESSION ---
+# -------------------------------------------------
+# SESSION DEFAULTS
+# -------------------------------------------------
 defaults = {
-    'username': None, 'selected_exam_id': 1, 'idx': 0, 'answers': {}, 
-    'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
-    'user_api_key': "", 'font_size': 16, 'exam_mode': False, 'end_timestamp': 0
+    "username": None,
+    "exam_id": 1,
+    "idx": 0,
+    "answers": {},       # {idx: {"answer": "A", "time": datetime}}
+    "marked": set(),
+    "finish": False,
+    "font_size": 16,
+    "exam_mode": False,
+    "end_ts": 0,
+    "ai_cache": {},
+    "api_key": "",
+    "wrong_book": set(),
+    "saved": False
 }
-for k, v in defaults.items():
-    if k not in st.session_state: st.session_state[k] = v
 
-# --- 5. GİRİŞ EKRANI ---
+for k,v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+# -------------------------------------------------
+# GİRİŞ
+# -------------------------------------------------
 if st.session_state.username is None:
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<div class="login-container"><h1 style="color:#2563eb;">YDS Pro</h1><p>Giriş Yapın</p></div>', unsafe_allow_html=True)
-        with st.form("login_form"):
-            name = st.text_input("Ad Soyad:", placeholder="İsim giriniz...")
-            submitted = st.form_submit_button("🚀 Giriş Yap")
-            if submitted:
-                if name.strip():
-                    st.session_state.username = name.strip()
-                    st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
-                    st.rerun()
-                else: st.error("İsim gerekli.")
+    st.title("🎓 YDS PRO")
+    name = st.text_input("Ad Soyad")
+    if st.button("Giriş"):
+        if name.strip():
+            st.session_state.username = name.strip()
+            st.session_state.end_ts = (
+                datetime.now() + timedelta(minutes=EXAM_DURATION_MIN)
+            ).timestamp() * 1000
+            st.rerun()
     st.stop()
 
-# --- 6. SIDEBAR ---
+# -------------------------------------------------
+# SIDEBAR
+# -------------------------------------------------
 with st.sidebar:
-    st.success(f"👤 **{st.session_state.username}**")
-    
+    st.success(f"👤 {st.session_state.username}")
+
+    # Sayaç
     if not st.session_state.finish:
-        components.html(
-            f"""<div id="countdown" style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:bold;color:#dc2626;text-align:center;padding:8px;background:#fee2e2;border-radius:8px;border:1px solid #fecaca;">⏳ Hesapla...</div>
-            <script>
-            var dest={st.session_state.end_timestamp};
-            setInterval(function(){{var now=new Date().getTime();var dist=dest-now;
-            var h=Math.floor((dist%(1000*60*60*24))/(1000*60*60));
-            var m=Math.floor((dist%(1000*60*60))/(1000*60));
-            var s=Math.floor((dist%(1000*60))/1000);
-            document.getElementById("countdown").innerHTML="⏳ "+(h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);}},1000);
-            </script>""", height=60
+        components.html(f"""
+        <div id="cd" style="font-weight:bold;color:#dc2626;text-align:center;"></div>
+        <script>
+        let end={st.session_state.end_ts};
+        setInterval(()=>{
+            let d=end-new Date().getTime();
+            if(d<=0){{
+                document.getElementById("cd").innerHTML="⛔ SÜRE BİTTİ";
+            }}else{{
+                let m=Math.floor((d%(1000*60*60))/(1000*60));
+                let s=Math.floor((d%(1000*60))/1000);
+                document.getElementById("cd").innerHTML=`⏳ ${m}:${s}`;
+            }}
+        },1000);
+        </script>
+        """, height=50)
+
+    st.session_state.exam_mode = st.toggle(
+        "Sınav Modu", value=st.session_state.exam_mode
+    )
+
+    st.session_state.exam_id = st.selectbox(
+        "Deneme Seç",
+        range(1,11),
+        index=st.session_state.exam_id-1
+    )
+
+    st.session_state.api_key = st.text_input(
+        "Gemini API Key",
+        type="password",
+        value=st.session_state.api_key
+    )
+
+# -------------------------------------------------
+# SINAV VERİSİ
+# -------------------------------------------------
+df = load_exam(st.session_state.exam_id)
+if df is None:
+    st.error("❌ Sınav dosyası bulunamadı.")
+    st.stop()
+
+# Süre dolduysa otomatik bitir
+if not st.session_state.finish:
+    if datetime.now().timestamp()*1000 > st.session_state.end_ts:
+        st.session_state.finish = True
+        st.rerun()
+
+# -------------------------------------------------
+# SINAV EKRANI
+# -------------------------------------------------
+if not st.session_state.finish:
+    row = df.iloc[st.session_state.idx]
+
+    st.subheader(f"Soru {st.session_state.idx+1}")
+
+    st.markdown(row["Soru"])
+
+    options = [
+        f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])
+    ]
+
+    prev = st.session_state.answers.get(st.session_state.idx)
+    prev_choice = None
+    if prev:
+        prev_choice = next(
+            (i for i,o in enumerate(options) if o.startswith(prev["answer"])),
+            None
         )
 
-    mode = st.toggle("Sınav Modu", value=st.session_state.exam_mode)
-    if mode != st.session_state.exam_mode:
-        st.session_state.exam_mode = mode
-        st.rerun()
+    sel = st.radio(
+        "Cevabınız",
+        options,
+        index=prev_choice
+    )
 
-    exam_id = st.selectbox("Sınav Seç:", range(1, 11), format_func=lambda x: f"YDS Deneme {x}", index=st.session_state.selected_exam_id - 1)
-    if exam_id != st.session_state.selected_exam_id:
-        st.session_state.selected_exam_id = exam_id
-        st.session_state.answers, st.session_state.marked, st.session_state.idx = {}, set(), 0
-        st.session_state.finish, st.session_state.data_saved, st.session_state.gemini_res = False, False, {}
-        st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
-        st.rerun()
-
-    df = load_exam_file_cached(st.session_state.selected_exam_id)
-
-    with st.expander("🔑 AI Ayarları"):
-        key_input = st.text_input("API Key:", type="password", value=st.session_state.user_api_key)
-        if st.button("Kaydet"):
-            if key_input and len(key_input.strip()) > 0:
-                st.session_state.user_api_key = key_input.strip()
-                st.success("Kaydedildi.")
+    if sel:
+        choice = sel[0]
+        st.session_state.answers[st.session_state.idx] = {
+            "answer": choice,
+            "time": datetime.now()
+        }
+        if not st.session_state.exam_mode:
+            if choice == row["Dogru_Cevap"]:
+                st.success("✅ Doğru")
             else:
-                st.error("Lütfen anahtar girin!")
+                st.error(f"❌ Yanlış (Doğru: {row['Dogru_Cevap']})")
+                st.session_state.wrong_book.add(st.session_state.idx)
 
-    if df is not None:
-        st.write("---")
-        st.markdown("**🗺️ Soru Haritası**")
-        st.markdown('<div class="legend-box"><span style="color:#16a34a">✅ D</span><span style="color:#dc2626">❌ Y</span><span style="color:#ca8a04">⭐ İşaret</span></div>', unsafe_allow_html=True)
+    col1,col2 = st.columns(2)
 
-        cols = st.columns(5)
-        for i in range(len(df)):
-            q_idx = i
-            col_idx = i % 5 
-            with cols[col_idx]:
-                u_a = st.session_state.answers.get(q_idx)
-                lbl = str(q_idx + 1)
-                if u_a: 
-                    if st.session_state.exam_mode: lbl += "🟦"
-                    else: lbl += "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
-                elif q_idx in st.session_state.marked: lbl += "⭐"
-                
-                b_type = "primary" if q_idx == st.session_state.idx else "secondary"
-                if st.button(lbl, key=f"nav_{q_idx}", type=b_type):
-                    st.session_state.idx = q_idx; st.rerun()
-        
-        st.write("---")
-        if not st.session_state.finish:
-            if st.button("🏁 SINAVI BİTİR", type="primary"):
-                st.session_state.finish = True; st.rerun()
+    if col1.button("🤖 Çözümle"):
+        if not st.session_state.api_key:
+            st.warning("API Key giriniz.")
+        else:
+            genai.configure(api_key=st.session_state.api_key)
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            prompt = f"""
+            Bu soru YDS formatındadır.
+            1) Soru türünü belirt
+            2) Doğru seçeneği açıkla
+            3) Yanlış şıkların tuzaklarını anlat
+            4) Sınav taktiği ver
+            Türkçe yaz.
 
-# --- 7. ANA EKRAN ---
-if df is not None:
-    if not st.session_state.finish:
-        # --- ÜST HEADER (KAYMAZ YAPI) ---
-        # Butonları birbirinden ayırmamak için tek bir kolonun içinde hizalıyoruz
-        c_header = st.container()
-        with c_header:
-            c_title, c_tools = st.columns([0.75, 0.25])
-            with c_title:
-                st.subheader(f"Soru {st.session_state.idx + 1}")
-            with c_tools:
-                # Butonları yan yana sıkıca dizmek için
-                b1, b2, b3 = st.columns([1, 1, 1], gap="small")
-                with b1:
-                    if st.button("A➖", help="Küçült"):
-                        if st.session_state.font_size > 12: st.session_state.font_size -= 2
-                        st.rerun()
-                with b2:
-                    if st.button("A➕", help="Büyüt"):
-                        if st.session_state.font_size < 36: st.session_state.font_size += 2
-                        st.rerun()
-                with b3:
-                    is_m = st.session_state.idx in st.session_state.marked
-                    if st.button("⭐" if is_m else "☆", help="İşaretle"):
-                        if is_m: st.session_state.marked.remove(st.session_state.idx)
-                        else: st.session_state.marked.add(st.session_state.idx)
-                        st.rerun()
+            Soru:
+            {row['Soru']}
 
-        row = df.iloc[st.session_state.idx]
-        q_raw = str(row['Soru']).replace('\\n', '\n')
-        passage, stem = (q_raw.split('\n\n', 1) if '\n\n' in q_raw else (None, q_raw))
-        
-        # --- İÇERİK ---
-        if passage:
-            l, r = st.columns(2)
-            f_size = st.session_state.font_size
-            # FONT BOYUTUNU BURADA DİNAMİK OLARAK VERİYORUZ
-            l.markdown(f"""
-            <div class='passage-box' style='font-size: {f_size}px !important; line-height: {f_size*1.6}px !important;'>
-                {passage}
-            </div>
-            """, unsafe_allow_html=True)
-            main_col = r
-        else: main_col = st.container()
-
-        with main_col:
-            st.markdown(f"""
-            <div class="question-container">
-                <div class="question-stem">{stem}</div>
-            """, unsafe_allow_html=True)
-            
-            opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
-            curr = st.session_state.answers.get(st.session_state.idx)
-            sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(curr) + ")")), None)
-            sel = st.radio("Cevabınız:", opts, index=sel_idx, key=f"ans_{st.session_state.idx}")
-            
-            if sel:
-                chosen = sel.split(")")[0]
-                st.session_state.answers[st.session_state.idx] = chosen
-                if not st.session_state.exam_mode:
-                    if chosen == row['Dogru_Cevap']: st.success("DOĞRU! 🎉")
-                    else: st.error(f"YANLIŞ! (Doğru: {row['Dogru_Cevap']})")
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        st.write("")
-        c_act1, c_act2 = st.columns([1, 1])
-        with c_act1:
-            if st.button("🤖 Çözümle", use_container_width=True):
-                if not st.session_state.user_api_key: st.warning("Lütfen API Key girin.")
-                else:
-                    with st.spinner("Analiz..."):
-                        genai.configure(api_key=st.session_state.user_api_key)
-                        model = genai.GenerativeModel('gemini-2.5-flash')
-                        res = model.generate_content(f"Soru: {q_raw}. Doğru: {row['Dogru_Cevap']}. Analiz et.").text
-                        st.session_state.gemini_res[st.session_state.idx] = res
-                        st.rerun()
-        
-        with c_act2:
-            c_p, c_n = st.columns(2)
-            if st.session_state.idx > 0 and c_p.button("⬅️ Önceki", use_container_width=True): st.session_state.idx -= 1; st.rerun()
-            if st.session_state.idx < len(df)-1 and c_n.button("Sonraki ➡️", use_container_width=True): st.session_state.idx += 1; st.rerun()
-
-        if st.session_state.idx in st.session_state.gemini_res:
-            st.info(st.session_state.gemini_res[st.session_state.idx])
-
-    else:
-        st.title("📊 Performans Raporu")
-        correct = sum(1 for i, a in st.session_state.answers.items() if a == df.iloc[i]['Dogru_Cevap'])
-        wrong = len(st.session_state.answers) - correct
-        empty = len(df) - len(st.session_state.answers)
-        score = correct * 1.25
-        
-        if not st.session_state.data_saved:
-            save_score_to_csv(st.session_state.username, f"Deneme {st.session_state.selected_exam_id}", score, correct, wrong, empty)
-            st.session_state.data_saved = True
-            if score > 50: st.balloons()
-
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Puan", f"{score:.2f}")
-        m2.metric("Doğru", correct)
-        m3.metric("Yanlış", wrong)
-        m4.metric("Boş", empty)
-
-        st.subheader("🏆 Liderlik Tablosu")
-        st.dataframe(get_leaderboard_pivot(), use_container_width=True)
-
-        if st.button("🔄 Yeni Sınava Başla", type="primary"):
-            st.session_state.answers = {}
-            st.session_state.idx = 0
-            st.session_state.finish = False
-            st.session_state.data_saved = False
-            st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
+            Doğru cevap: {row['Dogru_Cevap']}
+            """
+            st.session_state.ai_cache[
+                st.session_state.idx
+            ] = model.generate_content(prompt).text
             st.rerun()
 
-else: st.warning("⚠️ Sınav dosyası bulunamadı.")
+    if st.session_state.idx in st.session_state.ai_cache:
+        st.info(st.session_state.ai_cache[st.session_state.idx])
+
+    nav1,nav2 = st.columns(2)
+    if nav1.button("⬅️ Önceki") and st.session_state.idx>0:
+        st.session_state.idx -= 1
+        st.rerun()
+    if nav2.button("➡️ Sonraki") and st.session_state.idx<len(df)-1:
+        st.session_state.idx += 1
+        st.rerun()
+
+    if st.button("🏁 SINAVI BİTİR", type="primary"):
+        st.session_state.finish = True
+        st.rerun()
+
+# -------------------------------------------------
+# SONUÇ EKRANI
+# -------------------------------------------------
+else:
+    correct = sum(
+        1 for i,a in st.session_state.answers.items()
+        if a["answer"] == df.iloc[i]["Dogru_Cevap"]
+    )
+    wrong = len(st.session_state.answers) - correct
+    empty = len(df) - len(st.session_state.answers)
+
+    # ❗ ESKİ USUL YDS PUANI
+    score = correct * 1.25
+
+    if not st.session_state.saved:
+        save_score(
+            st.session_state.username,
+            f"Deneme {st.session_state.exam_id}",
+            score, correct, wrong, empty
+        )
+        st.session_state.saved = True
+
+    st.title("📊 Sonuçlar")
+    st.metric("Puan", round(score,2))
+    st.metric("Doğru", correct)
+    st.metric("Yanlış", wrong)
+    st.metric("Boş", empty)
