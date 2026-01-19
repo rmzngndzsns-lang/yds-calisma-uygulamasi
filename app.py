@@ -16,30 +16,45 @@ nest_asyncio.apply()
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="YDS Pro LMS", page_icon="🎓", layout="wide")
 
-# --- 2. PREMIUM CSS (SİMETRİK VE MERKEZİ TASARIM) ---
+# --- 2. PREMIUM CSS (HİZALANMIŞ VE BOYUTLANDIRILMIŞ) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
     .stApp { font-family: 'Poppins', sans-serif; background-color: #f4f6f9; }
     
-    /* SIDEBAR ESNEKLİĞİ */
+    /* SIDEBAR GENİŞLİĞİ */
     [data-testid="stSidebar"] { min-width: 320px !important; }
 
-    /* GİRİŞ EKRANI - MERKEZİ VE KÜÇÜLTÜLMÜŞ BAR */
+    /* GİRİŞ EKRANI KAPSAYICI */
+    .login-wrapper {
+        max-width: 450px; 
+        margin: 80px auto; 
+    }
+
     .login-container {
-        max-width: 400px; margin: 100px auto; padding: 40px;
-        background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-        text-align: center; border: 1px solid #eef2f6;
+        padding: 35px;
+        background: white; 
+        border-radius: 20px; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        text-align: center; 
+        border: 1px solid #eef2f6;
+        margin-bottom: 20px; /* Alttaki inputla bitişik durmaması için */
+    }
+
+    /* Giriş input ve buton alanı */
+    .stTextInput > div > div > input {
+        width: 100% !important;
     }
     
-    /* Giriş input alanını küçültme ve butonu ortalama */
-    div[data-testid="stForm"] { border: none !important; padding: 0 !important; }
-    .stTextInput { max-width: 300px; margin: 0 auto; }
-    
-    .login-btn-container {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
+    /* Giriş yap butonu sola dayalı */
+    div.stButton > button {
+        width: auto !important; /* Sola dayalı olması için genişliği otomatiğe aldık */
+        min-width: 120px;
+        padding-left: 30px !important;
+        padding-right: 30px !important;
+        border-radius: 8px;
+        font-weight: 600;
+        height: 45px;
     }
 
     /* OKUMA PARÇASI & SORU */
@@ -54,8 +69,7 @@ st.markdown("""
         box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     }
 
-    /* --- SORU HARİTASI BUTONLARI (KESİN SİMETRİ) --- */
-    /* 80 numaraya göre boyut sabitlendi */
+    /* SORU HARİTASI BUTONLARI (KESİN SİMETRİ) */
     div[data-testid="column"] button {
         width: 55px !important;
         height: 55px !important;
@@ -73,11 +87,6 @@ st.markdown("""
     }
 
     div[data-testid="column"] { padding: 0.5px !important; display: flex; justify-content: center; }
-
-    .analysis-report {
-        background-color: #fff; border: 2px solid #6c5ce7; border-radius: 15px;
-        padding: 25px; margin-top: 20px; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.1);
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -90,7 +99,6 @@ def save_score_to_csv(username, exam_name, score, correct, wrong, empty):
         except: df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih"])
     else:
         df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih"])
-    
     date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     mask = (df["Kullanıcı"] == username) & (df["Sınav"] == exam_name)
     if mask.any():
@@ -105,8 +113,7 @@ def get_leaderboard_pivot():
     try:
         df = pd.read_csv(SCORES_FILE)
         if df.empty: return None
-        pivot_df = df.pivot_table(index="Kullanıcı", columns="Sınav", values="Puan", aggfunc="max").fillna("-")
-        return pivot_df
+        return df.pivot_table(index="Kullanıcı", columns="Sınav", values="Puan", aggfunc="max").fillna("-")
     except: return None
 
 # --- 4. SESSION INITIALIZATION ---
@@ -120,7 +127,6 @@ def init_session():
     if 'finish' not in st.session_state: st.session_state.finish = False
     if 'data_saved' not in st.session_state: st.session_state.data_saved = False 
     if 'gemini_res' not in st.session_state: st.session_state.gemini_res = {} 
-    if 'analysis_report' not in st.session_state: st.session_state.analysis_report = None
     if 'user_api_key' not in st.session_state: st.session_state.user_api_key = ""
 
 init_session()
@@ -141,18 +147,23 @@ def load_exam_file(exam_id):
 
 # --- 6. GİRİŞ EKRANI ---
 if st.session_state.username is None:
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        st.markdown('<div class="login-container"><h2>🎓 YDS LMS Giriş</h2><p>Hoş geldiniz! Lütfen bilgilerinizi girin.</p></div>', unsafe_allow_html=True)
-        # Giriş barını daraltmak için div içinde kullanıyoruz
-        with st.container():
-            name = st.text_input("Ad Soyad:", placeholder="İsminizi yazın...")
-            # Butonu ortalamak için kolonlar
-            cb1, cb2, cb3 = st.columns([1, 1, 1])
-            with cb2:
-                if st.button("🚀 Giriş Yap", type="primary", use_container_width=True):
-                    if name.strip(): st.session_state.username = name.strip(); st.rerun()
-                    else: st.error("İsim gerekli.")
+    # Tüm içeriği ortalanmış bir wrapper içine alıyoruz
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
+        st.markdown('<div class="login-container"><h2>🎓 YDS LMS</h2><p>Hoş geldiniz! İsim girerek başlayın.</p></div>', unsafe_allow_html=True)
+        
+        # Form gibi kullanarak butonu sola dayalı yapıyoruz
+        name = st.text_input("Ad Soyad:", placeholder="Lütfen adınızı giriniz...")
+        
+        # Butonun sola dayalı durması için ekstra kolon kullanmıyoruz, CSS width:auto hallediyor
+        if st.button("🚀 Giriş Yap", type="primary"):
+            if name.strip():
+                st.session_state.username = name.strip()
+                st.rerun()
+            else:
+                st.error("İsim gerekli.")
+        st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 # --- 7. SİDEBAR ---
@@ -166,7 +177,7 @@ with st.sidebar:
         st.session_state.selected_exam_id = exam_id
         st.session_state.answers, st.session_state.marked, st.session_state.idx = {}, set(), 0
         st.session_state.finish, st.session_state.data_saved = False, False
-        st.session_state.gemini_res, st.session_state.analysis_report = {}, None
+        st.session_state.gemini_res = {}
         st.rerun()
 
     df = load_exam_file(st.session_state.selected_exam_id)
@@ -174,7 +185,7 @@ with st.sidebar:
     st.write("---")
     st.info("🔑 Yapay Zeka")
     key = st.text_input("Gemini API Key:", type="password", value=st.session_state.user_api_key)
-    if st.button("💾 Anahtarı Kaydet"):
+    if st.button("💾 Anahtarı Kaydet", use_container_width=True):
         st.session_state.user_api_key = key.strip()
         st.success("Kaydedildi!")
 
@@ -188,14 +199,14 @@ with st.sidebar:
                 if q_idx < len(df):
                     u_a = st.session_state.answers.get(q_idx)
                     lbl = str(q_idx + 1)
-                    if u_a: lbl += " ✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else " ❌"
-                    elif q_idx in st.session_state.marked: lbl += " ⭐"
+                    if u_a: lbl += "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
+                    elif q_idx in st.session_state.marked: lbl += "⭐"
                     
                     if cols[c].button(lbl, key=f"nav_{q_idx}", type="primary" if q_idx == st.session_state.idx else "secondary"):
                         st.session_state.idx = q_idx; st.rerun()
         
         st.write("---")
-        if not st.session_state.finish and st.button("🏁 SINAVI BİTİR", type="primary"):
+        if not st.session_state.finish and st.button("🏁 SINAVI BİTİR", type="primary", use_container_width=True):
             st.session_state.finish = True; st.rerun()
 
 # --- 8. ANA EKRAN ---
@@ -221,7 +232,7 @@ if df is not None:
             sel = st.radio("Cevap:", opts, index=next((i for i,v in enumerate(opts) if v.startswith(st.session_state.answers.get(st.session_state.idx, "")+")")), None))
             if sel: st.session_state.answers[st.session_state.idx] = sel.split(")")[0]
 
-        if st.button("🤖 Gemini 2.5 Çözümle"):
+        if st.button("🤖 Gemini 2.5 Flash Çözümle", use_container_width=True):
             if not st.session_state.user_api_key: st.error("Key girin.")
             else:
                 with st.spinner("Analiz ediliyor..."):
@@ -246,7 +257,7 @@ if df is not None:
         st.subheader("🏆 Liderlik Tablosu")
         st.dataframe(get_leaderboard_pivot(), use_container_width=True)
         
-        if st.button("🔄 Yeniden Başlat"):
+        if st.button("🔄 Yeniden Başlat", use_container_width=True):
             st.session_state.answers, st.session_state.idx, st.session_state.finish, st.session_state.data_saved = {}, 0, False, False
             st.rerun()
 else:
