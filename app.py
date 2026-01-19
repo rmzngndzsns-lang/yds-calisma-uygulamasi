@@ -16,28 +16,25 @@ nest_asyncio.apply()
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="YDS Pro LMS", page_icon="🎓", layout="wide")
 
-# --- 2. GÜNCEL PREMIUM CSS (ESNEK VE SİMETRİK TASARIM) ---
+# --- 2. PREMIUM CSS (SİMETRİK VE ESNEK TASARIM) ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
     .stApp { font-family: 'Poppins', sans-serif; background-color: #f4f6f9; }
     
-    /* SOL MENÜYÜ ESNEK YAPMA */
-    [data-testid="stSidebar"] {
-        min-width: 250px !important;
-        max-width: 350px !important;
-    }
-    
+    /* SIDEBAR ESNEKLİĞİ */
+    [data-testid="stSidebar"] { min-width: 280px !important; }
+
     /* GİRİŞ EKRANI */
     .login-container {
         max-width: 450px; margin: 80px auto; padding: 35px;
         background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.08);
         text-align: center; border: 1px solid #eef2f6;
     }
-    
+
     /* OKUMA PARÇASI & SORU */
     .passage-box { 
-        background-color: #ffffff; padding: 25px; border-radius: 12px; height: 60vh; 
+        background-color: #ffffff; padding: 25px; border-radius: 12px; height: 55vh; 
         overflow-y: auto; font-size: 15px; line-height: 1.7; 
         border: 1px solid #dfe6e9; color: #2d3436; font-family: 'Georgia', serif; 
     }
@@ -46,32 +43,21 @@ st.markdown("""
         border-radius: 12px; border-left: 6px solid #0984e3; margin-bottom: 20px; 
         box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     }
-    
-    /* --- SORU HARİTASI BUTONLARI (SİMETRİK VE SABİT) --- */
-    /* Streamlit butonlarını kareye zorla */
+
+    /* --- SORU HARİTASI BUTONLARI (TAM SİMETRİ) --- */
     div[data-testid="column"] button {
         width: 100% !important;
         aspect-ratio: 1 / 1 !important; /* TAM KARE */
         padding: 0px !important;
-        margin: 0px !important;
-        min-height: 40px !important; /* Minimum yükseklik */
+        margin: 2px 0px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 12px !important; /* Rakam ve ikon sığsın diye biraz küçülttük */
+        font-size: 11px !important; /* Rakam ve ikon sığsın diye */
         border-radius: 6px !important;
-        line-height: 1 !important;
     }
 
-    /* Kolonlar arası boşluğu daralt */
-    div[data-testid="column"] {
-        padding: 1px !important;
-    }
-    
-    /* Sidebar genişlik ayarı */
-    .st-emotion-cache-6qob1r {
-        padding: 1rem 0.5rem !important;
-    }
+    div[data-testid="column"] { padding: 0.5px !important; }
 
     .analysis-report {
         background-color: #fff; border: 2px solid #6c5ce7; border-radius: 15px;
@@ -89,6 +75,7 @@ def save_score_to_csv(username, exam_name, score, correct, wrong, empty):
         except: df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih"])
     else:
         df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih"])
+    
     date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     mask = (df["Kullanıcı"] == username) & (df["Sınav"] == exam_name)
     if mask.any():
@@ -104,9 +91,7 @@ def get_leaderboard_pivot():
         df = pd.read_csv(SCORES_FILE)
         if df.empty: return None
         pivot_df = df.pivot_table(index="Kullanıcı", columns="Sınav", values="Puan", aggfunc="max").fillna("-")
-        numeric_df = pivot_df.replace("-", 0)
-        pivot_df["ORTALAMA"] = numeric_df.mean(axis=1).round(2)
-        return pivot_df.sort_values(by="ORTALAMA", ascending=False)
+        return pivot_df
     except: return None
 
 # --- 4. SESSION INITIALIZATION ---
@@ -125,45 +110,43 @@ def init_session():
 
 init_session()
 
-# --- 5. OTOMATİK DOSYA TARAYICI ---
+# --- 5. GELİŞMİŞ DOSYA BULUCU ---
 def load_exam_file(exam_id):
-    file_name = f"Sinav_{exam_id}.xlsx"
-    if os.path.exists(file_name):
-        try:
-            df = pd.read_excel(file_name, engine='openpyxl')
-            df.columns = df.columns.str.strip()
-            if 'Dogru_Cevap' in df.columns:
-                df['Dogru_Cevap'] = df['Dogru_Cevap'].astype(str).str.strip().str.upper()
-            return df
-        except: return None
-    # YEDEK (SENİN MEVCUT DOSYAN İÇİN)
+    # Olası isim kombinasyonlarını tara
+    names = [f"Sinav_{exam_id}.xlsx", f"sinav_{exam_id}.xlsx", f"Sinav_{exam_id}.csv", f"sinav_{exam_id}.csv"]
+    for name in names:
+        if os.path.exists(name):
+            try:
+                df = pd.read_excel(name, engine='openpyxl') if name.endswith('xlsx') else pd.read_csv(name)
+                df.columns = df.columns.str.strip()
+                if 'Dogru_Cevap' in df.columns:
+                    df['Dogru_Cevap'] = df['Dogru_Cevap'].astype(str).str.strip().str.upper()
+                return df
+            except: continue
+    # Yedek Plan: Eski CSV ismi
     if exam_id == 1 and os.path.exists("YDS1_ingilizce (2).xlsx - Table 1.csv"):
-        try:
-            df = pd.read_csv("YDS1_ingilizce (2).xlsx - Table 1.csv")
-            df.columns = df.columns.str.strip()
-            if 'Dogru_Cevap' in df.columns:
-                df['Dogru_Cevap'] = df['Dogru_Cevap'].astype(str).str.strip().str.upper()
-            return df
-        except: return None
+        df = pd.read_csv("YDS1_ingilizce (2).xlsx - Table 1.csv")
+        df.columns = df.columns.str.strip()
+        return df
     return None
 
 # --- 6. GİRİŞ EKRANI ---
 if st.session_state.username is None:
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        st.markdown('<div class="login-container"><h2>🎓 YDS LMS Giriş</h2><p>Lütfen isminizi girerek sınava başlayın.</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-container"><h2>🎓 YDS LMS</h2><p>Hoş geldiniz! İsim girerek başlayın.</p></div>', unsafe_allow_html=True)
         name = st.text_input("Ad Soyad:")
         if st.button("🚀 Giriş Yap", type="primary"):
             if name.strip(): st.session_state.username = name.strip(); st.rerun()
-            else: st.error("İsim boş bırakılamaz.")
+            else: st.error("İsim gerekli.")
     st.stop()
 
-# --- 7. SİDEBAR VE DARALTILMIŞ HARİTA ---
+# --- 7. SİDEBAR ---
 with st.sidebar:
     st.success(f"👤 {st.session_state.username}")
     
-    st.markdown("### 📚 Sınav Seçimi")
-    exam_id = st.selectbox("Sınav Seç:", range(1, 11), format_func=lambda x: f"YDS Deneme {x}", index=st.session_state.selected_exam_id - 1)
+    st.markdown("### 📚 Sınav Listesi")
+    exam_id = st.selectbox("Bir sınav seçin:", range(1, 11), format_func=lambda x: f"YDS Deneme {x}", index=st.session_state.selected_exam_id - 1)
     
     if exam_id != st.session_state.selected_exam_id:
         st.session_state.selected_exam_id = exam_id
@@ -175,53 +158,40 @@ with st.sidebar:
     df = load_exam_file(st.session_state.selected_exam_id)
     
     st.write("---")
-    st.info("🔑 API Anahtarı")
-    api_key = st.text_input("Gemini Key:", type="password", value=st.session_state.user_api_key)
-    if st.button("💾 Kaydet"):
-        st.session_state.user_api_key = api_key.strip()
+    st.info("🔑 Yapay Zeka")
+    key = st.text_input("Gemini API Key:", type="password", value=st.session_state.user_api_key)
+    if st.button("💾 Anahtarı Kaydet"):
+        st.session_state.user_api_key = key.strip()
         st.success("Kaydedildi!")
 
     if df is not None:
         st.write("---")
         st.markdown("### 🗺️ Soru Haritası")
-        
-        # DARALTILMIŞ VE SİMETRİK 5'Lİ SIRA
-        # gap='small' ile araları küçültüyoruz
         for r in range(0, len(df), 5):
             cols = st.columns(5, gap="extra-small")
             for c in range(5):
                 q_idx = r + c
                 if q_idx < len(df):
                     u_a = st.session_state.answers.get(q_idx)
+                    # İkon + Numara (Sayıyı bozmadan)
                     lbl = str(q_idx + 1)
-                    if u_a:
-                        lbl += "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
-                    elif q_idx in st.session_state.marked:
-                        lbl += "⭐"
+                    if u_a: lbl += "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
+                    elif q_idx in st.session_state.marked: lbl += "⭐"
                     
                     if cols[c].button(lbl, key=f"nav_{q_idx}", type="primary" if q_idx == st.session_state.idx else "secondary"):
                         st.session_state.idx = q_idx; st.rerun()
         
-        st.write("---")
-        if not st.session_state.finish and st.button("🏁 BİTİR", type="primary"):
+        if not st.session_state.finish and st.button("🏁 SINAVI BİTİR", type="primary"):
             st.session_state.finish = True; st.rerun()
 
 # --- 8. ANA EKRAN ---
-def get_ai_response(prompt):
-    if not st.session_state.user_api_key: return "⚠️ API Key girin."
-    try:
-        genai.configure(api_key=st.session_state.user_api_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        return model.generate_content(prompt).text
-    except Exception as e: return f"HATA: {e}"
-
 if df is not None:
     if not st.session_state.finish:
         row = df.iloc[st.session_state.idx]
-        st.title(f"Soru {st.session_state.idx + 1}")
+        st.subheader(f"Soru {st.session_state.idx + 1}")
         
-        q_text = str(row['Soru']).replace('\\n', '\n')
-        passage, stem = (q_text.split('\n\n', 1) if '\n\n' in q_text else (None, q_text))
+        q_raw = str(row['Soru']).replace('\\n', '\n')
+        passage, stem = (q_raw.split('\n\n', 1) if '\n\n' in q_raw else (None, q_raw))
         
         if passage:
             l, r = st.columns(2)
@@ -237,36 +207,33 @@ if df is not None:
             sel = st.radio("Cevap:", opts, index=next((i for i,v in enumerate(opts) if v.startswith(st.session_state.answers.get(st.session_state.idx, "")+")")), None))
             if sel: st.session_state.answers[st.session_state.idx] = sel.split(")")[0]
 
-        if st.button("🤖 AI Çözümle"):
-            with st.spinner("Analiz ediliyor..."):
-                prompt = f"YDS Soru Analizi: {q_text}. Şıklar: {opts}. Doğru: {row['Dogru_Cevap']}. Analiz ver."
-                st.session_state.gemini_res[st.session_state.idx] = get_ai_response(prompt)
-                st.rerun()
+        if st.button("🤖 Gemini 2.5 Çözümle"):
+            if not st.session_state.user_api_key: st.error("Key girin.")
+            else:
+                with st.spinner("Analiz ediliyor..."):
+                    genai.configure(api_key=st.session_state.user_api_key)
+                    model = genai.GenerativeModel('gemini-2.5-flash')
+                    res = model.generate_content(f"Soru: {q_raw}. Doğru: {row['Dogru_Cevap']}. Analiz et.").text
+                    st.session_state.gemini_res[st.session_state.idx] = res
+                    st.rerun()
         
         if st.session_state.idx in st.session_state.gemini_res:
             st.info(st.session_state.gemini_res[st.session_state.idx])
-
     else:
-        st.title("📊 Sınav Analizi")
+        st.title("📊 Sonuç Analizi")
         correct = sum(1 for i, a in st.session_state.answers.items() if a == df.iloc[i]['Dogru_Cevap'])
         score = correct * 1.25
         if not st.session_state.data_saved:
             save_score_to_csv(st.session_state.username, f"Deneme {st.session_state.selected_exam_id}", score, correct, len(st.session_state.answers)-correct, len(df)-len(st.session_state.answers))
             st.session_state.data_saved = True
         
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Puan", score)
-        c2.metric("Doğru", correct)
-        c3.metric("Yanlış", len(st.session_state.answers)-correct)
-        c4.metric("Boş", len(df)-len(st.session_state.answers))
-        
+        st.metric("Toplam Puan", score)
         st.write("---")
         st.subheader("🏆 Liderlik Tablosu")
         st.dataframe(get_leaderboard_pivot(), use_container_width=True)
         
-        if st.button("🔄 YENİDEN BAŞLAT"):
-            st.session_state.answers, st.session_state.marked, st.session_state.idx = {}, set(), 0
-            st.session_state.finish, st.session_state.data_saved = False, False
+        if st.button("🔄 Yeniden Başlat"):
+            st.session_state.answers, st.session_state.idx, st.session_state.finish, st.session_state.data_saved = {}, 0, False, False
             st.rerun()
 else:
-    st.warning("⚠️ Lütfen klasöre Sinav_X.xlsx dosyasını ekleyin.")
+    st.warning(f"⚠️ Klasörde 'Sinav_{st.session_state.selected_exam_id}.xlsx' dosyası bulunamadı.")
