@@ -51,7 +51,7 @@ st.markdown("""
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     
-    /* ANALİZ KUTULARI */
+    /* ANALİZ RAPORU */
     .analysis-report {
         background-color: #fff; border: 2px solid #6c5ce7; border-radius: 15px;
         padding: 25px; margin-top: 20px; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.1);
@@ -112,7 +112,7 @@ def init_session():
     if 'data_saved' not in st.session_state: st.session_state.data_saved = False 
     if 'gemini_res' not in st.session_state: st.session_state.gemini_res = {} 
     if 'analysis_report' not in st.session_state: st.session_state.analysis_report = None
-    if 'user_api_key' not in st.session_state: st.session_state.user_api_key = "" # API KEY SESSION'A EKLENDİ
+    if 'user_api_key' not in st.session_state: st.session_state.user_api_key = ""
 
 df = load_data()
 init_session()
@@ -128,15 +128,12 @@ if st.session_state.username is None:
             <div class="login-subtitle">Yapay Zeka Destekli Sınav Analiz Sistemi</div>
         </div>
         """, unsafe_allow_html=True)
-        
         name_input = st.text_input("Adınız Soyadınız", placeholder="Örn: Ahmet Yılmaz")
-        
         if st.button("🚀 Sınava Başla", type="primary", use_container_width=True):
             if name_input.strip():
                 st.session_state.username = name_input.strip()
                 st.rerun()
-            else:
-                st.toast("Lütfen adınızı giriniz!", icon="⚠️")
+            else: st.toast("Lütfen adınızı giriniz!", icon="⚠️")
     st.stop() 
 
 # --- 5. FONKSİYONLAR ---
@@ -146,31 +143,43 @@ def parse_question(text):
     parts = text.split('\n\n', 1) if '\n\n' in text else (None, text.strip())
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
+# AKILLI MODEL SEÇİCİ (2.5 -> 2.0 -> 1.5)
 def get_gemini_text(api_key, passage, question, options):
     if not api_key: return "⚠️ API Key Yok."
     clean_key = api_key.strip()
+    genai.configure(api_key=clean_key)
+    
+    prompt = f"""
+    Sen YDS koçusun. PARAGRAF: {passage} SORU: {question} ŞIKLAR: {options}
+    Cevabı ETİKETLERİ BOZMADAN şu formatta ver:
+    [BÖLÜM 1: STRATEJİ VE MANTIK] ...
+    [BÖLÜM 2: CÜMLE ANALİZİ] ...
+    [BÖLÜM 3: DOĞRU CEVAP] ...
+    [BÖLÜM 4: ÇELDİRİCİLER] ...
+    """
+    
+    # 1. Deneme: En güçlü model (2.5 veya 2.0 Experimental)
     try:
-        genai.configure(api_key=clean_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f"""
-        Sen YDS koçusun. PARAGRAF: {passage} SORU: {question} ŞIKLAR: {options}
-        Cevabı ETİKETLERİ BOZMADAN şu formatta ver:
-        [BÖLÜM 1: STRATEJİ VE MANTIK] ...
-        [BÖLÜM 2: CÜMLE ANALİZİ] ...
-        [BÖLÜM 3: DOĞRU CEVAP] ...
-        [BÖLÜM 4: ÇELDİRİCİLER] ...
-        """
+        model = genai.GenerativeModel('gemini-2.0-flash-exp') # En yeni
         response = model.generate_content(prompt)
         return response.text
-    except Exception as e: return f"HATA: {str(e)} (API Key'i kontrol edin)"
+    except:
+        # 2. Deneme: Güvenli Liman (1.5 Flash)
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
+            return response.text + "\n*(Not: Kota nedeniyle 1.5 modeline geçildi)*"
+        except Exception as e:
+            return f"HATA: {str(e)} (API Key veya Kota Hatası)"
 
 def generate_performance_analysis(api_key, wrong_questions_text, score_info):
     clean_key = api_key.strip()
+    genai.configure(api_key=clean_key)
+    # Analiz için 1.5 daha stabildir (Uzun metinlerde)
     try:
-        genai.configure(api_key=clean_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         prompt = f"""
-        Sen YDS eğitmenisin. Sonuç: {score_info} Yanlışlar: {wrong_questions_text}
+        Sen profesyonel bir YDS eğitmenisin. Sonuç: {score_info} Yanlışlar: {wrong_questions_text}
         Lütfen Türkçe olarak; Genel Değerlendirme, Eksik Konular, Çalışma Tavsiyeleri ve Motivasyon başlıkları altında analiz et.
         """
         response = model.generate_content(prompt)
@@ -222,25 +231,19 @@ if df is not None:
     with st.sidebar:
         st.success(f"👤 **{st.session_state.username}**")
         
-        # SAYAÇ
         components.html(f"""<div style="font-family:'Segoe UI',sans-serif;font-size:28px;font-weight:bold;color:#e74c3c;background:white;padding:10px;border-radius:10px;text-align:center;border:2px solid #e74c3c;">...</div><script>var dest={st.session_state.end_timestamp};setInterval(function(){{var now=new Date().getTime();var diff=dest-now;var h=Math.floor((diff%(1000*60*60*24))/(1000*60*60));var m=Math.floor((diff%(1000*60*60))/(1000*60));var s=Math.floor((diff%(1000*60))/1000);document.querySelector("div").innerHTML=(h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);}},1000);</script>""", height=70)
         
         st.write("---")
-        st.info("🔑 **API Anahtar Ayarı**")
+        st.info("🔑 **Kendi API Anahtarınız**")
         
-        # API KEY GİRİŞİ VE KAYDETME BUTONU (YENİLENEN KISIM)
         temp_key = st.text_input("Google AI Studio Key:", type="password", value=st.session_state.user_api_key)
-        
         if st.button("💾 Anahtarı Kaydet", use_container_width=True):
             if temp_key.strip():
                 st.session_state.user_api_key = temp_key.strip()
                 st.success("Anahtar Kaydedildi! ✅")
-            else:
-                st.warning("Lütfen geçerli bir anahtar girin.")
+            else: st.warning("Geçerli bir anahtar girin.")
         
-        # Eğer key kaydedilmişse kullanıcıya göster
-        if st.session_state.user_api_key:
-            st.caption("✅ Aktif Anahtar: " + st.session_state.user_api_key[:5] + "******")
+        if st.session_state.user_api_key: st.caption("✅ Aktif")
 
         st.write("---")
         st.markdown("### 🗺️ Soru Haritası")
@@ -251,11 +254,16 @@ if df is not None:
             for j in range(chunk_size):
                 if i + j < len(df):
                     q_idx = i + j
-                    lbl = str(q_idx + 1)
+                    # --- NUMARAYI KORUYAN ETİKET ---
+                    lbl = str(q_idx + 1) # Varsayılan: Sadece Numara
                     u_ans = st.session_state.answers.get(q_idx)
                     
-                    if u_ans: lbl = "✅" if u_ans == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
-                    elif q_idx in st.session_state.marked: lbl = "⭐"
+                    if u_ans:
+                        is_correct = (u_ans == df.iloc[q_idx]['Dogru_Cevap'])
+                        icon = "✅" if is_correct else "❌"
+                        lbl = f"{q_idx + 1} {icon}" # Numara + İkon
+                    elif q_idx in st.session_state.marked:
+                        lbl = f"{q_idx + 1} ⭐" # Numara + Yıldız
                     
                     b_type = "primary" if q_idx == st.session_state.idx else "secondary"
                     
@@ -314,7 +322,6 @@ if df is not None:
         c_act1, c_act2 = st.columns([2, 1])
         with c_act1:
             if st.button("🤖 Çözümle ve Seslendir 🔊", use_container_width=True):
-                # SESSION'DAKİ KAYITLI KEY'İ KULLAN
                 if not st.session_state.user_api_key: st.error("Lütfen sol menüden API Key girip kaydedin!")
                 else:
                     with st.spinner("Yapay Zeka Analiz Ediyor..."):
