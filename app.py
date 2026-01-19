@@ -35,7 +35,7 @@ st.markdown("""
     }
     .question-stem { 
         font-size: 18px; font-weight: 600; background-color: #ffffff; padding: 25px; 
-        border-radius: 12px; border-left: 5px solid #0984e3; margin-bottom: 25px; 
+        border-radius: 12px; border-left: 6px solid #0984e3; margin-bottom: 25px; 
         box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     }
     
@@ -83,7 +83,6 @@ def get_leaderboard_pivot():
 def init_session():
     if 'username' not in st.session_state: st.session_state.username = None
     if 'selected_exam_id' not in st.session_state: st.session_state.selected_exam_id = 1
-    if 'exam_files' not in st.session_state: st.session_state.exam_files = {} # Yüklenen dosyaları tutar
     if 'idx' not in st.session_state: st.session_state.idx = 0
     if 'answers' not in st.session_state: st.session_state.answers = {}
     if 'marked' not in st.session_state: st.session_state.marked = set()
@@ -96,7 +95,25 @@ def init_session():
 
 init_session()
 
-# --- 5. GİRİŞ EKRANI ---
+# --- 5. OTOMATİK DOSYA TARAYICI ---
+def load_exam_file(exam_id):
+    """
+    Klasördeki Sinav_1.xlsx vb. dosyaları otomatik bulur.
+    """
+    file_name = f"Sinav_{exam_id}.xlsx"
+    if os.path.exists(file_name):
+        try:
+            df = pd.read_excel(file_name, engine='openpyxl')
+            df.columns = df.columns.str.strip()
+            if 'Dogru_Cevap' in df.columns:
+                df['Dogru_Cevap'] = df['Dogru_Cevap'].astype(str).str.strip().str.upper()
+            return df
+        except Exception as e:
+            st.error(f"Dosya okuma hatası: {e}")
+            return None
+    return None
+
+# --- 6. GİRİŞ EKRANI ---
 if st.session_state.username is None:
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
@@ -107,13 +124,14 @@ if st.session_state.username is None:
             else: st.error("İsim boş bırakılamaz.")
     st.stop()
 
-# --- 6. SİDEBAR ---
+# --- 7. SİDEBAR VE DOSYA KONTROLÜ ---
 with st.sidebar:
     st.success(f"👤 {st.session_state.username}")
     
     st.markdown("### 📚 Sınav Seçimi")
-    exam_id = st.selectbox("Sınav Seç:", range(1, 11), format_func=lambda x: f"YDS Deneme {x}")
+    exam_id = st.selectbox("Sınav Seç:", range(1, 11), format_func=lambda x: f"YDS Deneme {x}", index=st.session_state.selected_exam_id - 1)
     
+    # Sınav değiştiyse temizlik
     if exam_id != st.session_state.selected_exam_id:
         st.session_state.selected_exam_id = exam_id
         st.session_state.answers, st.session_state.marked, st.session_state.idx = {}, set(), 0
@@ -121,22 +139,20 @@ with st.sidebar:
         st.session_state.gemini_res, st.session_state.analysis_report = {}, None
         st.rerun()
 
-    # DOSYA YÜKLEME ALANI
-    if st.session_state.selected_exam_id not in st.session_state.exam_files:
-        st.warning(f"Sınav {st.session_state.selected_exam_id} yüklü değil.")
-        uploaded_file = st.file_uploader(f"Deneme {st.session_state.selected_exam_id} Dosyasını Yükle (.xlsx veya .csv)", type=['xlsx', 'csv'])
-        if uploaded_file:
-            try:
-                if uploaded_file.name.endswith('.xlsx'): df_new = pd.read_excel(uploaded_file, engine='openpyxl')
-                else: df_new = pd.read_csv(uploaded_file)
-                df_new.columns = df_new.columns.str.strip()
-                if 'Dogru_Cevap' in df_new.columns: df_new['Dogru_Cevap'] = df_new['Dogru_Cevap'].astype(str).str.strip().str.upper()
-                st.session_state.exam_files[st.session_state.selected_exam_id] = df_new
-                st.success("Yüklendi! Başlatılıyor...")
-                time.sleep(1)
-                st.rerun()
-            except Exception as e: st.error(f"Hata: {e}")
+    # KLASÖRDEKİ DOSYAYI BUL
+    df = load_exam_file(st.session_state.selected_exam_id)
     
+    if df is None:
+        st.error(f"❌ Sinav_{st.session_state.selected_exam_id}.xlsx bulunamadı!")
+        st.info(f"Dosyayı 'app.py' ile aynı klasöre koyun.")
+        # Dosya yoksa manuel yükleme butonu (Yedek plan)
+        manual_file = st.file_uploader("Veya Manuel Yükleyin", type=['xlsx'])
+        if manual_file:
+            df = pd.read_excel(manual_file, engine='openpyxl')
+            st.success("Manuel dosya yüklendi.")
+    else:
+        st.success(f"✅ Sinav_{st.session_state.selected_exam_id}.xlsx başarıyla yüklendi.")
+
     st.write("---")
     st.info("🔑 API Anahtarı")
     api_key = st.text_input("Gemini Key:", type="password", value=st.session_state.user_api_key)
@@ -144,9 +160,8 @@ with st.sidebar:
         st.session_state.user_api_key = api_key.strip()
         st.success("Kaydedildi!")
 
-    # NAVİGASYON
-    if st.session_state.selected_exam_id in st.session_state.exam_files:
-        df = st.session_state.exam_files[st.session_state.selected_exam_id]
+    # NAVİGASYON (Eğer dosya varsa)
+    if df is not None:
         st.write("---")
         st.markdown("### 🗺️ Harita")
         cols = st.columns(5)
@@ -159,7 +174,7 @@ with st.sidebar:
         if not st.session_state.finish and st.button("🏁 BİTİR", type="primary"):
             st.session_state.finish = True; st.rerun()
 
-# --- 7. ANA EKRAN ---
+# --- 8. ANA EKRAN MANTIĞI ---
 def get_ai_response(prompt):
     if not st.session_state.user_api_key: return "⚠️ API Key girin."
     try:
@@ -168,14 +183,12 @@ def get_ai_response(prompt):
         return model.generate_content(prompt).text
     except Exception as e: return f"HATA: {e}"
 
-if st.session_state.selected_exam_id in st.session_state.exam_files:
-    df = st.session_state.exam_files[st.session_state.selected_exam_id]
+if df is not None:
     if not st.session_state.finish:
         # SORU EKRANI
         row = df.iloc[st.session_state.idx]
         st.title(f"Soru {st.session_state.idx + 1}")
         
-        # Paragraf kontrolü
         q_text = str(row['Soru']).replace('\\n', '\n')
         passage, stem = (q_text.split('\n\n', 1) if '\n\n' in q_text else (None, q_text))
         
@@ -193,9 +206,10 @@ if st.session_state.selected_exam_id in st.session_state.exam_files:
             sel = st.radio("Cevap:", opts, index=next((i for i,v in enumerate(opts) if v.startswith(st.session_state.answers.get(st.session_state.idx, "")+")")), None))
             if sel: st.session_state.answers[st.session_state.idx] = sel.split(")")[0]
 
+        st.write("")
         if st.button("🤖 AI Çözümle"):
             with st.spinner("Düşünüyor..."):
-                prompt = f"YDS Soru Analizi: {q_text}. Şıklar: {opts}. Doğru: {row['Dogru_Cevap']}. Strateji ve analiz ver."
+                prompt = f"YDS Soru Analizi: {q_text}. Şıklar: {opts}. Doğru: {row['Dogru_Cevap']}. Analiz ver."
                 st.session_state.gemini_res[st.session_state.idx] = get_ai_response(prompt)
                 st.rerun()
         
@@ -221,14 +235,12 @@ if st.session_state.selected_exam_id in st.session_state.exam_files:
         c4.metric("Boş", empty)
         
         st.write("---")
-        st.subheader("🏆 Liderlik Tablosu (Pivot)")
+        st.subheader("🏆 Liderlik Tablosu")
         st.dataframe(get_leaderboard_pivot(), use_container_width=True)
         
-        if st.button("✨ AI Koçluk Analizi"):
-            with st.spinner("Analiz ediliyor..."):
-                p = f"Öğrenci {correct} doğru, {wrong} yanlış yaptı. YDS tavsiyesi ver."
-                st.session_state.analysis_report = get_ai_response(p)
-        if st.session_state.analysis_report:
-            st.markdown(f"<div class='analysis-report'>{st.session_state.analysis_report}</div>", unsafe_allow_html=True)
+        if st.button("🔄 YENİDEN BAŞLAT"):
+            st.session_state.answers, st.session_state.marked, st.session_state.idx = {}, set(), 0
+            st.session_state.finish, st.session_state.data_saved = False, False
+            st.rerun()
 else:
-    st.info("Lütfen Sidebar'dan bir sınav dosyası yükleyin.")
+    st.warning("⚠️ Lütfen geçerli bir dosya yükleyin veya klasöre ekleyin.")
