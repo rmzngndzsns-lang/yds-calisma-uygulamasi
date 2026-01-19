@@ -13,14 +13,14 @@ nest_asyncio.apply()
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 
-# --- 2. CSS (KESİN BOYUTLANDIRMA) ---
+# --- 2. CSS (KESİN ÇÖZÜM: GRID LOCK) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
     .stApp { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
     
-    /* SIDEBAR */
-    section[data-testid="stSidebar"] { min-width: 320px !important; max-width: 320px !important; }
+    /* SIDEBAR GENİŞLİĞİ */
+    section[data-testid="stSidebar"] { min-width: 340px !important; max-width: 340px !important; }
 
     /* GİRİŞ EKRANI */
     .login-container {
@@ -30,42 +30,66 @@ st.markdown("""
         border: 1px solid #eef2f6;
     }
     .stTextInput > div > div > input { width: 100% !important; }
-    div.stButton > button { width: 100% !important; border-radius: 8px; font-weight: 600; }
+    
+    /* GENEL BUTON STİLİ (Soru Haritası HARİÇ) */
+    div.stButton > button { 
+        width: 100% !important; 
+        border-radius: 8px; 
+        font-weight: 600; 
+        height: auto !important;
+        min-height: 45px !important;
+    }
 
-    /* --- SORU HARİTASI BUTONLARI (TAŞ GİBİ SABİT) --- */
-    div[data-testid="stSidebar"] button {
-        width: 42px !important; 
-        height: 42px !important;       /* Yükseklik Sabit */
-        min-width: 42px !important; 
-        max-width: 42px !important;    /* Genişlik Sabit */
-        min-height: 42px !important;   /* Asla küçülme */
-        max-height: 42px !important;   /* Asla büyüme */
+    /* --- SORU HARİTASI (GRID KİLİDİ) --- */
+    /* Bu kod, sidebar içindeki kolonları zorla 45px yapar. Asla esnemez. */
+    div[data-testid="stSidebar"] div[data-testid="column"] {
+        width: 45px !important;
+        flex: 0 0 45px !important;
+        min-width: 45px !important;
+        max-width: 45px !important;
         padding: 0 !important;
-        margin: 2px !important;
-        font-size: 10px !important; 
+        margin: 1px !important;
+    }
+
+    /* Soru Butonlarının Kendisi */
+    div[data-testid="stSidebar"] div[data-testid="column"] button {
+        width: 42px !important; 
+        height: 42px !important;
+        min-width: 42px !important; 
+        max-width: 42px !important;
+        min-height: 42px !important; 
+        max-height: 42px !important;
+        padding: 0 !important;
+        font-size: 10px !important;
         font-weight: 700 !important;
         border-radius: 6px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        line-height: 1 !important;     /* Satır yüksekliğini sıkıştır */
-        white-space: nowrap !important; /* Alt satıra geçme */
-        overflow: hidden !important;    /* Taşanı gizle */
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
     }
     
+    /* Kolonlar arası boşluğu sıfırla */
+    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {
+        gap: 0px !important;
+        justify-content: center !important;
+    }
+
     /* İkon Rehberi */
     .legend-box {
-        font-size: 11px; color: #64748b; background: #ffffff;
-        padding: 8px; border-radius: 6px; margin-bottom: 15px;
+        font-size: 12px; color: #334155; background: #ffffff;
+        padding: 10px; border-radius: 8px; margin-bottom: 15px;
         display: flex; justify-content: space-between; font-weight: 600;
         border: 1px solid #e2e8f0;
     }
 
-    /* OKUMA ALANI */
+    /* OKUMA ALANI (DİNAMİK FONT DESTEĞİ) */
     .passage-box { 
         background-color: #ffffff; padding: 25px; border-radius: 12px; 
         border: 1px solid #dfe6e9; color: #2d3436; 
-        overflow-y: auto; max-height: 70vh; /* Kendi içinde scroll */
+        overflow-y: auto; max-height: 70vh;
         transition: font-size 0.2s ease;
     }
     
@@ -117,18 +141,13 @@ def get_leaderboard_pivot():
     except: return None
 
 # --- 4. SESSION ---
-if 'username' not in st.session_state: st.session_state.username = None
-if 'selected_exam_id' not in st.session_state: st.session_state.selected_exam_id = 1
-if 'idx' not in st.session_state: st.session_state.idx = 0
-if 'answers' not in st.session_state: st.session_state.answers = {}
-if 'marked' not in st.session_state: st.session_state.marked = set()
-if 'finish' not in st.session_state: st.session_state.finish = False
-if 'data_saved' not in st.session_state: st.session_state.data_saved = False 
-if 'gemini_res' not in st.session_state: st.session_state.gemini_res = {} 
-if 'user_api_key' not in st.session_state: st.session_state.user_api_key = ""
-if 'font_size' not in st.session_state: st.session_state.font_size = 16 
-if 'exam_mode' not in st.session_state: st.session_state.exam_mode = False
-if 'end_timestamp' not in st.session_state: st.session_state.end_timestamp = 0
+defaults = {
+    'username': None, 'selected_exam_id': 1, 'idx': 0, 'answers': {}, 
+    'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
+    'user_api_key': "", 'font_size': 16, 'exam_mode': False, 'end_timestamp': 0
+}
+for k, v in defaults.items():
+    if k not in st.session_state: st.session_state[k] = v
 
 # --- 5. GİRİŞ EKRANI ---
 if st.session_state.username is None:
@@ -163,7 +182,7 @@ with st.sidebar:
             </script>""", height=60
         )
 
-    mode = st.toggle("Sınav Modu", value=st.session_state.exam_mode)
+    mode = st.toggle("Sınav Modu (Cevabı Gizle)", value=st.session_state.exam_mode)
     if mode != st.session_state.exam_mode:
         st.session_state.exam_mode = mode
         st.rerun()
@@ -181,7 +200,6 @@ with st.sidebar:
     with st.expander("🔑 AI Ayarları"):
         key_input = st.text_input("API Key:", type="password", value=st.session_state.user_api_key)
         if st.button("Kaydet"):
-            # API KEY VALIDATION FIX
             if key_input and len(key_input.strip()) > 0:
                 st.session_state.user_api_key = key_input.strip()
                 st.success("Kaydedildi.")
@@ -191,7 +209,8 @@ with st.sidebar:
     if df is not None:
         st.write("---")
         st.markdown("**🗺️ Soru Haritası**")
-        st.markdown('<div class="legend-box"><span style="color:#16a34a">✅ D</span><span style="color:#dc2626">❌ Y</span><span style="color:#ca8a04">⭐ İşaret</span></div>', unsafe_allow_html=True)
+        # İKON REHBERİ (DÜZELTİLDİ: TAM İSİMLER)
+        st.markdown('<div class="legend-box"><span style="color:#16a34a">✅ Doğru</span><span style="color:#dc2626">❌ Yanlış</span><span style="color:#ca8a04">⭐ İşaret</span></div>', unsafe_allow_html=True)
 
         cols = st.columns(5)
         for i in range(len(df)):
@@ -201,7 +220,7 @@ with st.sidebar:
                 u_a = st.session_state.answers.get(q_idx)
                 lbl = str(q_idx + 1)
                 
-                # Kutu boyutunu bozmamak için ikonları metnin yanına kısa ekliyoruz
+                # İkonları ekle ama kutuyu bozmamak için kısa tut
                 if u_a: 
                     if st.session_state.exam_mode: lbl += "🟦"
                     else: lbl += "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
@@ -219,18 +238,20 @@ with st.sidebar:
 # --- 7. ANA EKRAN ---
 if df is not None:
     if not st.session_state.finish:
-        # ÜST BAR
+        # ÜST BAR: YERLER DEĞİŞTİ (KÜÇÜLT <- | -> BÜYÜT)
         c1, c2, c3, c4 = st.columns([5, 1, 1, 1])
         c1.subheader(f"Soru {st.session_state.idx + 1}")
         
-        # YAZI BOYUTU BUTONLARI (AYRI AYRI)
+        # KÜÇÜLTME BUTONU (SOLDA)
         with c2:
-            if st.button("A ➕", help="Büyüt"):
-                st.session_state.font_size += 2
+            if st.button("A ➖", help="Yazıyı Küçült"):
+                if st.session_state.font_size > 12: st.session_state.font_size -= 2
                 st.rerun()
+        
+        # BÜYÜTME BUTONU (SAĞDA)
         with c3:
-            if st.button("A ➖", help="Küçült"):
-                if st.session_state.font_size > 10: st.session_state.font_size -= 2
+            if st.button("A ➕", help="Yazıyı Büyüt"):
+                st.session_state.font_size += 2
                 st.rerun()
                 
         with c4:
@@ -247,6 +268,7 @@ if df is not None:
         if passage:
             l, r = st.columns(2)
             f_size = st.session_state.font_size
+            # FONT BOYUTU ENTEGRASYONU (KESİN ÇALIŞIR)
             l.markdown(f"<div class='passage-box' style='font-size:{f_size}px !important; line-height:{f_size*1.6}px !important'>{passage}</div>", unsafe_allow_html=True)
             main_col = r
         else: main_col = st.container()
@@ -278,10 +300,13 @@ if df is not None:
                         st.session_state.gemini_res[st.session_state.idx] = res
                         st.rerun()
         
+        # BUTON YAZILARI DÜZELTİLDİ
         with c_act2:
             c_p, c_n = st.columns(2)
-            if st.session_state.idx > 0 and c_p.button("⬅️", use_container_width=True): st.session_state.idx -= 1; st.rerun()
-            if st.session_state.idx < len(df)-1 and c_n.button("➡️", use_container_width=True): st.session_state.idx += 1; st.rerun()
+            if st.session_state.idx > 0 and c_p.button("⬅️ Önceki", use_container_width=True): 
+                st.session_state.idx -= 1; st.rerun()
+            if st.session_state.idx < len(df)-1 and c_n.button("Sonraki ➡️", use_container_width=True): 
+                st.session_state.idx += 1; st.rerun()
 
         if st.session_state.idx in st.session_state.gemini_res:
             st.info(st.session_state.gemini_res[st.session_state.idx])
