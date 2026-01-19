@@ -28,16 +28,21 @@ EXAM_DURATION_MIN = 180
 # -------------------------------------------------
 @st.cache_data(ttl=60, show_spinner=False)
 def load_exam(exam_id):
-    filenames = [
+    files = [
         f"Sinav_{exam_id}.xlsx",
         f"sinav_{exam_id}.xlsx",
         f"Sinav_{exam_id}.csv"
     ]
-    for f in filenames:
+    for f in files:
         if os.path.exists(f):
             df = pd.read_excel(f) if f.endswith("xlsx") else pd.read_csv(f)
             df.columns = df.columns.str.strip()
-            df["Dogru_Cevap"] = df["Dogru_Cevap"].astype(str).str.strip().str.upper()
+            df["Dogru_Cevap"] = (
+                df["Dogru_Cevap"]
+                .astype(str)
+                .str.strip()
+                .str.upper()
+            )
             return df
     return None
 
@@ -47,7 +52,8 @@ def save_score(username, exam, score, correct, wrong, empty):
         df = pd.read_csv(SCORES_FILE)
     else:
         df = pd.DataFrame(columns=[
-            "Kullanıcı","Sınav","Puan","Doğru","Yanlış","Boş","Tarih"
+            "Kullanıcı", "Sınav", "Puan",
+            "Doğru", "Yanlış", "Boş", "Tarih"
         ])
     df = pd.concat([df, pd.DataFrame([{
         "Kullanıcı": username,
@@ -67,7 +73,7 @@ defaults = {
     "username": None,
     "exam_id": 1,
     "idx": 0,
-    "answers": {},       # {idx: {"answer": "A", "time": datetime}}
+    "answers": {},     # {idx: {"answer": "A", "time": datetime}}
     "marked": set(),
     "finish": False,
     "font_size": 16,
@@ -75,16 +81,15 @@ defaults = {
     "end_ts": 0,
     "ai_cache": {},
     "api_key": "",
-    "wrong_book": set(),
     "saved": False
 }
 
-for k,v in defaults.items():
+for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
 # -------------------------------------------------
-# GİRİŞ
+# GİRİŞ EKRANI
 # -------------------------------------------------
 if st.session_state.username is None:
     st.title("🎓 YDS PRO")
@@ -104,33 +109,46 @@ if st.session_state.username is None:
 with st.sidebar:
     st.success(f"👤 {st.session_state.username}")
 
-    # Sayaç
+    # ⏳ SAYAÇ (JS – HATASIZ)
     if not st.session_state.finish:
-        components.html(f"""
-        <div id="cd" style="font-weight:bold;color:#dc2626;text-align:center;"></div>
+        components.html("""
+        <div id="cd" style="
+            font-weight:bold;
+            color:#dc2626;
+            text-align:center;
+            padding:6px;
+            border:1px solid #fecaca;
+            border-radius:6px;
+            background:#fee2e2;">
+        </div>
+
         <script>
-        let end={st.session_state.end_ts};
-        setInterval(()=>{
-            let d=end-new Date().getTime();
-            if(d<=0){{
-                document.getElementById("cd").innerHTML="⛔ SÜRE BİTTİ";
-            }}else{{
-                let m=Math.floor((d%(1000*60*60))/(1000*60));
-                let s=Math.floor((d%(1000*60))/1000);
-                document.getElementById("cd").innerHTML=`⏳ ${m}:${s}`;
+        let end = {END_TS};
+
+        setInterval(function() {{
+            let d = end - new Date().getTime();
+
+            if (d <= 0) {{
+                document.getElementById("cd").innerHTML = "⛔ SÜRE BİTTİ";
+            }} else {{
+                let m = Math.floor((d % (1000*60*60)) / (1000*60));
+                let s = Math.floor((d % (1000*60)) / 1000);
+                document.getElementById("cd").innerHTML =
+                    "⏳ " + m + ":" + (s < 10 ? "0" + s : s);
             }}
-        },1000);
+        }}, 1000);
         </script>
-        """, height=50)
+        """.format(END_TS=st.session_state.end_ts), height=70)
 
     st.session_state.exam_mode = st.toggle(
-        "Sınav Modu", value=st.session_state.exam_mode
+        "Sınav Modu",
+        value=st.session_state.exam_mode
     )
 
     st.session_state.exam_id = st.selectbox(
         "Deneme Seç",
-        range(1,11),
-        index=st.session_state.exam_id-1
+        range(1, 11),
+        index=st.session_state.exam_id - 1
     )
 
     st.session_state.api_key = st.text_input(
@@ -149,7 +167,7 @@ if df is None:
 
 # Süre dolduysa otomatik bitir
 if not st.session_state.finish:
-    if datetime.now().timestamp()*1000 > st.session_state.end_ts:
+    if datetime.now().timestamp() * 1000 > st.session_state.end_ts:
         st.session_state.finish = True
         st.rerun()
 
@@ -159,26 +177,27 @@ if not st.session_state.finish:
 if not st.session_state.finish:
     row = df.iloc[st.session_state.idx]
 
-    st.subheader(f"Soru {st.session_state.idx+1}")
-
+    st.subheader(f"Soru {st.session_state.idx + 1}")
     st.markdown(row["Soru"])
 
     options = [
-        f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])
+        f"{c}) {row[c]}" for c in "ABCDE"
+        if c in row and pd.notna(row[c])
     ]
 
     prev = st.session_state.answers.get(st.session_state.idx)
-    prev_choice = None
+    prev_index = None
     if prev:
-        prev_choice = next(
-            (i for i,o in enumerate(options) if o.startswith(prev["answer"])),
+        prev_index = next(
+            (i for i, o in enumerate(options)
+             if o.startswith(prev["answer"])),
             None
         )
 
     sel = st.radio(
         "Cevabınız",
         options,
-        index=prev_choice
+        index=prev_index
     )
 
     if sel:
@@ -187,14 +206,14 @@ if not st.session_state.finish:
             "answer": choice,
             "time": datetime.now()
         }
+
         if not st.session_state.exam_mode:
             if choice == row["Dogru_Cevap"]:
                 st.success("✅ Doğru")
             else:
                 st.error(f"❌ Yanlış (Doğru: {row['Dogru_Cevap']})")
-                st.session_state.wrong_book.add(st.session_state.idx)
 
-    col1,col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
     if col1.button("🤖 Çözümle"):
         if not st.session_state.api_key:
@@ -202,12 +221,15 @@ if not st.session_state.finish:
         else:
             genai.configure(api_key=st.session_state.api_key)
             model = genai.GenerativeModel("gemini-2.5-flash")
+
             prompt = f"""
             Bu soru YDS formatındadır.
+
             1) Soru türünü belirt
             2) Doğru seçeneği açıkla
             3) Yanlış şıkların tuzaklarını anlat
             4) Sınav taktiği ver
+
             Türkçe yaz.
 
             Soru:
@@ -215,6 +237,7 @@ if not st.session_state.finish:
 
             Doğru cevap: {row['Dogru_Cevap']}
             """
+
             st.session_state.ai_cache[
                 st.session_state.idx
             ] = model.generate_content(prompt).text
@@ -223,11 +246,11 @@ if not st.session_state.finish:
     if st.session_state.idx in st.session_state.ai_cache:
         st.info(st.session_state.ai_cache[st.session_state.idx])
 
-    nav1,nav2 = st.columns(2)
-    if nav1.button("⬅️ Önceki") and st.session_state.idx>0:
+    nav1, nav2 = st.columns(2)
+    if nav1.button("⬅️ Önceki") and st.session_state.idx > 0:
         st.session_state.idx -= 1
         st.rerun()
-    if nav2.button("➡️ Sonraki") and st.session_state.idx<len(df)-1:
+    if nav2.button("➡️ Sonraki") and st.session_state.idx < len(df) - 1:
         st.session_state.idx += 1
         st.rerun()
 
@@ -240,7 +263,7 @@ if not st.session_state.finish:
 # -------------------------------------------------
 else:
     correct = sum(
-        1 for i,a in st.session_state.answers.items()
+        1 for i, a in st.session_state.answers.items()
         if a["answer"] == df.iloc[i]["Dogru_Cevap"]
     )
     wrong = len(st.session_state.answers) - correct
@@ -258,7 +281,7 @@ else:
         st.session_state.saved = True
 
     st.title("📊 Sonuçlar")
-    st.metric("Puan", round(score,2))
+    st.metric("Puan", round(score, 2))
     st.metric("Doğru", correct)
     st.metric("Yanlış", wrong)
     st.metric("Boş", empty)
