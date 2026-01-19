@@ -51,7 +51,7 @@ st.markdown("""
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     
-    /* ANALİZ RAPORU */
+    /* ANALİZ KUTULARI */
     .analysis-report {
         background-color: #fff; border: 2px solid #6c5ce7; border-radius: 15px;
         padding: 25px; margin-top: 20px; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.1);
@@ -143,41 +143,38 @@ def parse_question(text):
     parts = text.split('\n\n', 1) if '\n\n' in text else (None, text.strip())
     return parts[0].strip() if parts[0] else None, parts[1].strip()
 
-# AKILLI MODEL SEÇİCİ (2.5 -> 2.0 -> 1.5)
+# --- MODEL: SADECE GEMINI 2.5 FLASH ---
 def get_gemini_text(api_key, passage, question, options):
     if not api_key: return "⚠️ API Key Yok."
     clean_key = api_key.strip()
-    genai.configure(api_key=clean_key)
     
-    prompt = f"""
-    Sen YDS koçusun. PARAGRAF: {passage} SORU: {question} ŞIKLAR: {options}
-    Cevabı ETİKETLERİ BOZMADAN şu formatta ver:
-    [BÖLÜM 1: STRATEJİ VE MANTIK] ...
-    [BÖLÜM 2: CÜMLE ANALİZİ] ...
-    [BÖLÜM 3: DOĞRU CEVAP] ...
-    [BÖLÜM 4: ÇELDİRİCİLER] ...
-    """
-    
-    # 1. Deneme: En güçlü model (2.5 veya 2.0 Experimental)
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash-exp') # En yeni
+        genai.configure(api_key=clean_key)
+        
+        # KULLANICI İSTEĞİ: SADECE 2.5 FLASH
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = f"""
+        Sen YDS koçusun. PARAGRAF: {passage} SORU: {question} ŞIKLAR: {options}
+        Cevabı ETİKETLERİ BOZMADAN şu formatta ver:
+        [BÖLÜM 1: STRATEJİ VE MANTIK] ...
+        [BÖLÜM 2: CÜMLE ANALİZİ] ...
+        [BÖLÜM 3: DOĞRU CEVAP] ...
+        [BÖLÜM 4: ÇELDİRİCİLER] ...
+        """
         response = model.generate_content(prompt)
         return response.text
-    except:
-        # 2. Deneme: Güvenli Liman (1.5 Flash)
-        try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(prompt)
-            return response.text + "\n*(Not: Kota nedeniyle 1.5 modeline geçildi)*"
-        except Exception as e:
-            return f"HATA: {str(e)} (API Key veya Kota Hatası)"
+    except Exception as e:
+        # Hata dönerse (Kota vb.) direkt hatayı gösteriyoruz, başka modele geçmiyoruz.
+        return f"HATA: {str(e)} (Gemini 2.5 Flash kotası dolmuş olabilir)"
 
 def generate_performance_analysis(api_key, wrong_questions_text, score_info):
     clean_key = api_key.strip()
-    genai.configure(api_key=clean_key)
-    # Analiz için 1.5 daha stabildir (Uzun metinlerde)
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        genai.configure(api_key=clean_key)
+        # KULLANICI İSTEĞİ: SADECE 2.5 FLASH
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
         prompt = f"""
         Sen profesyonel bir YDS eğitmenisin. Sonuç: {score_info} Yanlışlar: {wrong_questions_text}
         Lütfen Türkçe olarak; Genel Değerlendirme, Eksik Konular, Çalışma Tavsiyeleri ve Motivasyon başlıkları altında analiz et.
@@ -254,16 +251,19 @@ if df is not None:
             for j in range(chunk_size):
                 if i + j < len(df):
                     q_idx = i + j
-                    # --- NUMARAYI KORUYAN ETİKET ---
-                    lbl = str(q_idx + 1) # Varsayılan: Sadece Numara
+                    # --- NUMARAYI KORUYAN ETİKET (YENİLENMİŞ) ---
+                    # Butonda hem numara hem ikon görünecek
+                    
                     u_ans = st.session_state.answers.get(q_idx)
                     
                     if u_ans:
                         is_correct = (u_ans == df.iloc[q_idx]['Dogru_Cevap'])
                         icon = "✅" if is_correct else "❌"
-                        lbl = f"{q_idx + 1} {icon}" # Numara + İkon
+                        lbl = f"{q_idx + 1} {icon}" # Örn: "5 ✅"
                     elif q_idx in st.session_state.marked:
-                        lbl = f"{q_idx + 1} ⭐" # Numara + Yıldız
+                        lbl = f"{q_idx + 1} ⭐" # Örn: "10 ⭐"
+                    else:
+                        lbl = str(q_idx + 1) # Örn: "12"
                     
                     b_type = "primary" if q_idx == st.session_state.idx else "secondary"
                     
