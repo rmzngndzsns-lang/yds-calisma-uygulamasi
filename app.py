@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime, timedelta
+import streamlit.components.v1 as components  # <-- BU EKLENDİ (Hatayı çözen satır)
 import google.generativeai as genai
 import os
 import nest_asyncio
@@ -32,12 +33,11 @@ st.markdown("""
     div.stButton > button { width: 100% !important; border-radius: 8px; font-weight: 600; }
 
     /* --- SORU HARİTASI BUTONLARI (KARE KİLİDİ) --- */
-    /* Bu ayar butonların yatayda uzamasını KESİN olarak engeller */
     div[data-testid="stSidebar"] button {
         width: 42px !important; 
         height: 42px !important;
         min-width: 42px !important; 
-        max-width: 42px !important; /* YATAY YAYILMAYI ENGELLEYEN KOD */
+        max-width: 42px !important;
         padding: 0 !important;
         margin: 1px !important;
         font-size: 10px !important;
@@ -59,8 +59,6 @@ st.markdown("""
     }
 
     /* --- OKUMA VE SORU ALANI (SONSUZ UZAMAYI ENGELLEYEN AYARLAR) --- */
-    /* Yükseklik 60vh'ye sabitlendi. İçerik taşarsa scroll çıkar. */
-    
     .passage-box { 
         background-color: #ffffff; 
         padding: 25px; 
@@ -73,7 +71,7 @@ st.markdown("""
         transition: font-size 0.3s ease;
     }
     
-    /* Soru kökünü de sabitliyoruz ki butonlar aşağı kaçmasın */
+    /* Soru kökünü de sabitliyoruz */
     .question-container {
         background-color: #ffffff;
         padding: 20px;
@@ -90,15 +88,6 @@ st.markdown("""
         font-size: 17px; font-weight: 600; 
         border-left: 5px solid #2563eb; padding-left: 15px; margin-bottom: 20px; 
         color: #1e293b;
-    }
-
-    /* Alt Navigasyon Butonlarını Sabitleme (Sticky) */
-    .nav-buttons {
-        position: sticky;
-        bottom: 0;
-        background: #f8fafc;
-        padding-top: 10px;
-        z-index: 999;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -176,7 +165,7 @@ if st.session_state.username is None:
 with st.sidebar:
     st.success(f"👤 **{st.session_state.username}**")
     
-    # SAYAÇ
+    # SAYAÇ (COMPONENTS İLE)
     if not st.session_state.finish:
         components.html(
             f"""<div id="countdown" style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:bold;color:#dc2626;text-align:center;padding:8px;background:#fee2e2;border-radius:8px;border:1px solid #fecaca;">⏳ Hesapla...</div>
@@ -215,7 +204,6 @@ with st.sidebar:
         st.write("---")
         st.markdown("**🗺️ Soru Haritası**")
         
-        # İKON REHBERİ
         st.markdown("""
         <div class="legend-box">
             <span style="color:#16a34a">✅ D</span>
@@ -276,16 +264,13 @@ if df is not None:
             l, r = st.columns(2)
             f_size = st.session_state.font_size
             
-            # SOL: OKUMA PARÇASI (SCROLLABLE - 60vh)
             l.markdown(f"<div class='passage-box' style='font-size:{f_size}px !important; line-height:{f_size*1.6}px !important'>{passage}</div>", unsafe_allow_html=True)
             
-            # SAĞ: SORU ALANI KAPSAYICISI (SCROLLABLE - 60vh)
-            # Bu div içine soruyu ve şıkları koyuyoruz
             with r:
                 st.markdown(f"""
                 <div class="question-container">
                     <div class="question-stem">{stem}</div>
-                """, unsafe_allow_html=True) # Div'i açtık (Streamlit inputları HTML içine giremez, kapanış aşağıda)
+                """, unsafe_allow_html=True) 
                 
                 opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
                 curr = st.session_state.answers.get(st.session_state.idx)
@@ -300,10 +285,9 @@ if df is not None:
                         if chosen == row['Dogru_Cevap']: st.success("TEBRİKLER! DOĞRU CEVAP 🎉")
                         else: st.error(f"YANLIŞ! Doğru Cevap: {row['Dogru_Cevap']}")
                 
-                st.markdown("</div>", unsafe_allow_html=True) # Div'i kapattık
+                st.markdown("</div>", unsafe_allow_html=True) 
 
         else:
-            # PARAGRAF YOKSA TEK BLOK (YİNE SABİT YÜKSEKLİK)
             st.markdown(f"""
             <div class="question-container" style="height: 70vh !important; max-height: 70vh !important;">
                 <div class="question-stem">{stem}</div>
