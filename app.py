@@ -174,7 +174,7 @@ def get_gemini_text(api_key, passage, question, options):
     if not api_key: return "⚠️ API Key Yok."
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = f"Sen YDS koçusun. PARAGRAF: {passage} SORU: {question} ŞIKLAR: {options}. Cevabı [BÖLÜM 1: STRATEJİ], [BÖLÜM 2: ANALİZ], [BÖLÜM 3: DOĞRU CEVAP], [BÖLÜM 4: ÇELDİRİCİLER] formatında ver."
         response = model.generate_content(prompt)
         return response.text
