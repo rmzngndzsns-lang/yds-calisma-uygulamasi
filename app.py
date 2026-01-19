@@ -3,106 +3,101 @@ import pandas as pd
 from datetime import datetime, timedelta
 import streamlit.components.v1 as components
 import google.generativeai as genai
-import os
 import nest_asyncio
+import os
 
-# Döngü yaması
 nest_asyncio.apply()
 
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 
-# --- 2. SESSION STATE (BAŞLANGIÇ AYARLARI) ---
-defaults = {
-    'username': None, 'selected_exam_id': 1, 'idx': 0, 'answers': {}, 
-    'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
-    'user_api_key': "", 'font_size': 18, 'exam_mode': False, 'end_timestamp': 0
-}
-for k, v in defaults.items():
-    if k not in st.session_state: st.session_state[k] = v
-
-# --- 3. CSS (KESİN VE SABİT ÖLÇÜLER) ---
+# --- 2. CSS (KESİN HİZALAMA VE KİLİTLEME) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
     .stApp { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
     
-    /* SIDEBAR GENİŞLİK: Butonların sığması için genişlettik */
-    section[data-testid="stSidebar"] { min-width: 350px !important; max-width: 350px !important; }
+    /* SIDEBAR GENİŞLİĞİ */
+    section[data-testid="stSidebar"] { min-width: 340px !important; max-width: 340px !important; }
 
-    /* --- SORU BUTONLARI (KESİN BOYUTLANDIRMA) --- */
-    /* Kolon genişliğini baştan geniş tutuyoruz ki sonradan büyümesin */
+    /* --- 1. ÜST BAR HİZALAMA (HEADER FIX) --- */
+    /* Başlık ve butonları aynı hizaya, sıkı sıkıya kilitliyoruz */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: center !important;
+    }
+    
+    /* Sağdaki buton grubu (Font ve İşaretleme) */
+    .header-tools {
+        display: flex;
+        justify-content: flex-end;
+        gap: 5px; /* Butonlar arası minik boşluk */
+    }
+    
+    /* --- 2. SIDEBAR KARELERİ (GRID FIX) --- */
+    /* Kolonların esnemesini %100 engelliyoruz */
     div[data-testid="stSidebar"] div[data-testid="column"] {
-        width: 50px !important;
-        min-width: 50px !important;
-        max-width: 50px !important;
-        flex: 0 0 50px !important; 
+        width: 42px !important;
+        min-width: 42px !important;
+        max-width: 42px !important;
+        flex: 0 0 42px !important; /* Esneme payı YOK */
         padding: 0 !important;
         margin: 1px !important;
     }
 
-    /* Butonun kendisi */
-    div[data-testid="stSidebar"] div[data-testid="column"] button {
-        width: 48px !important;      /* Genişlik SABİT */
-        height: 48px !important;     /* Yükseklik SABİT */
-        min-width: 48px !important;
-        max-width: 48px !important;
-        min-height: 48px !important;
-        max-height: 48px !important;
+    div[data-testid="stSidebar"] button {
+        width: 40px !important; height: 40px !important;
+        min-width: 40px !important; max-width: 40px !important;
+        min-height: 40px !important; max-height: 40px !important;
         padding: 0 !important;
-        
-        font-size: 11px !important;
-        font-weight: 700 !important;
-        border-radius: 8px !important;
-        
-        /* İçerik hizalama */
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
-        
-        /* Metin Taşma Kontrolü */
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: clip !important;
+        font-size: 10px !important; font-weight: 700 !important;
+        border-radius: 6px !important;
+        display: flex !important; align-items: center !important; justify-content: center !important;
         line-height: 1 !important;
+        white-space: nowrap !important; overflow: hidden !important;
     }
     
-    /* Kolonlar arası boşluğu sıfırla */
+    /* Sidebar içindeki buton gruplarını ortala */
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {
-        gap: 0px !important;
         justify-content: center !important;
+        gap: 0px !important;
     }
 
-    /* GİRİŞ EKRANI */
-    .login-container {
-        max-width: 400px; margin: 60px auto; padding: 40px;
-        background: white; border-radius: 16px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; 
-        border: 1px solid #eef2f6;
-    }
-    .stTextInput > div > div > input { width: 100% !important; }
-    
-    /* DİĞER BUTONLAR */
-    div.stButton > button { width: 100% !important; border-radius: 8px; font-weight: 600; min-height: 45px; }
-
-    /* OKUMA ALANI (DİNAMİK FONT İÇİN) */
+    /* --- 3. İÇERİK KUTULARI (SCROLL FIX) --- */
     .passage-box { 
         background-color: #ffffff; padding: 25px; border-radius: 12px; 
         border: 1px solid #dfe6e9; color: #2d3436; 
-        overflow-y: auto; max-height: 70vh;
-        /* Font boyutu inline style ile verilecek */
+        height: 60vh !important; /* Yükseklik Sabit */
+        max-height: 60vh !important;
+        overflow-y: auto; 
+        transition: font-size 0.1s ease;
     }
     
-    .question-stem { 
-        font-size: 18px; font-weight: 600; 
-        border-left: 5px solid #2563eb; padding-left: 15px; margin-bottom: 20px; 
-        color: #1e293b;
+    .question-container {
+        background-color: #ffffff; padding: 20px; border-radius: 12px;
+        border: 1px solid #dfe6e9;
+        height: 60vh !important; /* Yükseklik Sabit */
+        max-height: 60vh !important;
+        overflow-y: auto;
+    }
+
+    /* GİRİŞ VE GENEL */
+    .login-container {
+        max-width: 400px; margin: 60px auto; padding: 40px;
+        background: white; border-radius: 16px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; border: 1px solid #eef2f6;
+    }
+    .stTextInput > div > div > input { width: 100% !important; }
+    div.stButton > button { width: 100% !important; border-radius: 8px; font-weight: 600; min-height: 40px; }
+    
+    .legend-box {
+        font-size: 11px; color: #334155; background: #ffffff;
+        padding: 8px; border-radius: 6px; margin-bottom: 10px;
+        display: flex; justify-content: space-between; font-weight: 600; border: 1px solid #e2e8f0;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. VERİ YÖNETİMİ ---
+# --- 3. VERİ YÖNETİMİ ---
 SCORES_FILE = "lms_scores.csv"
 
 @st.cache_data(show_spinner=False)
@@ -122,7 +117,6 @@ def save_score_to_csv(username, exam_name, score, correct, wrong, empty):
     try:
         if os.path.exists(SCORES_FILE): df = pd.read_csv(SCORES_FILE)
         else: df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih"])
-        
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
         mask = (df["Kullanıcı"] == username) & (df["Sınav"] == exam_name)
         if mask.any(): df.loc[mask, ["Puan", "Doğru", "Yanlış", "Boş", "Tarih"]] = [score, correct, wrong, empty, date_str]
@@ -139,6 +133,15 @@ def get_leaderboard_pivot():
         if df.empty: return None
         return df.pivot_table(index="Kullanıcı", columns="Sınav", values="Puan", aggfunc="max").fillna("-")
     except: return None
+
+# --- 4. SESSION ---
+defaults = {
+    'username': None, 'selected_exam_id': 1, 'idx': 0, 'answers': {}, 
+    'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
+    'user_api_key': "", 'font_size': 16, 'exam_mode': False, 'end_timestamp': 0
+}
+for k, v in defaults.items():
+    if k not in st.session_state: st.session_state[k] = v
 
 # --- 5. GİRİŞ EKRANI ---
 if st.session_state.username is None:
@@ -160,7 +163,6 @@ if st.session_state.username is None:
 with st.sidebar:
     st.success(f"👤 **{st.session_state.username}**")
     
-    # SAYAÇ
     if not st.session_state.finish:
         components.html(
             f"""<div id="countdown" style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:bold;color:#dc2626;text-align:center;padding:8px;background:#fee2e2;border-radius:8px;border:1px solid #fecaca;">⏳ Hesapla...</div>
@@ -201,7 +203,7 @@ with st.sidebar:
     if df is not None:
         st.write("---")
         st.markdown("**🗺️ Soru Haritası**")
-        st.markdown('<div style="font-size:12px; margin-bottom:10px; display:flex; justify-content:space-between;"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="legend-box"><span style="color:#16a34a">✅ D</span><span style="color:#dc2626">❌ Y</span><span style="color:#ca8a04">⭐ İşaret</span></div>', unsafe_allow_html=True)
 
         cols = st.columns(5)
         for i in range(len(df)):
@@ -210,8 +212,6 @@ with st.sidebar:
             with cols[col_idx]:
                 u_a = st.session_state.answers.get(q_idx)
                 lbl = str(q_idx + 1)
-                
-                # İkonlar
                 if u_a: 
                     if st.session_state.exam_mode: lbl += "🟦"
                     else: lbl += "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
@@ -229,39 +229,42 @@ with st.sidebar:
 # --- 7. ANA EKRAN ---
 if df is not None:
     if not st.session_state.finish:
-        # ÜST BAR
-        c1, c2, c3, c4 = st.columns([5, 1, 1, 1])
-        c1.subheader(f"Soru {st.session_state.idx + 1}")
-        
-        # --- METİN BÜYÜTME/KÜÇÜLTME (DÜZELTİLDİ) ---
-        with c2:
-            if st.button("A ➖", help="Küçült"):
-                if st.session_state.font_size > 12: 
-                    st.session_state.font_size -= 2
-                    st.rerun()
-        with c3:
-            if st.button("A ➕", help="Büyüt"):
-                if st.session_state.font_size < 40:
-                    st.session_state.font_size += 2
-                    st.rerun()
-                
-        with c4:
-            is_m = st.session_state.idx in st.session_state.marked
-            if st.button("⭐" if is_m else "☆", help="İşaretle"):
-                if is_m: st.session_state.marked.remove(st.session_state.idx)
-                else: st.session_state.marked.add(st.session_state.idx)
-                st.rerun()
+        # --- ÜST HEADER (KAYMAZ YAPI) ---
+        # Butonları birbirinden ayırmamak için tek bir kolonun içinde hizalıyoruz
+        c_header = st.container()
+        with c_header:
+            c_title, c_tools = st.columns([0.75, 0.25])
+            with c_title:
+                st.subheader(f"Soru {st.session_state.idx + 1}")
+            with c_tools:
+                # Butonları yan yana sıkıca dizmek için
+                b1, b2, b3 = st.columns([1, 1, 1], gap="small")
+                with b1:
+                    if st.button("A➖", help="Küçült"):
+                        if st.session_state.font_size > 12: st.session_state.font_size -= 2
+                        st.rerun()
+                with b2:
+                    if st.button("A➕", help="Büyüt"):
+                        if st.session_state.font_size < 36: st.session_state.font_size += 2
+                        st.rerun()
+                with b3:
+                    is_m = st.session_state.idx in st.session_state.marked
+                    if st.button("⭐" if is_m else "☆", help="İşaretle"):
+                        if is_m: st.session_state.marked.remove(st.session_state.idx)
+                        else: st.session_state.marked.add(st.session_state.idx)
+                        st.rerun()
 
         row = df.iloc[st.session_state.idx]
         q_raw = str(row['Soru']).replace('\\n', '\n')
         passage, stem = (q_raw.split('\n\n', 1) if '\n\n' in q_raw else (None, q_raw))
         
+        # --- İÇERİK ---
         if passage:
             l, r = st.columns(2)
             f_size = st.session_state.font_size
-            # FONT BOYUTUNU BURADA ZORLA UYGULUYORUZ
+            # FONT BOYUTUNU BURADA DİNAMİK OLARAK VERİYORUZ
             l.markdown(f"""
-            <div class='passage-box' style='font-size: {f_size}px !important; line-height: {f_size * 1.5}px !important;'>
+            <div class='passage-box' style='font-size: {f_size}px !important; line-height: {f_size*1.6}px !important;'>
                 {passage}
             </div>
             """, unsafe_allow_html=True)
@@ -269,7 +272,11 @@ if df is not None:
         else: main_col = st.container()
 
         with main_col:
-            st.markdown(f"<div class='question-stem'>{stem}</div>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="question-container">
+                <div class="question-stem">{stem}</div>
+            """, unsafe_allow_html=True)
+            
             opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
             curr = st.session_state.answers.get(st.session_state.idx)
             sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(curr) + ")")), None)
@@ -281,6 +288,8 @@ if df is not None:
                 if not st.session_state.exam_mode:
                     if chosen == row['Dogru_Cevap']: st.success("DOĞRU! 🎉")
                     else: st.error(f"YANLIŞ! (Doğru: {row['Dogru_Cevap']})")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
 
         st.write("")
         c_act1, c_act2 = st.columns([1, 1])
