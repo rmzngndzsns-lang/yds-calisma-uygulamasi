@@ -125,7 +125,7 @@ def get_gemini_text(api_key, passage, question, options):
         # --- MODEL SEÇİMİ (JOKER YÖNTEMİ) ---
         # Senin listende bu vardı. Bu, "elindeki en yeni çalışan Flash modeli neyse onu ver" demektir.
         # Sürüm hatası vermez.
-        model = genai.GenerativeModel('gemini-flash-latest')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""
         Sen YDS sınav koçusun.
