@@ -16,104 +16,48 @@ nest_asyncio.apply()
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 
-# --- 2. PREMIUM CSS TASARIMI (MODERN GİRİŞ & SİMETRİK BUTONLAR) ---
+# --- 2. PREMIUM CSS TASARIMI ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
     
     .stApp { font-family: 'Poppins', sans-serif; background-color: #f8f9fa; }
     
-    /* GİRİŞ EKRANI KARTI */
+    /* GİRİŞ EKRANI */
     .login-container {
-        max-width: 500px;
-        margin: 100px auto;
-        padding: 40px;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        text-align: center;
-        border: 1px solid #eef2f6;
+        max-width: 500px; margin: 100px auto; padding: 40px;
+        background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        text-align: center; border: 1px solid #eef2f6;
     }
+    .login-title { color: #2c3e50; font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+    .login-subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 30px; }
     
-    .login-title {
-        color: #2c3e50;
-        font-size: 28px;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    
-    .login-subtitle {
-        color: #7f8c8d;
-        font-size: 14px;
-        margin-bottom: 30px;
-    }
-    
-    /* SORU BUTONLARI İÇİN IZGARA (GRID) SİSTEMİ - HEPİSİ EŞİT */
-    .question-grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr); /* Yan yana 5 tane */
-        gap: 8px; /* Aralarındaki boşluk */
-        margin-bottom: 20px;
-    }
-    
-    .grid-btn {
-        width: 100%;
-        aspect-ratio: 1/1; /* Kare olması için */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
-        background: white;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 14px;
-        color: #555;
-    }
-    
-    .grid-btn:hover {
-        background-color: #f0f2f5;
-        border-color: #bdc3c7;
-    }
-    
-    .grid-btn.active {
-        background-color: #3498db;
-        color: white;
-        border-color: #2980b9;
-        box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
-    }
-    
-    .grid-btn.correct { background-color: #eafaf1; color: #27ae60; border-color: #2ecc71; }
-    .grid-btn.wrong { background-color: #fdedec; color: #c0392b; border-color: #e74c3c; }
-    .grid-btn.marked { background-color: #fff8e1; color: #f39c12; border-color: #f1c40f; }
-
-    /* OKUMA PARÇASI */
+    /* OKUMA PARÇASI & SORU */
     .passage-box { 
         background-color: #ffffff; padding: 30px; border-radius: 12px; height: 60vh; 
         overflow-y: auto; font-size: 17px; font-weight: 500; line-height: 2.0; 
         text-align: justify; border: 1px solid #dfe6e9; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         color: #2d3436; font-family: 'Georgia', serif; 
     }
-    
-    /* SORU KÖKÜ */
     .question-stem { 
         font-size: 19px; font-weight: 700; background-color: #ffffff; padding: 25px; 
         border-radius: 12px; border-left: 6px solid #0984e3; margin-bottom: 25px; 
         color: #1e272e; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
-
-    /* STANDART BUTONLAR */
+    
+    /* BUTONLAR */
     div.stButton > button {
         width: 100%; border-radius: 10px; font-weight: 600; height: 45px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     
-    /* ANALİZ RAPORU KUTUSU */
+    /* ANALİZ KUTULARI */
     .analysis-report {
         background-color: #fff; border: 2px solid #6c5ce7; border-radius: 15px;
         padding: 25px; margin-top: 20px; box-shadow: 0 5px 15px rgba(108, 92, 231, 0.1);
     }
+    .strategy-box { background-color: #e3f2fd; border-left: 5px solid #2196f3; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .sentence-box { background-color: #ffffff; border-left: 5px solid #f1c40f; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #f9f9f9; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -168,13 +112,13 @@ def init_session():
     if 'data_saved' not in st.session_state: st.session_state.data_saved = False 
     if 'gemini_res' not in st.session_state: st.session_state.gemini_res = {} 
     if 'analysis_report' not in st.session_state: st.session_state.analysis_report = None
+    if 'user_api_key' not in st.session_state: st.session_state.user_api_key = "" # API KEY SESSION'A EKLENDİ
 
 df = load_data()
 init_session()
 
-# --- 4. PROFESYONEL GİRİŞ EKRANI ---
+# --- 4. GİRİŞ EKRANI ---
 if st.session_state.username is None:
-    # Boşluklarla ortala
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown("""
@@ -193,8 +137,7 @@ if st.session_state.username is None:
                 st.rerun()
             else:
                 st.toast("Lütfen adınızı giriniz!", icon="⚠️")
-    
-    st.stop() # İsim girilmeden aşağıyı çalıştırma
+    st.stop() 
 
 # --- 5. FONKSİYONLAR ---
 def parse_question(text):
@@ -205,17 +148,21 @@ def parse_question(text):
 
 def get_gemini_text(api_key, passage, question, options):
     if not api_key: return "⚠️ API Key Yok."
-    # API Key temizliği (Boşlukları sil)
     clean_key = api_key.strip()
     try:
         genai.configure(api_key=clean_key)
-        # Kararlı model
         model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = f"Sen YDS koçusun. PARAGRAF: {passage} SORU: {question} ŞIKLAR: {options}. Cevabı [BÖLÜM 1: STRATEJİ], [BÖLÜM 2: ANALİZ], [BÖLÜM 3: DOĞRU CEVAP], [BÖLÜM 4: ÇELDİRİCİLER] formatında ver."
+        prompt = f"""
+        Sen YDS koçusun. PARAGRAF: {passage} SORU: {question} ŞIKLAR: {options}
+        Cevabı ETİKETLERİ BOZMADAN şu formatta ver:
+        [BÖLÜM 1: STRATEJİ VE MANTIK] ...
+        [BÖLÜM 2: CÜMLE ANALİZİ] ...
+        [BÖLÜM 3: DOĞRU CEVAP] ...
+        [BÖLÜM 4: ÇELDİRİCİLER] ...
+        """
         response = model.generate_content(prompt)
         return response.text
-    except Exception as e:
-        return f"HATA: {str(e)} (API Key'i kontrol edin)"
+    except Exception as e: return f"HATA: {str(e)} (API Key'i kontrol edin)"
 
 def generate_performance_analysis(api_key, wrong_questions_text, score_info):
     clean_key = api_key.strip()
@@ -223,16 +170,13 @@ def generate_performance_analysis(api_key, wrong_questions_text, score_info):
         genai.configure(api_key=clean_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = f"""
-        Sen profesyonel bir YDS eğitmenisin.
-        Sonuç: {score_info}
-        Yanlışlar: {wrong_questions_text}
+        Sen YDS eğitmenisin. Sonuç: {score_info} Yanlışlar: {wrong_questions_text}
         Lütfen Türkçe olarak; Genel Değerlendirme, Eksik Konular, Çalışma Tavsiyeleri ve Motivasyon başlıkları altında analiz et.
         """
         response = model.generate_content(prompt)
         return response.text
     except Exception as e: return f"Analiz hatası: {str(e)}"
 
-# Formatlayıcılar
 def format_markdown_to_html(text):
     if not text: return ""
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
@@ -267,7 +211,6 @@ def generate_parallel_audio(full_text):
         for i, seg in enumerate(text_segments):
             tasks.append(generate_segment(seg, voice, "+0%", i))
         return b"".join(await asyncio.gather(*tasks))
-    
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -283,55 +226,39 @@ if df is not None:
         components.html(f"""<div style="font-family:'Segoe UI',sans-serif;font-size:28px;font-weight:bold;color:#e74c3c;background:white;padding:10px;border-radius:10px;text-align:center;border:2px solid #e74c3c;">...</div><script>var dest={st.session_state.end_timestamp};setInterval(function(){{var now=new Date().getTime();var diff=dest-now;var h=Math.floor((diff%(1000*60*60*24))/(1000*60*60));var m=Math.floor((diff%(1000*60*60))/(1000*60));var s=Math.floor((diff%(1000*60))/1000);document.querySelector("div").innerHTML=(h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);}},1000);</script>""", height=70)
         
         st.write("---")
-        st.info("🔑 **Kendi API Anahtarınız**")
-        user_api_key = st.text_input("Google AI Studio Key:", type="password", help="Hata alırsanız anahtarın başında/sonunda boşluk olmadığından emin olun.")
+        st.info("🔑 **API Anahtar Ayarı**")
         
+        # API KEY GİRİŞİ VE KAYDETME BUTONU (YENİLENEN KISIM)
+        temp_key = st.text_input("Google AI Studio Key:", type="password", value=st.session_state.user_api_key)
+        
+        if st.button("💾 Anahtarı Kaydet", use_container_width=True):
+            if temp_key.strip():
+                st.session_state.user_api_key = temp_key.strip()
+                st.success("Anahtar Kaydedildi! ✅")
+            else:
+                st.warning("Lütfen geçerli bir anahtar girin.")
+        
+        # Eğer key kaydedilmişse kullanıcıya göster
+        if st.session_state.user_api_key:
+            st.caption("✅ Aktif Anahtar: " + st.session_state.user_api_key[:5] + "******")
+
         st.write("---")
         st.markdown("### 🗺️ Soru Haritası")
         
-        # --- YENİ EŞİT BOYUTLU IZGARA SİSTEMİ (GRID) ---
-        # Streamlit'in kendi columns'u yerine HTML/CSS Grid kullanıyoruz.
-        # Bu sayede hepsi %100 eşit kutucuklar oluyor.
-        
-        # HTML kodunu oluştur
-        grid_html = '<div class="question-grid">'
-        for i in range(len(df)):
-            status_class = ""
-            u_ans = st.session_state.answers.get(i)
-            c_ans = df.iloc[i]['Dogru_Cevap']
-            
-            # Renk Sınıfları
-            if u_ans:
-                if u_ans == c_ans: status_class = "correct"
-                else: status_class = "wrong"
-            elif i in st.session_state.marked: status_class = "marked"
-            if i == st.session_state.idx: status_class += " active"
-            
-            # Tıklanabilir buton (Streamlit butonları yerine HTML butonları simüle edemiyoruz, 
-            # bu yüzden Streamlit kolonlarını daha sıkı bir döngüyle kullanacağız)
-            pass 
-        
-        # Streamlit'in native kolonlarıyla en düzgün grid yapısı:
-        # 5'li gruplar halinde döneceğiz ve her kolon eşit olacak.
         chunk_size = 5
         for i in range(0, len(df), chunk_size):
-            cols = st.columns(chunk_size) # Eşit genişlikte 5 kolon
+            cols = st.columns(chunk_size)
             for j in range(chunk_size):
                 if i + j < len(df):
                     q_idx = i + j
-                    # Buton Etiketi
                     lbl = str(q_idx + 1)
                     u_ans = st.session_state.answers.get(q_idx)
                     
-                    if u_ans:
-                        lbl = "✅" if u_ans == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
-                    elif q_idx in st.session_state.marked:
-                        lbl = "⭐"
+                    if u_ans: lbl = "✅" if u_ans == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
+                    elif q_idx in st.session_state.marked: lbl = "⭐"
                     
-                    # Aktif buton tipi
                     b_type = "primary" if q_idx == st.session_state.idx else "secondary"
                     
-                    # Butonu çiz
                     if cols[j].button(lbl, key=f"nav_{q_idx}", type=b_type, use_container_width=True):
                         st.session_state.idx = q_idx
                         st.rerun()
@@ -360,7 +287,6 @@ if df is not None:
         passage, stem = parse_question(row['Soru'])
         opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
         
-        # Okuma Parçası ve Soru Yan Yana
         if passage:
             c_l, c_r = st.columns([1, 1], gap="medium")
             with c_l:
@@ -388,14 +314,14 @@ if df is not None:
         c_act1, c_act2 = st.columns([2, 1])
         with c_act1:
             if st.button("🤖 Çözümle ve Seslendir 🔊", use_container_width=True):
-                if not user_api_key: st.error("Lütfen sol menüden API Key giriniz!")
+                # SESSION'DAKİ KAYITLI KEY'İ KULLAN
+                if not st.session_state.user_api_key: st.error("Lütfen sol menüden API Key girip kaydedin!")
                 else:
                     with st.spinner("Yapay Zeka Analiz Ediyor..."):
-                        txt = get_gemini_text(user_api_key, passage, stem, opts)
+                        txt = get_gemini_text(st.session_state.user_api_key, passage, stem, opts)
                         st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
                         st.rerun()
         
-        # İleri-Geri Butonları
         c_prev, c_next = st.columns(2)
         if st.session_state.idx > 0 and c_prev.button("⬅️ Önceki", use_container_width=True): 
             st.session_state.idx -= 1
@@ -404,20 +330,17 @@ if df is not None:
             st.session_state.idx += 1
             st.rerun()
 
-        # Analiz Sonucu Gösterimi
         if st.session_state.idx in st.session_state.gemini_res:
             res = st.session_state.gemini_res[st.session_state.idx]
             st.markdown("---")
             if res['audio']: st.audio(res['audio'])
             
-            # Metni parçalayıp güzel gösterme
             parts = res['text'].split('[BÖLÜM')
             for part in parts:
                 if "1: STRATEJİ" in part:
                     st.markdown(f"<div class='strategy-box'><b>STRATEJİ:</b> {format_markdown_to_html(part.replace('1: STRATEJİ VE MANTIK]', ''))}</div>", unsafe_allow_html=True)
                 elif "2: CÜMLE" in part:
                     st.markdown(f"<div class='sentence-box'><b>ANALİZ:</b> {format_markdown_to_html(part.replace('2: CÜMLE ANALİZİ]', ''))}</div>", unsafe_allow_html=True)
-                # Diğer bölümler için de benzer kutular eklenebilir...
             
             if not res['audio']:
                 with st.spinner("Ses oluşturuluyor..."):
@@ -426,13 +349,10 @@ if df is not None:
                         st.session_state.gemini_res[st.session_state.idx]['audio'] = aud
                         st.rerun()
     else:
-        # --- SONUÇ EKRANI ---
         st.title("📊 Sınav Sonuç Analizi")
         st.markdown("---")
-        
         correct, wrong, empty = 0, 0, 0
         wrong_questions_text = ""
-        
         results_data = []
         for i in range(len(df)):
             ans = st.session_state.answers.get(i)
@@ -451,7 +371,6 @@ if df is not None:
                 empty += 1
                 q_text = str(df.iloc[i]['Soru'])[:300]
                 wrong_questions_text += f"- Soru {i+1} (BOŞ): {q_text}...\n"
-            
             results_data.append({"No": i+1, "Cevap": ans if ans else "-", "Doğru": real, "Durum": status})
 
         score = correct * 1.25
@@ -467,16 +386,15 @@ if df is not None:
         c4.metric("Boş", empty)
         
         st.markdown("---")
-        
         st.subheader("🤖 Yapay Zeka Koçluk Sistemi")
         st.info("Eksiklerinizi analiz etmek için butona basın (API Key girili olmalı).")
         
         if st.button("✨ Performansımı Analiz Et", type="primary", use_container_width=True):
-            if not user_api_key: st.error("Lütfen sol menüden API Key giriniz.")
+            if not st.session_state.user_api_key: st.error("Lütfen sol menüden API Key girip kaydedin.")
             else:
                 with st.spinner("Analiz yapılıyor..."):
                     score_info = f"Doğru: {correct}, Yanlış: {wrong}, Boş: {empty}, Puan: {score}"
-                    analysis = generate_performance_analysis(user_api_key, wrong_questions_text, score_info)
+                    analysis = generate_performance_analysis(st.session_state.user_api_key, wrong_questions_text, score_info)
                     st.session_state.analysis_report = analysis
         
         if st.session_state.analysis_report:
