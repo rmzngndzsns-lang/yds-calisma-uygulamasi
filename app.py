@@ -16,7 +16,7 @@ nest_asyncio.apply()
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="Yds App", page_icon="🎓", layout="wide")
 
-# --- 2. PREMIUM CSS TASARIMI (GÜNCELLENDİ) ---
+# --- 2. PREMIUM CSS TASARIMI ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
@@ -28,12 +28,12 @@ st.markdown("""
         transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    /* OKUMA PARÇASI - DAHA OKUNAKLI */
+    /* OKUMA PARÇASI */
     .passage-box { 
         background-color: #ffffff; padding: 30px; border-radius: 12px; height: 60vh; 
         overflow-y: auto; font-size: 17px; font-weight: 500; line-height: 2.0; 
         text-align: justify; border: 1px solid #dfe6e9; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        color: #2d3436; font-family: 'Georgia', serif; /* Okuma parçası için serif font */
+        color: #2d3436; font-family: 'Georgia', serif; 
     }
     
     /* SORU KÖKÜ */
@@ -43,7 +43,7 @@ st.markdown("""
         color: #1e272e; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* ANALİZ KUTULARI - RENK AYRIMI */
+    /* ANALİZ KUTULARI */
     .strategy-box { 
         background-color: #e3f2fd; border-left: 5px solid #2196f3; padding: 20px; 
         border-radius: 8px; margin-bottom: 20px; color: #0d47a1; font-size: 16px; 
@@ -55,12 +55,10 @@ st.markdown("""
         border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
         border: 1px solid #f9f9f9;
     }
-    /* İNGİLİZCE CÜMLE - KOYU VE BELİRGİN */
     .eng-text { 
         font-weight: 700; color: #2c3e50; margin-bottom: 10px; font-size: 17px; 
         border-bottom: 1px dashed #ecf0f1; padding-bottom: 8px;
     }
-    /* TÜRKÇE CÜMLE - GRİ VE İTALİK (KARIŞMAMASI İÇİN) */
     .tr-text { 
         color: #7f8c8d; font-style: italic; font-size: 16px; font-weight: 400; line-height: 1.6;
     }
@@ -117,14 +115,12 @@ def parse_question(text):
 
 # --- 4. HIZLI GEMINI ---
 def get_gemini_text(api_key, passage, question, options):
-    if "BURAYA" in api_key or len(api_key) < 10:
-        return "⚠️ Lütfen kodun 326. satırına API Key'inizi girin!"
+    if not api_key:
+        return "⚠️ Lütfen sol menüden API Anahtarınızı giriniz."
     
     try:
         genai.configure(api_key=api_key)
-        # --- MODEL SEÇİMİ (JOKER YÖNTEMİ) ---
-        # Senin listende bu vardı. Bu, "elindeki en yeni çalışan Flash modeli neyse onu ver" demektir.
-        # Sürüm hatası vermez.
+        # JOKER MODEL (Sürüm hatası vermez)
         model = genai.GenerativeModel('gemini-2.5-flash')
         
         prompt = f"""
@@ -150,23 +146,16 @@ def get_gemini_text(api_key, passage, question, options):
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        return f"HATA: {str(e)}"
+        return f"HATA: {str(e)} (API Key geçersiz veya kota dolmuş olabilir.)"
 
-# --- 5. GELİŞMİŞ METİN FORMATLAYICI ---
+# --- 5. FORMAT VE TEMİZLİK ---
 def format_markdown_to_html(text):
-    """
-    Hem **çift yıldız** hem *tek yıldız* kalın (bold) yapılır.
-    """
     if not text: return ""
-    # Çift yıldızları bold yap
     text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-    # Tek yıldızları da bold yap
     text = re.sub(r'\*(.*?)\*', r'<b>\1</b>', text)
     return text
 
 def clean_text_for_tts(text):
-    """Sese gitmeden önce metni temizler"""
-    # Yıldızların hepsini sil (Seste duyulmasın)
     text = text.replace('**', '').replace('*', '')
     text = re.sub(r'[\#\_\`]', '', text)
     text = text.replace('🇬🇧', '').replace('🇹🇷', '').replace('💡', '').replace('✅', '').replace('❌', '').replace('🔍', '')
@@ -193,7 +182,7 @@ def generate_parallel_audio(full_text):
     if full_text.startswith("HATA") or full_text.startswith("⚠️"): return None
 
     voice = "en-US-BrianMultilingualNeural" 
-    rate_str = "+0%" # SABİT HIZ
+    rate_str = "+0%" 
     
     lines = full_text.split('\n')
     text_segments = [line for line in lines if len(line.strip()) > 5]
@@ -235,14 +224,20 @@ if df is not None:
         
         st.write("---")
         
-        # --- API KEY (SABİT) ---
-        st.info("🔑 **API Anahtarı**")
-        # 👇👇👇 BURAYA KENDİ KEYİNİ YAPIŞTIR 👇👇👇
-        user_api_key = "AIzaSyBzbzfYGKpV5O-5J8Z-jEzNGpA6eJ70lk8" 
-        # 👆👆👆 BURAYA KENDİ KEYİNİ YAPIŞTIR 👆👆👆
+        # --- KULLANICI API KEY GİRİŞİ ---
+        st.info("🔑 **Kendi API Anahtarınız**")
         
-        if "BURAYA" in user_api_key:
-            st.error("Lütfen kodun 326. satırına API Key'inizi girin!")
+        user_api_key = st.text_input(
+            "Google AI Studio Key:", 
+            type="password", 
+            help="Google AI Studio'dan aldığınız anahtarı buraya yapıştırın."
+        )
+        
+        if not user_api_key:
+            st.warning("⚠️ Yapay zeka analizi için lütfen anahtar girin.")
+            st.markdown("[Anahtar Almak İçin Tıkla](https://aistudio.google.com/app/apikey)")
+        else:
+            st.success("Anahtar Girildi ✅")
 
         st.write("---")
         
@@ -301,12 +296,31 @@ if df is not None:
                     else: st.error(f"MAALESEF YANLIŞ. DOĞRU CEVAP: {row['Dogru_Cevap']}")
                 
                 st.write("")
+                # --- ÇÖZÜMLE BUTONU ---
                 if st.button("🤖 Çözümle ve Seslendir 🔊", use_container_width=True):
-                    with st.spinner("🧠 Yapay Zeka Düşünüyor..."):
-                        txt = get_gemini_text(user_api_key, passage, stem, opts)
-                        st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
-                        st.rerun()
+                    if not user_api_key:
+                        st.error("Lütfen önce sol menüden API Anahtarınızı giriniz!")
+                    else:
+                        with st.spinner("🧠 Yapay Zeka Düşünüyor..."):
+                            txt = get_gemini_text(user_api_key, passage, stem, opts)
+                            st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
+                            st.rerun()
+                            
+                st.write("")
+                # --- İLERİ / GERİ BUTONLARI (Paragraf Sorusu İçin) ---
+                c_prev, c_next = st.columns(2)
+                with c_prev:
+                    if st.session_state.idx > 0:
+                        if st.button("⬅️ Önceki Soru", use_container_width=True):
+                            st.session_state.idx -= 1
+                            st.rerun()
+                with c_next:
+                    if st.session_state.idx < len(df) - 1:
+                        if st.button("Sonraki Soru ➡️", use_container_width=True):
+                            st.session_state.idx += 1
+                            st.rerun()
         else:
+            # NORMAL SORULAR
             formatted_stem = format_markdown_to_html(stem)
             st.markdown(f"<div class='question-stem'>{formatted_stem}</div>", unsafe_allow_html=True)
             curr = st.session_state.answers.get(st.session_state.idx)
@@ -320,11 +334,29 @@ if df is not None:
                 else: st.error(f"MAALESEF YANLIŞ. DOĞRU CEVAP: {row['Dogru_Cevap']}")
             
             st.write("")
+            # --- ÇÖZÜMLE BUTONU ---
             if st.button("🤖 Çözümle ve Seslendir 🔊", use_container_width=True):
-                with st.spinner("🧠 Yapay Zeka Düşünüyor..."):
-                    txt = get_gemini_text(user_api_key, passage, stem, opts)
-                    st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
-                    st.rerun()
+                if not user_api_key:
+                    st.error("Lütfen önce sol menüden API Anahtarınızı giriniz!")
+                else:
+                    with st.spinner("🧠 Yapay Zeka Düşünüyor..."):
+                        txt = get_gemini_text(user_api_key, passage, stem, opts)
+                        st.session_state.gemini_res[st.session_state.idx] = {'text': txt, 'audio': None}
+                        st.rerun()
+            
+            st.write("")
+            # --- İLERİ / GERİ BUTONLARI (Normal Soru İçin) ---
+            c_prev, c_next = st.columns(2)
+            with c_prev:
+                if st.session_state.idx > 0:
+                    if st.button("⬅️ Önceki Soru", use_container_width=True):
+                        st.session_state.idx -= 1
+                        st.rerun()
+            with c_next:
+                if st.session_state.idx < len(df) - 1:
+                    if st.button("Sonraki Soru ➡️", use_container_width=True):
+                        st.session_state.idx += 1
+                        st.rerun()
 
         # SONUÇ GÖSTERİMİ
         if st.session_state.idx in st.session_state.gemini_res:
@@ -370,7 +402,6 @@ if df is not None:
                         html_text = format_markdown_to_html(clean_text)
                         st.markdown(f"""<div class="answer-box-wrong"><div class="ai-header" style="color:#c0392b; border-color:#c0392b;">❌ ÇELDİRİCİ ANALİZİ</div>{html_text}</div>""", unsafe_allow_html=True)
                 
-                # SES OLUŞTURMA
                 if data['audio'] is None:
                     with st.spinner("🔊 Ultra-Hızlı ses oluşturuluyor..."):
                         aud_bytes = generate_parallel_audio(data['text'])
