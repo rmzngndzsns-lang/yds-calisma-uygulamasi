@@ -16,48 +16,62 @@ nest_asyncio.apply()
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="YDS Pro LMS", page_icon="🎓", layout="wide")
 
-# --- 2. PREMIUM CSS (HİZALANMIŞ VE BOYUTLANDIRILMIŞ) ---
+# --- 2. PROFESYONEL CSS (YATAY YAYILMAYI ENGELLEYEN TASARIM) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-    .stApp { font-family: 'Poppins', sans-serif; background-color: #f4f6f9; }
+    .stApp { font-family: 'Poppins', sans-serif; background-color: #f8fafc; }
     
-    /* SIDEBAR GENİŞLİĞİ */
-    [data-testid="stSidebar"] { min-width: 320px !important; }
-
-    /* GİRİŞ EKRANI KAPSAYICI */
-    .login-wrapper {
-        max-width: 450px; 
-        margin: 80px auto; 
+    /* SIDEBAR GENİŞLİĞİNİ SABİTLEME */
+    section[data-testid="stSidebar"] {
+        min-width: 280px !important;
+        max-width: 280px !important;
     }
 
+    /* GİRİŞ EKRANI */
+    .login-wrapper { max-width: 450px; margin: 80px auto; }
     .login-container {
-        padding: 35px;
-        background: white; 
-        border-radius: 20px; 
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-        text-align: center; 
-        border: 1px solid #eef2f6;
-        margin-bottom: 20px; /* Alttaki inputla bitişik durmaması için */
+        padding: 35px; background: white; border-radius: 20px; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08); text-align: center; 
+        border: 1px solid #eef2f6; margin-bottom: 20px;
     }
 
-    /* Giriş input ve buton alanı */
-    .stTextInput > div > div > input {
-        width: 100% !important;
+    /* --- SORU HARİTASI BUTONLARI (KESİN SİMETRİ VE YATAY KORUMA) --- */
+    /* stSidebar içindeki tüm butonları küçük karelere zorla */
+    section[data-testid="stSidebar"] button {
+        width: 42px !important; 
+        height: 42px !important;
+        min-width: 42px !important;
+        max-width: 42px !important;
+        padding: 0px !important;
+        margin: 1px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 10px !important; 
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        white-space: nowrap !important;
+        line-height: 1 !important;
+        overflow: hidden !important;
+    }
+
+    /* Streamlit'in kolonlar arasındaki o büyük boşlukları yok et */
+    [data-testid="column"] {
+        width: fit-content !important;
+        flex: unset !important;
+        min-width: unset !important;
+        padding: 0px !important;
+        margin: 0px !important;
     }
     
-    /* Giriş yap butonu sola dayalı */
-    div.stButton > button {
-        width: auto !important; /* Sola dayalı olması için genişliği otomatiğe aldık */
-        min-width: 120px;
-        padding-left: 30px !important;
-        padding-right: 30px !important;
-        border-radius: 8px;
-        font-weight: 600;
-        height: 45px;
+    /* Yan yana dizilimi daha sıkı yap */
+    [data-testid="stHorizontalBlock"] {
+        gap: 2px !important;
+        justify-content: center !important;
     }
 
-    /* OKUMA PARÇASI & SORU */
+    /* Okuma parçası ve soru kutuları */
     .passage-box { 
         background-color: #ffffff; padding: 25px; border-radius: 12px; height: 55vh; 
         overflow-y: auto; font-size: 15px; line-height: 1.7; 
@@ -68,25 +82,6 @@ st.markdown("""
         border-radius: 12px; border-left: 6px solid #0984e3; margin-bottom: 20px; 
         box-shadow: 0 2px 10px rgba(0,0,0,0.03);
     }
-
-    /* SORU HARİTASI BUTONLARI (KESİN SİMETRİ) */
-    div[data-testid="column"] button {
-        width: 55px !important;
-        height: 55px !important;
-        min-width: 55px !important;
-        max-width: 55px !important;
-        padding: 0px !important;
-        margin: 2px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 11px !important; 
-        border-radius: 8px !important;
-        white-space: nowrap !important;
-        line-height: 1 !important;
-    }
-
-    div[data-testid="column"] { padding: 0.5px !important; display: flex; justify-content: center; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -133,7 +128,7 @@ init_session()
 
 # --- 5. GELİŞMİŞ DOSYA BULUCU ---
 def load_exam_file(exam_id):
-    names = [f"Sinav_{exam_id}.xlsx", f"sinav_{exam_id}.xlsx", f"Sinav_{exam_id}.csv", f"sinav_{exam_id}.csv"]
+    names = [f"Sinav_{exam_id}.xlsx", f"sinav_{exam_id}.xlsx", f"Sinav_{exam_id}.csv"]
     for name in names:
         if os.path.exists(name):
             try:
@@ -147,22 +142,14 @@ def load_exam_file(exam_id):
 
 # --- 6. GİRİŞ EKRANI ---
 if st.session_state.username is None:
-    # Tüm içeriği ortalanmış bir wrapper içine alıyoruz
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
-        st.markdown('<div class="login-container"><h2>🎓 YDS LMS</h2><p>Hoş geldiniz! İsim girerek başlayın.</p></div>', unsafe_allow_html=True)
-        
-        # Form gibi kullanarak butonu sola dayalı yapıyoruz
-        name = st.text_input("Ad Soyad:", placeholder="Lütfen adınızı giriniz...")
-        
-        # Butonun sola dayalı durması için ekstra kolon kullanmıyoruz, CSS width:auto hallediyor
+        st.markdown('<div class="login-container"><h2>🎓 YDS Pro LMS</h2><p>Giriş yaparak sınava başlayın.</p></div>', unsafe_allow_html=True)
+        name = st.text_input("Ad Soyad:", placeholder="İsminizi yazın...")
         if st.button("🚀 Giriş Yap", type="primary"):
-            if name.strip():
-                st.session_state.username = name.strip()
-                st.rerun()
-            else:
-                st.error("İsim gerekli.")
+            if name.strip(): st.session_state.username = name.strip(); st.rerun()
+            else: st.error("İsim gerekli.")
         st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
@@ -170,8 +157,8 @@ if st.session_state.username is None:
 with st.sidebar:
     st.success(f"👤 {st.session_state.username}")
     
-    st.markdown("### 📚 Sınav Listesi")
-    exam_id = st.selectbox("Bir sınav seçin:", range(1, 11), format_func=lambda x: f"YDS Deneme {x}", index=st.session_state.selected_exam_id - 1)
+    st.markdown("📘 **SINAV SEÇ**")
+    exam_id = st.selectbox("Sınav seç:", range(1, 11), format_func=lambda x: f"Deneme {x}", index=st.session_state.selected_exam_id - 1, label_visibility="collapsed")
     
     if exam_id != st.session_state.selected_exam_id:
         st.session_state.selected_exam_id = exam_id
@@ -183,17 +170,18 @@ with st.sidebar:
     df = load_exam_file(st.session_state.selected_exam_id)
     
     st.write("---")
-    st.info("🔑 Yapay Zeka")
-    key = st.text_input("Gemini API Key:", type="password", value=st.session_state.user_api_key)
-    if st.button("💾 Anahtarı Kaydet", use_container_width=True):
+    st.markdown("🔑 **API KEY**")
+    key = st.text_input("Gemini API Key:", type="password", value=st.session_state.user_api_key, label_visibility="collapsed")
+    if st.button("💾 Kaydet", use_container_width=True):
         st.session_state.user_api_key = key.strip()
         st.success("Kaydedildi!")
 
     if df is not None:
         st.write("---")
-        st.markdown("### 🗺️ Soru Haritası")
+        st.markdown("🗺️ **SORU HARİTASI**")
+        # DAR VE KARE BUTON GRID SİSTEMİ
         for r in range(0, len(df), 5):
-            cols = st.columns(5, gap="small")
+            cols = st.columns(5)
             for c in range(5):
                 q_idx = r + c
                 if q_idx < len(df):
@@ -206,7 +194,7 @@ with st.sidebar:
                         st.session_state.idx = q_idx; st.rerun()
         
         st.write("---")
-        if not st.session_state.finish and st.button("🏁 SINAVI BİTİR", type="primary", use_container_width=True):
+        if not st.session_state.finish and st.button("🏁 BİTİR", type="primary", use_container_width=True):
             st.session_state.finish = True; st.rerun()
 
 # --- 8. ANA EKRAN ---
@@ -233,9 +221,9 @@ if df is not None:
             if sel: st.session_state.answers[st.session_state.idx] = sel.split(")")[0]
 
         if st.button("🤖 Gemini 2.5 Flash Çözümle", use_container_width=True):
-            if not st.session_state.user_api_key: st.error("Key girin.")
+            if not st.session_state.user_api_key: st.error("API Key gerekli.")
             else:
-                with st.spinner("Analiz ediliyor..."):
+                with st.spinner("Analiz..."):
                     genai.configure(api_key=st.session_state.user_api_key)
                     model = genai.GenerativeModel('gemini-2.5-flash')
                     res = model.generate_content(f"Soru: {q_raw}. Doğru: {row['Dogru_Cevap']}. Analiz et.").text
@@ -245,20 +233,19 @@ if df is not None:
         if st.session_state.idx in st.session_state.gemini_res:
             st.info(st.session_state.gemini_res[st.session_state.idx])
     else:
-        st.title("📊 Sonuç Analizi")
+        st.title("📊 Sonuçlar")
         correct = sum(1 for i, a in st.session_state.answers.items() if a == df.iloc[i]['Dogru_Cevap'])
         score = correct * 1.25
         if not st.session_state.data_saved:
             save_score_to_csv(st.session_state.username, f"Deneme {st.session_state.selected_exam_id}", score, correct, len(st.session_state.answers)-correct, len(df)-len(st.session_state.answers))
             st.session_state.data_saved = True
         
-        st.metric("Toplam Puan", score)
-        st.write("---")
-        st.subheader("🏆 Liderlik Tablosu")
+        st.metric("Puan", score)
+        st.subheader("🏆 Liderlik")
         st.dataframe(get_leaderboard_pivot(), use_container_width=True)
         
         if st.button("🔄 Yeniden Başlat", use_container_width=True):
             st.session_state.answers, st.session_state.idx, st.session_state.finish, st.session_state.data_saved = {}, 0, False, False
             st.rerun()
 else:
-    st.warning(f"⚠️ Klasörde 'Sinav_{st.session_state.selected_exam_id}.xlsx' dosyası bulunamadı.")
+    st.warning("⚠️ Sinav_X.xlsx bulunamadı.")
