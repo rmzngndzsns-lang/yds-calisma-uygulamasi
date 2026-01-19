@@ -53,7 +53,7 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 11px !important; /* Rakam ve ikon sığsın diye */
+        font-size: 11px !important; 
         border-radius: 6px !important;
     }
 
@@ -112,7 +112,6 @@ init_session()
 
 # --- 5. GELİŞMİŞ DOSYA BULUCU ---
 def load_exam_file(exam_id):
-    # Olası isim kombinasyonlarını tara
     names = [f"Sinav_{exam_id}.xlsx", f"sinav_{exam_id}.xlsx", f"Sinav_{exam_id}.csv", f"sinav_{exam_id}.csv"]
     for name in names:
         if os.path.exists(name):
@@ -123,11 +122,6 @@ def load_exam_file(exam_id):
                     df['Dogru_Cevap'] = df['Dogru_Cevap'].astype(str).str.strip().str.upper()
                 return df
             except: continue
-    # Yedek Plan: Eski CSV ismi
-    if exam_id == 1 and os.path.exists("YDS1_ingilizce (2).xlsx - Table 1.csv"):
-        df = pd.read_csv("YDS1_ingilizce (2).xlsx - Table 1.csv")
-        df.columns = df.columns.str.strip()
-        return df
     return None
 
 # --- 6. GİRİŞ EKRANI ---
@@ -168,12 +162,12 @@ with st.sidebar:
         st.write("---")
         st.markdown("### 🗺️ Soru Haritası")
         for r in range(0, len(df), 5):
-            cols = st.columns(5, gap="extra-small")
+            # BURASI DÜZELTİLDİ: "extra-small" yerine "small" yazıldı.
+            cols = st.columns(5, gap="small")
             for c in range(5):
                 q_idx = r + c
                 if q_idx < len(df):
                     u_a = st.session_state.answers.get(q_idx)
-                    # İkon + Numara (Sayıyı bozmadan)
                     lbl = str(q_idx + 1)
                     if u_a: lbl += "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
                     elif q_idx in st.session_state.marked: lbl += "⭐"
