@@ -7,7 +7,7 @@ import os
 import json
 import nest_asyncio
 
-# Döngü yaması
+# Döngü yaması (Asyncio çakışmalarını önler)
 nest_asyncio.apply()
 
 # --- 1. AYARLAR ---
@@ -25,8 +25,9 @@ for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
 # --- 3. CSS (DARK MODE, STİL DÜZELTMELERİ VE AI KUTUSU TASARIMI) ---
-# AI Kutusu için özel renk paletleri
+# AI Kutusu için özel renk paletleri ve stiller
 if st.session_state.dark_mode:
+    # Dark Mode Renkleri
     ai_box_bg = "linear-gradient(145deg, #1e2028, #23252e)"
     ai_box_border = "#4f83f5"
     ai_text_color = "#e0e0e0"
@@ -78,7 +79,7 @@ if st.session_state.dark_mode:
     div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
     """
 else:
-    # Light Mode Pastel Tasarım
+    # Light Mode - Pastel Tasarım
     ai_box_bg = "linear-gradient(145deg, #f0f4ff, #eef2ff)"
     ai_box_border = "#6366f1" # Pastel Indigo
     ai_text_color = "#334155" # Slate 700
@@ -93,10 +94,10 @@ st.markdown(f"""
     .stApp {{ font-family: 'Poppins', sans-serif; background-color: {'#0e1117' if st.session_state.dark_mode else '#f8fafc'}; }}
     {dark_css}
     
-    /* SIDEBAR */
+    /* SIDEBAR GENİŞLİK */
     section[data-testid="stSidebar"] {{ min-width: 380px !important; max-width: 380px !important; }}
 
-    /* SORU HARİTASI */
+    /* SORU HARİTASI GRID YAPISI */
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
         display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; margin-bottom: 8px !important;
     }}
@@ -449,18 +450,49 @@ if df is not None:
 
         st.write("")
         c_act1, c_act2 = st.columns([1, 1])
+        
+        # --- GÜNCELLENMİŞ AI BUTON VE STRATEJİ MANTIĞI ---
         with c_act1:
             if st.button("🤖 AI Çözümle", use_container_width=True):
                 if not st.session_state.user_api_key: st.warning("⚠️ API Key Girin")
                 else:
-                    with st.spinner("🔍 Analiz..."):
+                    with st.spinner("🔍 Stratejik Analiz Yapılıyor..."):
                         try:
                             genai.configure(api_key=st.session_state.user_api_key)
                             model = genai.GenerativeModel('gemini-2.5-flash')
-                            res = model.generate_content(f"Soru: {q_raw}. Doğru: {row['Dogru_Cevap']}. Detaylı anlat.").text
+                            
+                            # YENİ STRATEJİK PROMPT
+                            custom_prompt = f"""
+                            Sen uzman bir YDS (Yabancı Dil Sınavı) İngilizce öğretmenisin. 
+                            Aşağıdaki soruyu analiz et ve öğrenciye özel ders verir gibi açıkla.
+                            
+                            Soru: {q_raw}
+                            Doğru Cevap: {row['Dogru_Cevap']}
+                            
+                            Lütfen cevabını şu katı şablona göre ver (Markdown kullanarak):
+                            
+                            ### 1. 🎯 Soru Tipi ve Yaklaşım Stratejisi
+                            * Önce bu sorunun hangi kategoride olduğunu belirt (Kelime, Tense, Bağlaç, Cümle Tamamlama, Çeviri vb.).
+                            * **Kritik Taktik:** Bu soru tipini çözerken öğrenci nereye bakmalı? (Örn: "Zaman uyumuna bak", "Boşluktan sonraki edata dikkat et", "Zıtlık bağlacı ara" gibi).
+                            
+                            ### 2. 💡 Detaylı Çözüm
+                            * Doğru cevabın neden doğru olduğunu gramer ve anlam açısından açıkla.
+                            * Cümledeki ipucu (keyword) nedir?
+                            
+                            ### 3. ❌ Çeldiriciler Neden Yanlış?
+                            * Diğer şıkların neden elendiğini kısaca açıkla (Örn: "A şıkkı Past Tense gerektirir ama cümle Future").
+                            
+                            ### 4. 🇹🇷 Türkçe Çeviri
+                            * Sorunun ve doğru cevabın tam Türkçe çevirisi.
+                            
+                            Lütfen samimi, teşvik edici ve öğretici bir ton kullan.
+                            """
+                            
+                            res = model.generate_content(custom_prompt).text
                             st.session_state.gemini_res[st.session_state.idx] = res
                             st.rerun()
                         except Exception as e: st.error(f"Hata: {e}")
+        
         with c_act2:
             c_p, c_n = st.columns(2)
             if st.session_state.idx > 0 and c_p.button("⬅️ Önceki", use_container_width=True): 
@@ -468,22 +500,19 @@ if df is not None:
             if st.session_state.idx < len(df)-1 and c_n.button("Sonraki ➡️", use_container_width=True): 
                 st.session_state.idx += 1; st.rerun()
             
-        # --- YENİLENEN AI KUTUSU ---
+        # --- YENİLENEN GLASSMORPHISM AI KUTUSU ---
         if st.session_state.idx in st.session_state.gemini_res: 
             res_content = st.session_state.gemini_res[st.session_state.idx]
-            # Markdown içeriği HTML içinde düzgün görünsün diye basit HTML dönüşümü veya 
-            # daha iyisi: Konteyner yapısını HTML ile kurup, içeriği Streamlit Markdown'a bırakmak.
             
             st.markdown(f"""
             <div class="ai-result-box">
                 <div class="ai-header">
                     <div class="ai-header-icon">✨</div>
-                    <div class="ai-title">Yapay Zeka Analizi & Çözümü</div>
+                    <div class="ai-title">Yapay Zeka Stratejisi & Çözümü</div>
                 </div>
                 <div class="ai-content">
                     """, unsafe_allow_html=True)
             
-            # İçeriği Markdown olarak render ediyoruz ki bold/italic korunsun
             st.markdown(res_content)
             
             st.markdown("</div></div>", unsafe_allow_html=True)
