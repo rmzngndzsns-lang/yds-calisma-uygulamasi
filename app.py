@@ -24,7 +24,7 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE - EXPANDER AÇIK HALİ KESİN ÇÖZÜM) ---
+# --- 3. CSS (DARK MODE - EXPANDER FOCUS SORUNU GİDERİLDİ) ---
 if st.session_state.dark_mode:
     dark_css = """
     /* ANA GÖVDE */
@@ -77,29 +77,38 @@ if st.session_state.dark_mode:
 
     /* --- EXPANDER (AI AYARLARI) KESİN ÇÖZÜM --- */
     
-    /* 1. Expander'ın Başlık Kısmı (Genel Sınıf) */
-    .streamlit-expanderHeader {
+    /* 1. TÜM DURUMLARI TEK ÇATIDA TOPLUYORUZ */
+    /* Normal, Açık, Odaklanmış (Focus), Mouse Üzerinde (Hover) */
+    
+    .streamlit-expanderHeader,
+    details[data-testid="stExpander"] > summary,
+    details[data-testid="stExpander"][open] > summary,
+    details[data-testid="stExpander"] > summary:focus,
+    details[data-testid="stExpander"][open] > summary:focus,
+    details[data-testid="stExpander"] > summary:hover,
+    details[data-testid="stExpander"][open] > summary:hover {
         background-color: #262730 !important;
         color: #fafafa !important;
+        border: none !important;
+        transition: none !important; /* Renk geçişini engelle */
     }
 
-    /* 2. Expander AÇIKKEN (Details[open]) ve Mouse Üzerinde DEĞİLKEN */
-    details[data-testid="stExpander"][open] > summary {
-        background-color: #262730 !important; /* İşte burası beyazlığı engeller */
-        color: #fafafa !important;
+    /* 2. Sadece Mouse ile üzerine gelince (Hover) hafif renk değişimi istersen: */
+    details[data-testid="stExpander"] > summary:hover,
+    details[data-testid="stExpander"][open] > summary:hover {
+        background-color: #363945 !important; /* Hafif gri */
+        color: #4f83f5 !important; /* Mavi yazı */
     }
 
-    
-
-    /* 4. Expander AÇIKKEN İkon ve Yazı Renkleri */
-    details[data-testid="stExpander"][open] > summary svg,
-    details[data-testid="stExpander"][open] > summary span,
-    details[data-testid="stExpander"][open] > summary p {
-        color: #fafafa !important;
-        fill: #fafafa !important;
+    /* 3. İçerideki yazı ve ikon renkleri */
+    details[data-testid="stExpander"] > summary svg,
+    details[data-testid="stExpander"] > summary span,
+    details[data-testid="stExpander"] > summary p {
+        color: inherit !important;
+        fill: currentColor !important;
     }
 
-    /* 5. Expander İçerik Gövdesi */
+    /* 4. Expander Gövdesi (İçerik) */
     details[data-testid="stExpander"] {
         background-color: #262730 !important;
         border-color: #41444e !important;
