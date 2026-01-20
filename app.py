@@ -24,7 +24,7 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE - GÖZ İKONU VE KENARLIK DÜZELTMESİ) ---
+# --- 3. CSS (DARK MODE - EXPANDER AÇIK HALİ DÜZELTMESİ) ---
 if st.session_state.dark_mode:
     dark_css = """
     /* ANA GÖVDE */
@@ -56,45 +56,57 @@ if st.session_state.dark_mode:
         color: #fafafa !important; 
     }
     
-    /* --- KRİTİK DÜZELTME: TEXT INPUT (API KEY & GÖZ İKONU) --- */
-    
-    /* 1. Input Kapsayıcısı (Kenar Çizgisi Rengi) */
+    /* --- INPUT ALANLARI VE GÖZ İKONU --- */
     div[data-baseweb="input"] {
         background-color: #262730 !important;
-        border-color: #41444e !important; /* Beyaz yerine koyu gri */
+        border-color: #41444e !important;
     }
-    
-    /* 2. Input Alanının İçi */
     .stTextInput input { 
         background-color: #262730 !important; 
         color: #fafafa !important; 
-        border: none !important; /* İç border'ı kaldır, kapsayıcı hallediyor */
+        border: none !important; 
     }
-    
-    /* 3. GÖZ İKONU (Button) DÜZELTMESİ */
     .stTextInput button {
-        background-color: #262730 !important; /* Arkası beyaz olmasın */
-        color: #fafafa !important; /* İkon rengi beyaz */
+        background-color: #262730 !important; 
+        color: #fafafa !important; 
         border: none !important;
-    }
-    .stTextInput button:hover {
-        background-color: #363945 !important; /* Üzerine gelince hafif açıl */
     }
     .stTextInput button svg {
         fill: #fafafa !important;
     }
 
-    /* --- EXPANDER (AI AYARLARI) DÜZELTMESİ --- */
+    /* --- KRİTİK DÜZELTME: EXPANDER (AI AYARLARI) --- */
+    
+    /* 1. Başlık kısmı (Kapalıyken) */
     .streamlit-expanderHeader { 
         background-color: #262730 !important; 
         color: #fafafa !important; 
         border-radius: 4px;
     }
-    .streamlit-expanderHeader:hover {
+    
+    /* 2. Başlık kısmı (AÇIKKEN - Tıklandıktan Sonra) - BU EKLENDİ */
+    details[data-testid="stExpander"][open] > summary {
+        background-color: #262730 !important;
+        color: #fafafa !important;
+    }
+    
+    /* 3. Başlık üzerindeki yazı ve ikon rengi */
+    .streamlit-expanderHeader p, 
+    .streamlit-expanderHeader span, 
+    .streamlit-expanderHeader svg,
+    details[data-testid="stExpander"][open] > summary svg {
+        color: #fafafa !important;
+        fill: #fafafa !important;
+    }
+
+    /* 4. Hover (Üzerine gelince) */
+    .streamlit-expanderHeader:hover,
+    details[data-testid="stExpander"][open] > summary:hover {
         background-color: #363945 !important;
         color: #4f83f5 !important;
     }
-    /* Açık haldeki içerik kısmı */
+
+    /* 5. İçerik kısmı */
     details[data-testid="stExpander"] {
         background-color: #262730 !important;
         border-color: #41444e !important;
@@ -104,7 +116,7 @@ if st.session_state.dark_mode:
         color: #fafafa !important;
     }
 
-    /* --- SELECTBOX (DROPDOWN) --- */
+    /* --- SELECTBOX --- */
     div[data-baseweb="select"] > div {
         background-color: #262730 !important;
         border-color: #41444e !important;
