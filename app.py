@@ -68,14 +68,36 @@ if st.session_state.dark_mode:
     div[data-testid="stMetricValue"] { color: #fafafa !important; }
     div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
     
-    /* Selectbox */
+    /* Selectbox - Dark Mode Düzeltmesi */
     .stSelectbox > label { color: #fafafa !important; }
-    div[data-baseweb="select"] { background-color: #262730 !important; }
-    div[data-baseweb="select"] * { color: #fafafa !important; }
+    div[data-baseweb="select"] { 
+        background-color: #262730 !important; 
+        border-color: #41444e !important;
+    }
+    div[data-baseweb="select"] > div { 
+        background-color: #262730 !important; 
+        color: #fafafa !important; 
+    }
+    div[data-baseweb="select"] span { color: #fafafa !important; }
+    div[data-baseweb="select"] svg { fill: #fafafa !important; }
     
-    /* Text Input */
+    /* Text Input - Dark Mode */
     .stTextInput > label { color: #fafafa !important; }
-    input { background-color: #262730 !important; color: #fafafa !important; border-color: #41444e !important; }
+    input { 
+        background-color: #262730 !important; 
+        color: #fafafa !important; 
+        border-color: #41444e !important; 
+    }
+    
+    /* Password Input Göz İkonu Düzeltmesi */
+    button[kind="icon"] {
+        background-color: #262730 !important;
+        color: #fafafa !important;
+    }
+    button[kind="icon"] svg {
+        fill: #fafafa !important;
+        color: #fafafa !important;
+    }
     
     /* Expander */
     .streamlit-expanderHeader { 
@@ -127,22 +149,23 @@ st.markdown(f"""
     
     {dark_css}
     
-    /* SIDEBAR GENİŞLİK - Profesyonel Ayarlama */
+    /* SIDEBAR GENİŞLİK */
     section[data-testid="stSidebar"] {{ 
-        min-width: 380px !important; 
-        max-width: 380px !important; 
+        min-width: 400px !important; 
+        max-width: 400px !important; 
     }}
 
-    /* --- SORU HARİTASI BUTON DÜZENLEMESİ --- */
-    /* 5 Sütunlu Grid Layout */
+    /* --- YENİ SORU HARİTASI YAKLAŞIMI (ŞEFFAF İKONLAR) --- */
+    
+    /* Grid Layout - 5 Sütun */
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
         display: grid !important;
         grid-template-columns: repeat(5, 1fr) !important;
-        gap: 6px !important;
-        margin-bottom: 8px !important;
+        gap: 8px !important;
+        margin-bottom: 10px !important;
     }}
     
-    /* Her kolon aynı genişlik */
+    /* Kolonlar */
     div[data-testid="stSidebar"] div[data-testid="column"] {{
         width: 100% !important;
         flex: none !important;
@@ -151,31 +174,37 @@ st.markdown(f"""
         margin: 0 !important;
     }}
 
-    /* BUTON STİLİ - Sabit Boyutlar */
+    /* BUTON STİLİ - SABİT BOYUT, İKON ARKAPLANLARı */
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
         width: 100% !important;
-        height: 48px !important;
-        min-height: 48px !important;
-        max-height: 48px !important;
-        padding: 4px !important;
-        font-size: 13px !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
+        height: 52px !important;
+        min-height: 52px !important;
+        max-height: 52px !important;
+        padding: 0 !important;
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
         display: flex !important;
-        flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
-        line-height: 1.2 !important;
-        white-space: normal !important;
-        overflow: visible !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
         box-sizing: border-box !important;
-        transition: all 0.2s ease !important;
+        transition: transform 0.15s ease !important;
+        position: relative !important;
+        border: 2px solid transparent !important;
     }}
     
-    /* Buton hover efekti */
+    /* Hover Efekti */
     div[data-testid="stSidebar"] div[data-testid="column"] button:hover {{
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        transform: scale(1.05) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+    }}
+    
+    /* Aktif (Seçili) Buton Vurgusu */
+    div[data-testid="stSidebar"] div[data-testid="column"] button[kind="primary"] {{
+        border-color: #4f83f5 !important;
+        box-shadow: 0 0 0 3px rgba(79, 131, 245, 0.3) !important;
     }}
 
     /* DİĞER CSS AYARLARI */
@@ -230,16 +259,16 @@ st.markdown(f"""
         gap: 10px;
     }}
     
-    /* Legend box düzeltmesi */
+    /* Legend box */
     .legend-box {{
         background-color: {'#262730' if st.session_state.dark_mode else '#f8fafc'};
         border: 1px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        padding: 8px;
+        padding: 10px;
         border-radius: 8px;
-        font-size: 11px;
+        font-size: 12px;
         display: flex;
         justify-content: space-between;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -311,6 +340,30 @@ def load_progress():
             except: pass
     return False
 
+def get_button_style(q_idx, df):
+    """Soru butonunun arka plan rengini ve stilini belirler"""
+    u_a = st.session_state.answers.get(q_idx)
+    
+    # Temel stil
+    base_style = "background: "
+    
+    if u_a:
+        if st.session_state.exam_mode:
+            # Sınav modunda sadece cevaplanmış
+            return "🔵", "rgba(59, 130, 246, 0.4)"
+        else:
+            # Normal modda doğru/yanlış
+            if u_a == df.iloc[q_idx]['Dogru_Cevap']:
+                return "✅", "rgba(34, 197, 94, 0.3)"
+            else:
+                return "❌", "rgba(239, 68, 68, 0.3)"
+    elif q_idx in st.session_state.marked:
+        # İşaretli
+        return "⭐", "rgba(251, 191, 36, 0.3)"
+    
+    # Hiç cevaplanmamış
+    return "", ""
+
 # --- 5. GİRİŞ EKRANI ---
 if st.session_state.username is None:
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -348,19 +401,19 @@ with st.sidebar:
     
     if not st.session_state.finish:
         components.html(
-            f"""<div id="countdown" style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:bold;color:#dc2626;text-align:center;padding:8px;background:#fee2e2;border-radius:8px;border:1px solid #fecaca;">⏳ Hesapla...</div>
+            f"""<div id="countdown" style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:bold;color:#dc2626;text-align:center;padding:10px;background:#fee2e2;border-radius:8px;border:1px solid #fecaca;">⏳ Hesaplanıyor...</div>
             <script>
             var dest={st.session_state.end_timestamp};
             var interval = setInterval(function(){{
                 var now=new Date().getTime();
                 var dist=dest-now;
-                if(dist <= 0) {{ clearInterval(interval); document.getElementById("countdown").innerHTML="⏰ BİTTİ!"; return; }}
+                if(dist <= 0) {{ clearInterval(interval); document.getElementById("countdown").innerHTML="⏰ SÜRE BİTTİ!"; return; }}
                 var h=Math.floor((dist%(1000*60*60*24))/(1000*60*60));
                 var m=Math.floor((dist%(1000*60*60))/(1000*60));
                 var s=Math.floor((dist%(1000*60))/1000);
                 document.getElementById("countdown").innerHTML="⏳ "+(h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);
             }}, 1000);
-            </script>""", height=60
+            </script>""", height=65
         )
     
     # MOD VE AYARLAR
@@ -386,7 +439,7 @@ with st.sidebar:
         if st.button("Kaydet"):
             if key_input and len(key_input.strip()) > 0:
                 st.session_state.user_api_key = key_input.strip()
-                st.success("Kaydedildi.")
+                st.success("✅ Kaydedildi.")
 
     if df is not None:
         st.write("---")
@@ -395,9 +448,9 @@ with st.sidebar:
         st.caption(f"📝 {answered}/{total} soru yanıtlandı")
         
         st.markdown("**🗺️ Soru Haritası**")
-        st.markdown('<div class="legend-box"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="legend-box"><span>🟢 Doğru</span><span>🔴 Yanlış</span><span>🟡 İşaret</span><span>🔵 Cevaplı</span></div>', unsafe_allow_html=True)
 
-        # 5'li KOLON DÖNGÜSÜ - Sabit Grid
+        # SORU HARİTASI - YENİ YAKLAŞIM (Şeffaf İkon Arka Planları)
         for row_start in range(0, len(df), 5):
             cols = st.columns(5)
             for col_idx in range(5):
@@ -406,29 +459,30 @@ with st.sidebar:
                     break
                     
                 with cols[col_idx]:
-                    u_a = st.session_state.answers.get(q_idx)
+                    emoji, bg_color = get_button_style(q_idx, df)
                     num = str(q_idx + 1)
-                    icon = ""
                     
-                    if u_a:
-                        if st.session_state.exam_mode: 
-                            icon = "🟦"
-                        else: 
-                            icon = "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
-                    elif q_idx in st.session_state.marked: 
-                        icon = "⭐"
-                    
-                    # Numara ve icon yan yana
-                    lbl = f"{num}\n{icon}" if icon else num
-                    
+                    # Buton label'ı sadece numara
                     b_type = "primary" if q_idx == st.session_state.idx else "secondary"
-                    if st.button(lbl, key=f"nav_{q_idx}", type=b_type):
+                    
+                    # Inline CSS ile arka plan rengi
+                    if bg_color:
+                        st.markdown(f"""
+                        <style>
+                        button[key="nav_{q_idx}"] {{
+                            background: {bg_color} !important;
+                            background-image: linear-gradient(to bottom, {bg_color}, {bg_color}) !important;
+                        }}
+                        </style>
+                        """, unsafe_allow_html=True)
+                    
+                    if st.button(f"{emoji} {num}", key=f"nav_{q_idx}", type=b_type):
                         st.session_state.idx = q_idx
                         st.rerun()
         
         st.write("---")
         if not st.session_state.finish:
-            if st.button("🏁 SINAVI BİTİR", type="primary"): 
+            if st.button("🏁 SINAVI BİTİR", type="primary", use_container_width=True): 
                 st.session_state.finish = True
                 st.rerun()
 
@@ -497,15 +551,15 @@ if df is not None:
                 if not st.session_state.user_api_key: 
                     st.warning("⚠️ API Key Girin")
                 else:
-                    with st.spinner("🔍 Analiz..."):
+                    with st.spinner("🔍 Analiz ediliyor..."):
                         try:
                             genai.configure(api_key=st.session_state.user_api_key)
                             model = genai.GenerativeModel('gemini-2.5-flash')
-                            res = model.generate_content(f"Soru: {q_raw}. Doğru: {row['Dogru_Cevap']}. Detaylı anlat.").text
+                            res = model.generate_content(f"Soru: {q_raw}. Doğru Cevap: {row['Dogru_Cevap']}. Bu soruyu detaylı şekilde açıkla.").text
                             st.session_state.gemini_res[st.session_state.idx] = res
                             st.rerun()
                         except Exception as e: 
-                            st.error(f"Hata: {e}")
+                            st.error(f"❌ Hata: {e}")
         with c_act2:
             c_p, c_n = st.columns(2)
             if st.session_state.idx > 0 and c_p.button("⬅️ Önceki", use_container_width=True): 
@@ -519,7 +573,7 @@ if df is not None:
             st.info(st.session_state.gemini_res[st.session_state.idx])
 
     else:
-        st.title("📊 Sonuçlar")
+        st.title("📊 Sınav Sonuçları")
         correct = sum(1 for i, a in st.session_state.answers.items() if a == df.iloc[i]['Dogru_Cevap'])
         wrong = len(st.session_state.answers) - correct
         empty = len(df) - len(st.session_state.answers)
