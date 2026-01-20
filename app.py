@@ -24,8 +24,7 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (GELİŞTİRİLMİŞ DARK MODE DÜZELTMESİ) ---
-# Dropdown ve Input alanları için özel "data-baseweb" seçicileri eklendi.
+# --- 3. CSS (DARK MODE - GÖZ İKONU VE KENARLIK DÜZELTMESİ) ---
 if st.session_state.dark_mode:
     dark_css = """
     /* ANA GÖVDE */
@@ -38,89 +37,89 @@ if st.session_state.dark_mode:
     section[data-testid="stSidebar"] { 
         background-color: #1a1d24 !important; 
     }
-    section[data-testid="stSidebar"] h1, 
-    section[data-testid="stSidebar"] h2, 
-    section[data-testid="stSidebar"] h3, 
-    section[data-testid="stSidebar"] p, 
-    section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] label {
+    section[data-testid="stSidebar"] * {
         color: #fafafa !important;
     }
 
-    /* KUTULAR */
+    /* KUTULAR VE METİNLER */
     .passage-box, .login-container, .control-panel { 
         background-color: #262730 !important; 
         color: #fafafa !important; 
         border-color: #41444e !important; 
     }
-    
-    /* SORU GÖVDESİ */
     .question-stem { 
         color: #fafafa !important; 
         background-color: #262730 !important; 
         border-left-color: #4f83f5 !important;
     }
-    
-    /* GENEL METİNLER */
     h1, h2, h3, h4, h5, h6, p, span, div, label, li { 
         color: #fafafa !important; 
     }
     
-    /* --- KRİTİK DÜZELTME: SELECTBOX (DROPDOWN) --- */
+    /* --- KRİTİK DÜZELTME: TEXT INPUT (API KEY & GÖZ İKONU) --- */
     
-    /* Seçim Kutusunun Kendisi */
+    /* 1. Input Kapsayıcısı (Kenar Çizgisi Rengi) */
+    div[data-baseweb="input"] {
+        background-color: #262730 !important;
+        border-color: #41444e !important; /* Beyaz yerine koyu gri */
+    }
+    
+    /* 2. Input Alanının İçi */
+    .stTextInput input { 
+        background-color: #262730 !important; 
+        color: #fafafa !important; 
+        border: none !important; /* İç border'ı kaldır, kapsayıcı hallediyor */
+    }
+    
+    /* 3. GÖZ İKONU (Button) DÜZELTMESİ */
+    .stTextInput button {
+        background-color: #262730 !important; /* Arkası beyaz olmasın */
+        color: #fafafa !important; /* İkon rengi beyaz */
+        border: none !important;
+    }
+    .stTextInput button:hover {
+        background-color: #363945 !important; /* Üzerine gelince hafif açıl */
+    }
+    .stTextInput button svg {
+        fill: #fafafa !important;
+    }
+
+    /* --- EXPANDER (AI AYARLARI) DÜZELTMESİ --- */
+    .streamlit-expanderHeader { 
+        background-color: #262730 !important; 
+        color: #fafafa !important; 
+        border-radius: 4px;
+    }
+    .streamlit-expanderHeader:hover {
+        background-color: #363945 !important;
+        color: #4f83f5 !important;
+    }
+    /* Açık haldeki içerik kısmı */
+    details[data-testid="stExpander"] {
+        background-color: #262730 !important;
+        border-color: #41444e !important;
+        color: #fafafa !important;
+    }
+    details[data-testid="stExpander"] > div {
+        color: #fafafa !important;
+    }
+
+    /* --- SELECTBOX (DROPDOWN) --- */
     div[data-baseweb="select"] > div {
         background-color: #262730 !important;
         border-color: #41444e !important;
         color: #fafafa !important;
     }
-    
-    /* Açılan Liste Menüsü (Popover) - Beyaz arka plan sorununu çözer */
-    div[data-baseweb="popover"],
-    div[data-baseweb="menu"],
-    ul[role="listbox"] {
+    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {
         background-color: #262730 !important;
     }
-    
-    /* Listedeki Seçenekler */
     li[role="option"] {
         background-color: #262730 !important;
         color: #fafafa !important;
     }
-    
-    /* Seçeneklerin üzerine gelince (Hover) veya seçiliyken */
-    li[role="option"][aria-selected="true"],
-    li[role="option"]:hover {
-        background-color: #4f83f5 !important; /* Mavi vurgu */
+    li[role="option"][aria-selected="true"], li[role="option"]:hover {
+        background-color: #4f83f5 !important;
         color: white !important;
-    }
-    
-    /* Dropdown içindeki metinler */
-    div[data-baseweb="select"] span {
-        color: #fafafa !important;
-    }
-
-    /* --- KRİTİK DÜZELTME: TEXT INPUT (API KEY) --- */
-    .stTextInput input { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-        border: 1px solid #41444e !important;
-    }
-    .stTextInput input::placeholder {
-        color: #8b8d98 !important;
-    }
-    
-    /* RADIO BUTONLAR */
-    .stRadio label { color: #fafafa !important; }
-    
-    /* EXPANDER */
-    .streamlit-expanderHeader { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-    }
-    details[data-testid="stExpander"] {
-        background-color: #262730 !important;
-        border-color: #41444e !important;
     }
     
     /* BUTONLAR */
@@ -134,7 +133,8 @@ if st.session_state.dark_mode:
         color: #4f83f5 !important;
     }
     
-    /* METRİKLER */
+    /* DİĞER */
+    .stRadio label { color: #fafafa !important; }
     div[data-testid="stMetricValue"] { color: #fafafa !important; }
     div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
     """
@@ -158,90 +158,56 @@ st.markdown(f"""
         max-width: 380px !important; 
     }}
 
-    /* SORU HARİTASI BUTONLARI */
+    /* SORU HARİTASI */
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
         display: grid !important;
         grid-template-columns: repeat(5, 1fr) !important;
         gap: 6px !important;
         margin-bottom: 8px !important;
     }}
-    
     div[data-testid="stSidebar"] div[data-testid="column"] {{
-        width: 100% !important;
-        flex: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
+        width: 100% !important; flex: none !important; padding: 0 !important; margin: 0 !important;
     }}
-
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
-        width: 100% !important;
-        height: 48px !important;
-        padding: 4px !important;
-        font-size: 13px !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        line-height: 1.2 !important;
+        width: 100% !important; height: 48px !important; padding: 4px !important;
+        font-size: 13px !important; font-weight: 600 !important; border-radius: 8px !important;
+        display: flex !important; flex-direction: column !important; align-items: center !important;
+        justify-content: center !important; line-height: 1.2 !important;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }}
     
     /* ELEMENT STİLLERİ */
     .login-container {{
-        max-width: 400px; 
-        margin: 60px auto; 
-        padding: 40px;
+        max-width: 400px; margin: 60px auto; padding: 40px;
         background: {'#262730' if st.session_state.dark_mode else 'white'}; 
-        border-radius: 16px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-        text-align: center; 
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#eef2f6'};
+        border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+        text-align: center; border: 1px solid {'#41444e' if st.session_state.dark_mode else '#eef2f6'};
     }}
-    
     .passage-box {{ 
         background-color: {'#262730' if st.session_state.dark_mode else '#ffffff'}; 
-        padding: 25px; 
-        border-radius: 12px; 
+        padding: 25px; border-radius: 12px; 
         border: 1px solid {'#41444e' if st.session_state.dark_mode else '#dfe6e9'}; 
         color: {'#fafafa' if st.session_state.dark_mode else '#2d3436'}; 
-        overflow-y: auto; 
-        max-height: 70vh;
+        overflow-y: auto; max-height: 70vh;
     }}
-    
     .question-stem {{ 
-        font-weight: 600; 
-        border-left: 5px solid {'#4f83f5' if st.session_state.dark_mode else '#2563eb'}; 
-        padding-left: 15px; 
-        margin-bottom: 20px; 
+        font-weight: 600; border-left: 5px solid {'#4f83f5' if st.session_state.dark_mode else '#2563eb'}; 
+        padding-left: 15px; margin-bottom: 20px; 
         color: {'#fafafa' if st.session_state.dark_mode else '#1e293b'};
         background-color: transparent;
     }}
-    
     .control-panel {{
-        position: sticky !important; 
-        top: 0; 
-        z-index: 999;
+        position: sticky !important; top: 0; z-index: 999;
         background: {'#262730' if st.session_state.dark_mode else 'white'};
-        padding: 15px 0; 
-        margin-bottom: 20px; 
+        padding: 15px 0; margin-bottom: 20px; 
         border-bottom: 2px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        display: flex; 
-        align-items: center; 
-        justify-content: space-between; 
-        gap: 10px;
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
     }}
-    
     .legend-box {{
         background-color: {'#262730' if st.session_state.dark_mode else '#f8fafc'};
         border: 1px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        padding: 8px;
-        border-radius: 8px;
-        font-size: 11px;
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
+        padding: 8px; border-radius: 8px; font-size: 11px;
+        display: flex; justify-content: space-between; margin-bottom: 10px;
         color: {'#fafafa' if st.session_state.dark_mode else '#333'};
     }}
 </style>
@@ -482,7 +448,6 @@ if df is not None:
                     with st.spinner("🔍 Analiz..."):
                         try:
                             genai.configure(api_key=st.session_state.user_api_key)
-                            # Model ismi: eğer 'gemini-2.5-flash' hata verirse 'gemini-1.5-flash' deneyin.
                             model = genai.GenerativeModel('gemini-2.5-flash')
                             res = model.generate_content(f"Soru: {q_raw}. Doğru: {row['Dogru_Cevap']}. Detaylı anlat.").text
                             st.session_state.gemini_res[st.session_state.idx] = res
