@@ -6,6 +6,7 @@ import google.generativeai as genai
 import os
 import json
 import nest_asyncio
+import html
 
 # Döngü yaması
 nest_asyncio.apply()
@@ -24,125 +25,154 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE VE STİL DÜZELTMELERİ) ---
+# --- 3. CSS (GENEL ARAYÜZ) ---
 if st.session_state.dark_mode:
-    dark_css = """
-    /* ANA GÖVDE */
-    .stApp { background-color: #0e1117 !important; color: #fafafa !important; }
-    
-    /* SIDEBAR */
-    section[data-testid="stSidebar"] { background-color: #1a1d24 !important; }
-    section[data-testid="stSidebar"] * { color: #fafafa !important; }
-
-    /* KUTULAR */
-    .passage-box, .login-container, .control-panel { 
-        background-color: #262730 !important; color: #fafafa !important; border-color: #41444e !important; 
-    }
-    .question-stem { 
-        color: #fafafa !important; background-color: #262730 !important; border-left-color: #4f83f5 !important;
-    }
-    h1, h2, h3, h4, h5, h6, p, span, div, label, li { color: #fafafa !important; }
-    
-    /* INPUT DÜZELTMELERİ */
-    div[data-baseweb="input"] { background-color: #262730 !important; border-color: #41444e !important; }
-    .stTextInput input { background-color: #262730 !important; color: #fafafa !important; border: none !important; }
-    .stTextInput button { background-color: #262730 !important; color: #fafafa !important; border: none !important; }
-    .stTextInput button:hover { background-color: #363945 !important; }
-    .stTextInput button svg { fill: #fafafa !important; }
-
-    /* EXPANDER */
-    .streamlit-expanderHeader { background-color: #262730 !important; color: #fafafa !important; border-radius: 4px; }
-    .streamlit-expanderHeader:hover { background-color: #363945 !important; color: #4f83f5 !important; }
-    details[data-testid="stExpander"] { background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }
-
-    /* SELECTBOX */
-    div[data-baseweb="select"] > div { background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }
-    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] { background-color: #262730 !important; }
-    li[role="option"] { background-color: #262730 !important; color: #fafafa !important; }
-    li[role="option"][aria-selected="true"], li[role="option"]:hover { background-color: #4f83f5 !important; color: white !important; }
-    
-    /* BUTONLAR */
-    .stButton > button { background-color: #262730 !important; color: #fafafa !important; border: 1px solid #41444e !important; }
-    .stButton > button:hover { border-color: #4f83f5 !important; color: #4f83f5 !important; }
-    
-    /* DİĞER */
-    .stRadio label { color: #fafafa !important; }
-    div[data-testid="stMetricValue"] { color: #fafafa !important; }
-    div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
-    
-    /* VURGULAMA RENGİ (Koyu Modda biraz daha koyu sarı) */
-    .highlight-text { background-color: #bfa100 !important; color: #fff !important; cursor: context-menu; }
-    """
+    bg_color = "#0e1117"
+    text_color = "#fafafa"
+    box_bg = "#262730"
+    border_color = "#41444e"
 else:
-    dark_css = """
-    .highlight-text { background-color: #fff176; cursor: context-menu; }
-    """
+    bg_color = "#f8fafc"
+    text_color = "#1e293b"
+    box_bg = "#ffffff"
+    border_color = "#dfe6e9"
 
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-    
-    .stApp {{ font-family: 'Poppins', sans-serif; background-color: {'#0e1117' if st.session_state.dark_mode else '#f8fafc'}; }}
-    {dark_css}
-    
-    /* SIDEBAR */
-    section[data-testid="stSidebar"] {{ min-width: 380px !important; max-width: 380px !important; }}
-
-    /* SORU HARİTASI */
-    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
-        display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; margin-bottom: 8px !important;
-    }}
-    div[data-testid="stSidebar"] div[data-testid="column"] {{ width: 100% !important; flex: none !important; padding: 0 !important; margin: 0 !important; }}
-    div[data-testid="stSidebar"] div[data-testid="column"] button {{
-        width: 100% !important; height: 48px !important; padding: 4px !important;
-        font-size: 13px !important; font-weight: 600 !important; border-radius: 8px !important;
-        display: flex !important; flex-direction: column !important; align-items: center !important;
-        justify-content: center !important; line-height: 1.2 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }}
+    .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; }}
     
     /* UI ELEMENTLERİ */
     .login-container {{
         max-width: 400px; margin: 60px auto; padding: 40px;
-        background: {'#262730' if st.session_state.dark_mode else 'white'}; 
-        border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-        text-align: center; border: 1px solid {'#41444e' if st.session_state.dark_mode else '#eef2f6'};
-    }}
-    .passage-box {{ 
-        background-color: {'#262730' if st.session_state.dark_mode else '#ffffff'}; 
-        padding: 25px; border-radius: 12px; 
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#dfe6e9'}; 
-        color: {'#fafafa' if st.session_state.dark_mode else '#2d3436'}; 
-        overflow-y: auto; max-height: 70vh;
-    }}
-    .question-stem {{ 
-        font-weight: 600; border-left: 5px solid {'#4f83f5' if st.session_state.dark_mode else '#2563eb'}; 
-        padding-left: 15px; margin-bottom: 20px; 
-        color: {'#fafafa' if st.session_state.dark_mode else '#1e293b'}; background-color: transparent;
+        background: {box_bg}; border-radius: 16px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; border: 1px solid {border_color};
     }}
     .control-panel {{
         position: sticky !important; top: 0; z-index: 999;
-        background: {'#262730' if st.session_state.dark_mode else 'white'};
-        padding: 15px 0; margin-bottom: 20px; 
-        border-bottom: 2px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
+        background: {box_bg}; padding: 15px 0; margin-bottom: 20px; 
+        border-bottom: 2px solid {border_color};
         display: flex; align-items: center; justify-content: space-between; gap: 10px;
     }}
-    .legend-box {{
-        background-color: {'#262730' if st.session_state.dark_mode else '#f8fafc'};
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        padding: 8px; border-radius: 8px; font-size: 11px;
-        display: flex; justify-content: space-between; margin-bottom: 10px;
-        color: {'#fafafa' if st.session_state.dark_mode else '#333'};
-    }}
     
-    /* MOBİLDE KOPYALA MENÜSÜNÜ ENGELLEMEK İÇİN */
-    .stRadio label {{
-        user-select: none !important; 
-        -webkit-user-select: none !important;
-    }}
+    /* SIDEBAR */
+    section[data-testid="stSidebar"] {{ background-color: {('#1a1d24' if st.session_state.dark_mode else '#ffffff')} !important; }}
+    section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
+    
+    /* INPUT & BUTTONS - DARK MODE FIX */
+    .stTextInput input {{ color: {text_color} !important; }}
+    div[data-baseweb="select"] > div {{ background-color: {box_bg} !important; color: {text_color} !important; }}
+    p, h1, h2, h3 {{ color: {text_color} !important; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. VERİ VE DOSYA İŞLEMLERİ ---
+# --- 4. ÖZEL HTML METİN KUTUSU FONKSİYONU (BOYAMA İÇİN) ---
+def render_highlightable_text(text, height=300, is_stem=False):
+    """
+    Bu fonksiyon metni bir HTML Iframe içine gömer.
+    Böylece JS ile seçim ve boyama işlemi %100 çalışır.
+    """
+    # Renk Ayarları
+    if st.session_state.dark_mode:
+        c_bg = "#262730"
+        c_txt = "#fafafa"
+        c_sel = "#bfa100" # Koyu mod için sarı
+        c_border = "#4f83f5" if is_stem else "#41444e"
+        c_border_width = "4px" if is_stem else "1px"
+        font_weight = "600" if is_stem else "400"
+    else:
+        c_bg = "#ffffff"
+        c_txt = "#2d3436"
+        c_sel = "#fff176" # Açık mod için sarı
+        c_border = "#2563eb" if is_stem else "#dfe6e9"
+        c_border_width = "4px" if is_stem else "1px"
+        font_weight = "600" if is_stem else "400"
+
+    # HTML İçeriği
+    html_code = f"""
+    <html>
+    <head>
+    <style>
+        body {{
+            font-family: 'Poppins', sans-serif;
+            background-color: {c_bg};
+            color: {c_txt};
+            font-size: {st.session_state.font_size}px;
+            line-height: 1.6;
+            margin: 0;
+            padding: 15px;
+            user-select: text; /* Seçime izin ver */
+        }}
+        .container {{
+            border: {c_border_width} solid {c_border};
+            border-radius: 8px;
+            padding: 15px;
+            height: 100%;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-left: { "5px solid " + c_border if is_stem else "1px solid " + c_border };
+        }}
+        /* Sarı Boyama Sınıfı */
+        .highlight {{
+            background-color: {c_sel};
+            color: #000;
+            cursor: context-menu;
+            border-radius: 2px;
+            padding: 0 2px;
+        }}
+        /* Scrollbar şıklığı */
+        ::-webkit-scrollbar {{ width: 8px; }}
+        ::-webkit-scrollbar-track {{ background: {c_bg}; }}
+        ::-webkit-scrollbar-thumb {{ background: #888; border-radius: 4px; }}
+        ::-webkit-scrollbar-thumb:hover {{ background: #555; }}
+    </style>
+    </head>
+    <body>
+        <div class="container" id="content-area">{html.escape(text).replace(chr(10), '<br>')}</div>
+
+        <script>
+            const area = document.getElementById('content-area');
+
+            // 1. SOL TIK SEÇİM İLE BOYAMA
+            document.addEventListener('mouseup', function() {{
+                let selection = window.getSelection();
+                if (selection.toString().length > 0) {{
+                    let range = selection.getRangeAt(0);
+                    
+                    // Seçim sadece bizim kutumuzun içindeyse işlem yap
+                    if (area.contains(range.commonAncestorContainer)) {{
+                        try {{
+                            let span = document.createElement('span');
+                            span.className = 'highlight';
+                            range.surroundContents(span);
+                            selection.removeAllRanges(); // Seçimi kaldır ki boya görünsün
+                        }} catch (e) {{
+                            console.log("Karmaşık HTML yapısında seçim hatası (normaldir).");
+                        }}
+                    }}
+                }}
+            }});
+
+            // 2. SAĞ TIK İLE BOYAYI SİLME
+            document.addEventListener('contextmenu', function(e) {{
+                if (e.target.classList.contains('highlight')) {{
+                    e.preventDefault(); // Menüyü açma
+                    
+                    // Boyalı span'ı kaldır ama metni koru
+                    let parent = e.target.parentNode;
+                    while (e.target.firstChild) {{
+                        parent.insertBefore(e.target.firstChild, e.target);
+                    }}
+                    parent.removeChild(e.target);
+                }}
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    components.html(html_code, height=height, scrolling=False)
+
+# --- 5. VERİ YÜKLEME ---
 SCORES_FILE = "lms_scores.csv"
 
 @st.cache_data(show_spinner=False)
@@ -201,7 +231,7 @@ def load_progress():
             except: pass
     return False
 
-# --- 5. GİRİŞ EKRANI ---
+# --- 6. GİRİŞ EKRANI ---
 if st.session_state.username is None:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -221,7 +251,7 @@ if not st.session_state.progress_loaded:
     load_progress()
     st.session_state.progress_loaded = True
 
-# --- 6. VERİ YÜKLEME ---
+# --- 7. VERİ YÜKLEME ---
 exam_id = st.session_state.selected_exam_id
 if st.session_state.current_exam_data is None or st.session_state.cached_exam_id != exam_id:
     df = load_exam_file_cached(exam_id)
@@ -232,7 +262,7 @@ else: df = st.session_state.current_exam_data
 if not st.session_state.finish and datetime.now().timestamp() * 1000 >= st.session_state.end_timestamp:
     st.session_state.finish = True; st.rerun()
 
-# --- 7. SIDEBAR ---
+# --- 8. SIDEBAR ---
 with st.sidebar:
     st.success(f"👤 **{st.session_state.username}**")
     
@@ -274,9 +304,8 @@ with st.sidebar:
     with st.expander("🔑 AI Ayarları"):
         key_input = st.text_input("API Key:", type="password", value=st.session_state.user_api_key)
         if st.button("Kaydet"):
-            if key_input and len(key_input.strip()) > 0:
-                st.session_state.user_api_key = key_input.strip()
-                st.success("Kaydedildi.")
+            st.session_state.user_api_key = key_input.strip()
+            st.success("Kaydedildi.")
 
     if df is not None:
         st.write("---")
@@ -285,7 +314,7 @@ with st.sidebar:
         st.caption(f"📝 {answered}/{total} soru yanıtlandı")
         
         st.markdown("**🗺️ Soru Haritası**")
-        st.markdown('<div class="legend-box"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="display:flex;justify-content:space-between;background:{box_bg};border:1px solid {border_color};padding:8px;border-radius:8px;font-size:11px;color:{text_color}"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
 
         for row_start in range(0, len(df), 5):
             cols = st.columns(5)
@@ -313,13 +342,13 @@ with st.sidebar:
                 st.session_state.finish = True
                 st.rerun()
 
-# --- 8. ANA EKRAN ---
+# --- 9. ANA EKRAN ---
 if df is not None:
     if not st.session_state.finish:
         # ÜST PANEL
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
         with control_col1: 
-            st.markdown(f"<h3 style='margin:0;padding:0;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='margin:0;padding:0;color:{text_color}'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
         with control_col2: 
             if st.button("A➖", key="font_dec"): 
                 st.session_state.font_size = max(12, st.session_state.font_size - 2)
@@ -329,7 +358,7 @@ if df is not None:
                 st.session_state.font_size = min(30, st.session_state.font_size + 2)
                 st.rerun()
         with control_col4: 
-            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{text_color}'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
         with control_col5:
             is_m = st.session_state.idx in st.session_state.marked
             if st.button("⭐" if is_m else "☆", key="mark_tgl"):
@@ -343,17 +372,19 @@ if df is not None:
         q_raw = str(row['Soru']).replace('\\n', '\n')
         passage, stem = (q_raw.split('\n\n', 1) if '\n\n' in q_raw else (None, q_raw))
         
-        f_size = st.session_state.font_size
+        # --- ANA DEĞİŞİKLİK BURADA: Metinleri HTML Component ile çiziyoruz ---
         if passage:
             l, r = st.columns(2)
-            # passage-box sınıfı JS için önemli
-            l.markdown(f"<div class='passage-box' style='font-size:{f_size}px; line-height:{f_size*1.6}px;'>{passage}</div>", unsafe_allow_html=True)
+            with l:
+                render_highlightable_text(passage, height=450, is_stem=False)
             main_col = r
         else: main_col = st.container()
 
         with main_col:
-            # question-stem sınıfı JS için önemli
-            st.markdown(f"<div class='question-stem' style='font-size:{f_size+2}px;'>{stem}</div>", unsafe_allow_html=True)
+            # Soru Kökü
+            render_highlightable_text(stem, height=150 if passage else 200, is_stem=True)
+            
+            # Şıklar
             opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
             curr = st.session_state.answers.get(st.session_state.idx)
             sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(curr) + ")")), None)
@@ -411,14 +442,11 @@ if df is not None:
             st.session_state.finish = False; st.session_state.answers = {}; st.session_state.idx = 0; st.rerun()
 else: st.warning("Dosya bulunamadı.")
 
-# --- 9. JAVASCRIPT: ŞIK ELEME VE METİN VURGULAMA (HIGHLIGHT) ---
-# Özellik 1: Şıkların üstüne sağ tıklayınca/uzun basınca üzerini çizer.
-# Özellik 2: Metin seçince (paragraf/soru kökü) otomatik SARI yapar.
-# Özellik 3: Sarı metne sağ tıklayınca sarı rengi kaldırır.
-
+# --- 10. JAVASCRIPT: ŞIK ELEME (RADYO BUTONLARI İÇİN) ---
+# Soru metinleri için yukarıdaki özel fonksiyon çalışıyor.
+# Şıklar içinse (st.radio) bu script gerekli.
 components.html("""
 <script>
-    // --- ŞIK ELEME (STRIKETHROUGH) ---
     function toggleStrikethrough(element) {
         if (element.style.textDecoration === "line-through") {
             element.style.textDecoration = "none";
@@ -428,95 +456,26 @@ components.html("""
             element.style.opacity = "0.5";
         }
     }
-
-    // --- METİN VURGULAMA (HIGHLIGHT) ---
-    function highlightSelection() {
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
-        
-        const range = selection.getRangeAt(0);
-        const selectedText = selection.toString();
-        
-        if (selectedText.length === 0) return;
-
-        // Sadece passage-box veya question-stem içindeyse izin ver
-        let node = range.commonAncestorContainer;
-        while (node) {
-            if (node.nodeType === 1 && (node.classList.contains('passage-box') || node.classList.contains('question-stem'))) {
-                try {
-                    const span = document.createElement("span");
-                    span.className = "highlight-text"; // CSS'de tanımlı sarı renk
-                    range.surroundContents(span);
-                    selection.removeAllRanges(); // Seçimi temizle ki sarı renk net görünsün
-                } catch (e) {
-                    console.log("Karmaşık seçim hatası (farklı bloklar seçildiğinde oluşabilir)");
-                }
-                break;
-            }
-            node = node.parentNode;
-        }
-    }
-
-    // --- VURGULAMA KALDIRMA ---
-    function removeHighlight(element) {
-        // Elementi kendi içeriğiyle değiştir (unwrap)
-        const parent = element.parentNode;
-        while (element.firstChild) {
-            parent.insertBefore(element.firstChild, element);
-        }
-        parent.removeChild(element);
-    }
-
-    // --- ANA GÖZLEMCİ ---
     const observer = new MutationObserver((mutations) => {
-        
-        // 1. Radyo Butonları (Şık Eleme) için Dinleyiciler
         const labels = parent.document.querySelectorAll('div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p');
         labels.forEach(label => {
             if (label.getAttribute('data-strike-listener') === 'true') return;
             label.setAttribute('data-strike-listener', 'true');
-
-            // PC: Sağ Tık (Eleme)
+            
+            // PC Sağ Tık
             label.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                toggleStrikethrough(this);
+                e.preventDefault(); toggleStrikethrough(this);
             }, false);
-
-            // MOBİL: Uzun Basma (Eleme)
+            
+            // Mobil Uzun Basma
             let pressTimer;
             label.addEventListener('touchstart', function(e) {
-                pressTimer = setTimeout(() => {
-                    toggleStrikethrough(this);
-                    if (navigator.vibrate) navigator.vibrate(50);
-                }, 600);
+                pressTimer = setTimeout(() => { toggleStrikethrough(this); if(navigator.vibrate) navigator.vibrate(50); }, 600);
             });
             label.addEventListener('touchend', function(e) { clearTimeout(pressTimer); });
             label.addEventListener('touchmove', function(e) { clearTimeout(pressTimer); });
         });
-
-        // 2. Metin Kutuları (Vurgulama) için Dinleyiciler
-        // Sadece passage-box ve question-stem sınıflarını hedefle
-        const textAreas = parent.document.querySelectorAll('.passage-box, .question-stem');
-        
-        textAreas.forEach(area => {
-            if (area.getAttribute('data-highlight-listener') === 'true') return;
-            area.setAttribute('data-highlight-listener', 'true');
-
-            // Metin Seçimi Bittiğinde (Mouse Up)
-            area.addEventListener('mouseup', function(e) {
-                highlightSelection();
-            });
-
-            // Sağ Tık (Vurgulamayı Kaldırmak İçin)
-            area.addEventListener('contextmenu', function(e) {
-                if (e.target.classList.contains('highlight-text')) {
-                    e.preventDefault(); // Menüyü engelle
-                    removeHighlight(e.target);
-                }
-            });
-        });
     });
-
     observer.observe(parent.document.body, { childList: true, subtree: true });
 </script>
 """, height=0, width=0)
