@@ -386,7 +386,33 @@ if df is not None:
                         try:
                             genai.configure(api_key=st.session_state.user_api_key)
                             model = genai.GenerativeModel('gemini-2.5-flash')
-                            res = model.generate_content(f"Soru: {q_raw}. Doğru: {row['Dogru_Cevap']}. Detaylı anlat.").text
+                            
+                            # GELİŞMİŞ PROMPT (STRATEJİ VE TAKTİK ODAKLI)
+                            prompt = f"""
+                            Sen öğrencilere YDS (Yabancı Dil Sınavı) hazırlayan uzman bir sınav stratejistisin.
+                            
+                            Soru Metni: {q_raw}
+                            Doğru Cevap: {row['Dogru_Cevap']}
+                            
+                            Lütfen bu soruyu şu başlıklar altında yapılandırılmış, eğitici ve net bir dille açıkla:
+
+                            1. 🧠 **Sorunun Mantığı ve Çözüm Stratejisi:**
+                               - Bu soru hangi konudan (Zamanlar, Bağlaçlar, Kelime, Preposition vb.) sorulmuş?
+                               - Bu TARZ sorularda nelere dikkat edilmeli? (Örn: "Boşluktan sonraki kelimeye bak", "Zıtlık ara", "Zaman uyumu kontrol et" gibi genel taktikler ver).
+                               - Şıkları elerken hangi ipuçlarını kullanmalıydık?
+
+                            2. 🔍 **Detaylı Analiz:**
+                               - Doğru cevap neden doğru? Gramer veya anlam ilişkisini açıkla.
+                               - Çeldirici şıklar (yanlış olanlar) neden olmaz?
+
+                            3. 📚 **Kritik Kelime Hazinesi:**
+                               - Soruda geçen önemli kelimeler, anlamları ve varsa eş anlamlıları (Synonyms).
+
+                            4. 🇹🇷 **Tam Çeviri:**
+                               - Cümlenin/Paragrafın anlaşılır Türkçe çevirisi.
+                            """
+                            
+                            res = model.generate_content(prompt).text
                             st.session_state.gemini_res[st.session_state.idx] = res
                             st.rerun()
                         except Exception as e: st.error(f"Hata: {e}")
