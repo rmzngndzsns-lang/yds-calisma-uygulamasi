@@ -24,16 +24,16 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE - EXPANDER FOCUS SORUNU GİDERİLDİ) ---
+# --- 3. CSS (KESİN ÇÖZÜM: EXPANDER VE INPUT) ---
 if st.session_state.dark_mode:
     dark_css = """
-    /* ANA GÖVDE */
+    /* --- 1. GENEL ARKAPLAN VE METİNLER --- */
     .stApp { 
         background-color: #0e1117 !important; 
         color: #fafafa !important; 
     }
     
-    /* SIDEBAR */
+    /* Sidebar */
     section[data-testid="stSidebar"] { 
         background-color: #1a1d24 !important; 
     }
@@ -41,74 +41,75 @@ if st.session_state.dark_mode:
         color: #fafafa !important;
     }
 
-    /* KUTULAR */
+    /* Kutular (Passage, Login vs.) */
     .passage-box, .login-container, .control-panel { 
         background-color: #262730 !important; 
         color: #fafafa !important; 
         border-color: #41444e !important; 
     }
-    .question-stem { 
-        color: #fafafa !important; 
-        background-color: #262730 !important; 
-        border-left-color: #4f83f5 !important;
-    }
+    
+    /* Genel Yazı Renkleri */
     h1, h2, h3, h4, h5, h6, p, span, div, label, li { 
         color: #fafafa !important; 
     }
-    
-    /* --- INPUT ALANLARI --- */
+
+    /* --- 2. INPUT ALANLARI (API KEY KUTUSU) --- */
+    /* Dış Çerçeve */
     div[data-baseweb="input"] {
         background-color: #262730 !important;
         border-color: #41444e !important;
     }
+    /* İç Yazı Alanı */
     .stTextInput input { 
         background-color: #262730 !important; 
         color: #fafafa !important; 
-        border: none !important; 
+        caret-color: #fafafa !important; /* Yazı imleci rengi */
     }
+    /* Göz İkonu ve Butonlar */
     .stTextInput button {
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
+        background-color: transparent !important;
+        color: #fafafa !important;
         border: none !important;
     }
     .stTextInput button svg {
         fill: #fafafa !important;
     }
 
-    /* --- EXPANDER (AI AYARLARI) KESİN ÇÖZÜM --- */
+    /* --- 3. EXPANDER (AI AYARLARI) - NÜKLEER ÇÖZÜM --- */
     
-    /* 1. TÜM DURUMLARI TEK ÇATIDA TOPLUYORUZ */
-    /* Normal, Açık, Odaklanmış (Focus), Mouse Üzerinde (Hover) */
-    
-    .streamlit-expanderHeader,
-    details[data-testid="stExpander"] > summary,
-    details[data-testid="stExpander"][open] > summary,
-    details[data-testid="stExpander"] > summary:focus,
-    details[data-testid="stExpander"][open] > summary:focus,
-    details[data-testid="stExpander"] > summary:hover,
-    details[data-testid="stExpander"][open] > summary:hover {
+    /* A. Expander'ın Başlık Kısmı (Summary) - Tüm Durumlar */
+    details[data-testid="stExpander"] > summary {
         background-color: #262730 !important;
         color: #fafafa !important;
-        border: none !important;
-        transition: none !important; /* Renk geçişini engelle */
+        border-radius: 4px !important;
+        transition: none !important; /* Renk geçişini iptal et, beyazlamayı engeller */
     }
 
-    /* 2. Sadece Mouse ile üzerine gelince (Hover) hafif renk değişimi istersen: */
+    /* B. Açık, Focus veya Active Olduğunda (Kritik Nokta) */
+    details[data-testid="stExpander"][open] > summary,
+    details[data-testid="stExpander"] > summary:focus,
+    details[data-testid="stExpander"] > summary:active {
+        background-color: #262730 !important;
+        color: #fafafa !important;
+    }
+
+    /* C. Mouse Üzerine Gelince (Hover) */
     details[data-testid="stExpander"] > summary:hover,
     details[data-testid="stExpander"][open] > summary:hover {
-        background-color: #363945 !important; /* Hafif gri */
-        color: #4f83f5 !important; /* Mavi yazı */
+        background-color: #363945 !important;
+        color: #4f83f5 !important;
     }
 
-    /* 3. İçerideki yazı ve ikon renkleri */
-    details[data-testid="stExpander"] > summary svg,
-    details[data-testid="stExpander"] > summary span,
-    details[data-testid="stExpander"] > summary p {
+    /* D. İÇERİK TEMİZLİĞİ (Çok Önemli) */
+    /* Summary içindeki tüm ikon, yazı ve p etiketlerinin arka planını şeffaf yap */
+    /* Böylece Streamlit içteki bir elemente beyaz arka plan verse bile görünmez olur */
+    details[data-testid="stExpander"] > summary * {
+        background-color: transparent !important;
         color: inherit !important;
         fill: currentColor !important;
     }
 
-    /* 4. Expander Gövdesi (İçerik) */
+    /* E. Expander Gövdesi (Açılan Kısım) */
     details[data-testid="stExpander"] {
         background-color: #262730 !important;
         border-color: #41444e !important;
@@ -118,7 +119,7 @@ if st.session_state.dark_mode:
         color: #fafafa !important;
     }
 
-    /* --- SELECTBOX --- */
+    /* --- 4. DROPDOWN (SELECTBOX) --- */
     div[data-baseweb="select"] > div {
         background-color: #262730 !important;
         border-color: #41444e !important;
@@ -131,12 +132,13 @@ if st.session_state.dark_mode:
         background-color: #262730 !important;
         color: #fafafa !important;
     }
+    /* Seçili veya Hover Durumu */
     li[role="option"][aria-selected="true"], li[role="option"]:hover {
         background-color: #4f83f5 !important;
         color: white !important;
     }
     
-    /* BUTONLAR */
+    /* --- 5. DİĞER BİLEŞENLER --- */
     .stButton > button {
         background-color: #262730 !important;
         color: #fafafa !important;
@@ -146,11 +148,14 @@ if st.session_state.dark_mode:
         border-color: #4f83f5 !important;
         color: #4f83f5 !important;
     }
-    
-    /* DİĞER */
     .stRadio label { color: #fafafa !important; }
     div[data-testid="stMetricValue"] { color: #fafafa !important; }
     div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
+    .question-stem { 
+        color: #fafafa !important; 
+        background-color: #262730 !important; 
+        border-left-color: #4f83f5 !important;
+    }
     """
 else:
     dark_css = ""
