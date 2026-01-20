@@ -90,16 +90,17 @@ if st.session_state.dark_mode:
         color: #fafafa !important; 
         border-radius: 4px;
     }
-    .streamlit-expanderHeader:hover {
-        background-color: #363945 !important;
-        color: #4f83f5 !important;
-    }
-    /* Açık haldeki içerik kısmı */
+     /* Açık haldeki içerik kısmı */
     details[data-testid="stExpander"] {
         background-color: #262730 !important;
         border-color: #41444e !important;
         color: #fafafa !important;
     }
+    .streamlit-expanderHeader:hover {
+        background-color: #363945 !important;
+        color: #4f83f5 !important;
+    }
+   
     details[data-testid="stExpander"] > div {
         color: #fafafa !important;
     }
