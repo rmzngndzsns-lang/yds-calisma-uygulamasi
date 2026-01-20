@@ -6,7 +6,7 @@ import google.generativeai as genai
 import os
 import json
 import nest_asyncio
-import re  # Regex kütüphanesini ekledik
+import re
 
 # Döngü yaması
 nest_asyncio.apply()
@@ -20,180 +20,154 @@ defaults = {
     'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
     'user_api_key': "", 'font_size': 16, 'exam_mode': False, 'end_timestamp': 0,
     'current_exam_data': None, 'cached_exam_id': None, 'progress_loaded': False,
-    'dark_mode': False
+    'dark_mode': True # Varsayılan olarak Dark Mode başlasın
 }
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE, STİL VE AI KUTULARI) ---
-# AI Çıktıları için renkli kutu stilleri eklenmiştir.
+# --- 3. PROFESYONEL CSS (MINIMALIST & DARK) ---
+# AI Kutuları için yeni, modern, göz yormayan tasarım
 ai_box_css = """
-    /* AI KUTU GENEL STİLİ */
+    /* AI KUTU GENEL STİLİ - Modern Card Yapısı */
     .ai-box {
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 15px;
-        color: #ffffff !important; /* Yazılar hep beyaz olsun */
+        background-color: #1e2025 !important; /* Çok koyu gri arka plan */
+        padding: 18px 22px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        color: #e2e8f0 !important; /* Kırık beyaz metin */
         font-size: 15px;
-        line-height: 1.6;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        border-left: 6px solid;
-    }
-    .ai-box h1, .ai-box h2, .ai-box h3, .ai-box h4, .ai-box strong {
-        color: #ffffff !important;
-        font-weight: 600;
-    }
-    .ai-box ul {
-        margin-left: 20px;
-    }
-    .ai-box li {
-        margin-bottom: 8px;
-    }
-
-    /* BÖLÜM 1: MANTIK (Lacivert/Mavi) */
-    .ai-style-1 {
-        background-color: #1e3a8a !important; /* Koyu Mavi */
-        border-color: #60a5fa !important;     /* Açık Mavi Çizgi */
-    }
-
-    /* BÖLÜM 2: ANALİZ (Koyu Yeşil) */
-    .ai-style-2 {
-        background-color: #064e3b !important; /* Koyu Yeşil */
-        border-color: #34d399 !important;     /* Açık Yeşil Çizgi */
-    }
-
-    /* BÖLÜM 3: KELİME (Koyu Turuncu/Kahve) */
-    .ai-style-3 {
-        background-color: #7c2d12 !important; /* Koyu Kiremit */
-        border-color: #fbbf24 !important;     /* Sarı Çizgi */
-    }
-
-    /* BÖLÜM 4: ÇEVİRİ (Koyu Mor) */
-    .ai-style-4 {
-        background-color: #4c1d95 !important; /* Koyu Mor */
-        border-color: #a78bfa !important;     /* Açık Mor Çizgi */
+        line-height: 1.7;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        border: 1px solid #2d3748; /* İnce çerçeve */
+        border-left-width: 5px; /* Sol çizgi kalın */
     }
     
-    /* HATA veya DEFAULT DURUM İÇİN */
-    .ai-style-default {
-        background-color: #374151 !important;
-        border-color: #9ca3af !important;
+    .ai-box h1, .ai-box h2, .ai-box h3, .ai-box h4, .ai-box strong {
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: block;
     }
+    
+    .ai-box ul { margin-left: 18px; margin-top: 5px; }
+    .ai-box li { margin-bottom: 6px; }
+
+    /* RENK PALETİ (Göz yormayan Pastel Tonlar) */
+    
+    /* 1. MANTIK: Soft Mavi */
+    .ai-style-1 { border-left-color: #3b82f6 !important; }
+    .ai-style-1 strong, .ai-style-1 h3 { color: #60a5fa !important; }
+
+    /* 2. ANALİZ: Soft Yeşil */
+    .ai-style-2 { border-left-color: #10b981 !important; }
+    .ai-style-2 strong, .ai-style-2 h3 { color: #34d399 !important; }
+
+    /* 3. KELİME: Soft Turuncu/Amber */
+    .ai-style-3 { border-left-color: #f59e0b !important; }
+    .ai-style-3 strong, .ai-style-3 h3 { color: #fbbf24 !important; }
+
+    /* 4. ÇEVİRİ: Soft Mor */
+    .ai-style-4 { border-left-color: #8b5cf6 !important; }
+    .ai-style-4 strong, .ai-style-4 h3 { color: #a78bfa !important; }
+    
+    /* DEFAULT */
+    .ai-style-default { border-left-color: #94a3b8 !important; }
 """
 
+# Dark Mode ve Genel UI Düzeltmeleri
 if st.session_state.dark_mode:
-    dark_css = f"""
-    /* ANA GÖVDE */
-    .stApp {{ background-color: #0e1117 !important; color: #fafafa !important; }}
+    main_css = f"""
+    /* GENEL RENKLER */
+    .stApp {{ background-color: #0e1117 !important; color: #f1f5f9 !important; }}
     
     /* SIDEBAR */
-    section[data-testid="stSidebar"] {{ background-color: #1a1d24 !important; }}
-    section[data-testid="stSidebar"] * {{ color: #fafafa !important; }}
+    section[data-testid="stSidebar"] {{ background-color: #161b22 !important; border-right: 1px solid #30363d; }}
+    section[data-testid="stSidebar"] * {{ color: #e6edf3 !important; }}
 
-    /* KUTULAR */
-    .passage-box, .login-container, .control-panel {{ 
-        background-color: #262730 !important; color: #fafafa !important; border-color: #41444e !important; 
+    /* KUTULAR (Passage, Login) */
+    .passage-box, .login-container {{ 
+        background-color: #1e2025 !important; 
+        color: #e6edf3 !important; 
+        border: 1px solid #30363d !important; 
     }}
+    
+    /* SORU KÖKÜ */
     .question-stem {{ 
-        color: #fafafa !important; background-color: #262730 !important; border-left-color: #4f83f5 !important;
+        color: #e6edf3 !important; 
+        background-color: transparent !important; 
+        border-left: 4px solid #3b82f6 !important;
+        padding-left: 15px;
     }}
-    h1, h2, h3, h4, h5, h6, p, span, div, label, li {{ color: #fafafa !important; }}
     
-    /* INPUT DÜZELTMELERİ */
-    div[data-baseweb="input"] {{ background-color: #262730 !important; border-color: #41444e !important; }}
-    .stTextInput input {{ background-color: #262730 !important; color: #fafafa !important; border: none !important; }}
-    .stTextInput button {{ background-color: #262730 !important; color: #fafafa !important; border: none !important; }}
-    .stTextInput button:hover {{ background-color: #363945 !important; }}
-    .stTextInput button svg {{ fill: #fafafa !important; }}
+    /* INPUT & SELECTBOX ARKAPLANLARI */
+    .stTextInput input, .stSelectbox div[data-baseweb="select"] > div {{ 
+        background-color: #0d1117 !important; 
+        color: #e6edf3 !important; 
+        border: 1px solid #30363d !important; 
+    }}
+    
+    /* BUTONLAR İÇİN KESİN ÇÖZÜM (Seçimi Temizle Dahil) */
+    .stButton > button {{
+        background-color: #21262d !important; /* Koyu Gri Arkaplan */
+        color: #c9d1d9 !important;
+        border: 1px solid #30363d !important;
+        transition: all 0.2s ease;
+    }}
+    .stButton > button:hover {{
+        background-color: #30363d !important; /* Hoverda biraz açılır */
+        color: #58a6ff !important; /* Mavi yazı */
+        border-color: #8b949e !important;
+    }}
+    .stButton > button:active {{
+        background-color: #238636 !important; /* Tıklayınca yeşil */
+        color: white !important;
+    }}
 
+    /* RADIO BUTTON YAZILARI */
+    .stRadio label {{ color: #e6edf3 !important; }}
+    
     /* EXPANDER */
-    .streamlit-expanderHeader {{ background-color: #262730 !important; color: #fafafa !important; border-radius: 4px; }}
-    .streamlit-expanderHeader:hover {{ background-color: #363945 !important; color: #4f83f5 !important; }}
-    details[data-testid="stExpander"] {{ background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }}
-
-    /* SELECTBOX */
-    div[data-baseweb="select"] > div {{ background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }}
-    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {{ background-color: #262730 !important; }}
-    li[role="option"] {{ background-color: #262730 !important; color: #fafafa !important; }}
-    li[role="option"][aria-selected="true"], li[role="option"]:hover {{ background-color: #4f83f5 !important; color: white !important; }}
+    .streamlit-expanderHeader {{ background-color: #1e2025 !important; color: #e6edf3 !important; }}
     
-    /* BUTONLAR */
-    .stButton > button {{ background-color: #262730 !important; color: #fafafa !important; border: 1px solid #41444e !important; }}
-    .stButton > button:hover {{ border-color: #4f83f5 !important; color: #4f83f5 !important; }}
-    
-    /* DİĞER */
-    .stRadio label {{ color: #fafafa !important; }}
-    div[data-testid="stMetricValue"] {{ color: #fafafa !important; }}
-    div[data-testid="stMetricLabel"] {{ color: #c5c5c5 !important; }}
-    
-    /* AI KUTULARI EKLE */
     {ai_box_css}
     """
 else:
-    # Light Mode için sadece AI kutularını ekle
-    dark_css = ai_box_css
+    # Light Mode olsa bile AI kutuları şık kalsın, sadece arka planı biraz açalım
+    main_css = ai_box_css.replace("#1e2025", "#ffffff").replace("#e2e8f0", "#1e293b").replace("#2d3748", "#e2e8f0")
 
 st.markdown(f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    .stApp {{ font-family: 'Poppins', sans-serif; background-color: {'#0e1117' if st.session_state.dark_mode else '#f8fafc'}; }}
-    {dark_css}
+    .stApp {{ font-family: 'Inter', sans-serif; }}
+    {main_css}
     
-    /* SIDEBAR */
-    section[data-testid="stSidebar"] {{ min-width: 380px !important; max-width: 380px !important; }}
-
-    /* SORU HARİTASI */
-    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
-        display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; margin-bottom: 8px !important;
-    }}
-    div[data-testid="stSidebar"] div[data-testid="column"] {{ width: 100% !important; flex: none !important; padding: 0 !important; margin: 0 !important; }}
+    /* SIDEBAR SORU BUTONLARI */
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
-        width: 100% !important; height: 48px !important; padding: 4px !important;
-        font-size: 13px !important; font-weight: 600 !important; border-radius: 8px !important;
-        display: flex !important; flex-direction: column !important; align-items: center !important;
-        justify-content: center !important; line-height: 1.2 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        font-size: 12px !important; font-weight: 600 !important; border-radius: 6px !important;
+        box-shadow: none !important;
     }}
     
     /* UI ELEMENTLERİ */
     .login-container {{
         max-width: 400px; margin: 60px auto; padding: 40px;
-        background: {'#262730' if st.session_state.dark_mode else 'white'}; 
-        border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-        text-align: center; border: 1px solid {'#41444e' if st.session_state.dark_mode else '#eef2f6'};
+        border-radius: 12px; text-align: center;
     }}
     .passage-box {{ 
-        background-color: {'#262730' if st.session_state.dark_mode else '#ffffff'}; 
-        padding: 25px; border-radius: 12px; 
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#dfe6e9'}; 
-        color: {'#fafafa' if st.session_state.dark_mode else '#2d3436'}; 
-        overflow-y: auto; max-height: 70vh;
-    }}
-    .question-stem {{ 
-        font-weight: 600; border-left: 5px solid {'#4f83f5' if st.session_state.dark_mode else '#2563eb'}; 
-        padding-left: 15px; margin-bottom: 20px; 
-        color: {'#fafafa' if st.session_state.dark_mode else '#1e293b'}; background-color: transparent;
+        padding: 25px; border-radius: 10px; 
+        overflow-y: auto; max-height: 70vh; line-height: 1.8;
     }}
     .control-panel {{
-        position: sticky !important; top: 0; z-index: 999;
-        background: {'#262730' if st.session_state.dark_mode else 'white'};
-        padding: 15px 0; margin-bottom: 20px; 
-        border-bottom: 2px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #30363d;
     }}
     .legend-box {{
-        background-color: {'#262730' if st.session_state.dark_mode else '#f8fafc'};
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        padding: 8px; border-radius: 8px; font-size: 11px;
+        background-color: transparent; border: 1px dashed #30363d;
+        padding: 8px; border-radius: 6px; font-size: 11px;
         display: flex; justify-content: space-between; margin-bottom: 10px;
-        color: {'#fafafa' if st.session_state.dark_mode else '#333'};
+        color: #8b949e;
     }}
     
-    /* MOBİLDE KOPYALA MENÜSÜNÜ ENGELLEMEK İÇİN */
-    .stRadio label {{
-        user-select: none !important; 
-        -webkit-user-select: none !important;
-    }}
+    /* AI Kutu Font Ayarları */
+    .ai-box {{ font-family: 'Inter', sans-serif; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -260,7 +234,7 @@ def load_progress():
 if st.session_state.username is None:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown(f'<div class="login-container"><h1 style="color:{"#4f83f5" if st.session_state.dark_mode else "#2563eb"};">YDS Pro</h1><p>Giriş Yapın</p></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="login-container"><h1 style="color:#3b82f6;">YDS Pro</h1><p style="color:#8b949e;">Giriş Yapın</p></div>', unsafe_allow_html=True)
         with st.form("login_form"):
             name = st.text_input("Ad Soyad:", placeholder="İsim giriniz...")
             submitted = st.form_submit_button("🚀 Giriş Yap")
@@ -293,17 +267,17 @@ with st.sidebar:
     
     if not st.session_state.finish:
         components.html(
-            f"""<div id="countdown" style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:bold;color:#dc2626;text-align:center;padding:8px;background:#fee2e2;border-radius:8px;border:1px solid #fecaca;">⏳ Hesapla...</div>
+            f"""<div style="font-family:'Inter',sans-serif;font-size:16px;font-weight:bold;color:#ff6b6b;text-align:center;padding:10px;background:#2d1b1b;border-radius:8px;border:1px solid #4a2c2c;">⏳ <span id="countdown">Hesapla...</span></div>
             <script>
             var dest={st.session_state.end_timestamp};
             var interval = setInterval(function(){{
                 var now=new Date().getTime();
                 var dist=dest-now;
-                if(dist <= 0) {{ clearInterval(interval); document.getElementById("countdown").innerHTML="⏰ BİTTİ!"; return; }}
+                if(dist <= 0) {{ clearInterval(interval); document.getElementById("countdown").innerHTML="BİTTİ!"; return; }}
                 var h=Math.floor((dist%(1000*60*60*24))/(1000*60*60));
                 var m=Math.floor((dist%(1000*60*60))/(1000*60));
                 var s=Math.floor((dist%(1000*60))/1000);
-                document.getElementById("countdown").innerHTML="⏳ "+(h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);
+                document.getElementById("countdown").innerHTML=(h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);
             }}, 1000);
             </script>""", height=60
         )
@@ -374,7 +348,7 @@ if df is not None:
         # ÜST PANEL
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
         with control_col1: 
-            st.markdown(f"<h3 style='margin:0;padding:0;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='margin:0;padding:0;color:{'#f1f5f9' if st.session_state.dark_mode else '#1e293b'};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
         with control_col2: 
             if st.button("A➖", key="font_dec"): 
                 st.session_state.font_size = max(12, st.session_state.font_size - 2)
@@ -384,7 +358,7 @@ if df is not None:
                 st.session_state.font_size = min(30, st.session_state.font_size + 2)
                 st.rerun()
         with control_col4: 
-            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{'#f1f5f9' if st.session_state.dark_mode else '#1e293b'};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
         with control_col5:
             is_m = st.session_state.idx in st.session_state.marked
             if st.button("⭐" if is_m else "☆", key="mark_tgl"):
@@ -393,7 +367,7 @@ if df is not None:
                 autosave_progress()
                 st.rerun()
 
-        st.markdown("<hr style='margin:15px 0;'>", unsafe_allow_html=True)
+        st.markdown("<hr style='margin:15px 0; border-color: #30363d;'>", unsafe_allow_html=True)
         row = df.iloc[st.session_state.idx]
         q_raw = str(row['Soru']).replace('\\n', '\n')
         passage, stem = (q_raw.split('\n\n', 1) if '\n\n' in q_raw else (None, q_raw))
@@ -409,7 +383,7 @@ if df is not None:
             st.markdown(f"<div class='question-stem' style='font-size:{f_size+2}px;'>{stem}</div>", unsafe_allow_html=True)
             opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
             
-            # --- CEVAP MEKANİZMASI VE TEMİZLEME ÖZELLİĞİ ---
+            # --- CEVAP MEKANİZMASI ---
             curr = st.session_state.answers.get(st.session_state.idx)
             sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(curr) + ")")), None)
             
@@ -426,8 +400,9 @@ if df is not None:
                     if chosen == row['Dogru_Cevap']: st.success("✅ DOĞRU!")
                     else: st.error(f"❌ YANLIŞ! (Doğru: {row['Dogru_Cevap']})")
             
-            # CEVABI TEMİZLE BUTONU (Eğer cevap varsa göster)
+            # --- DÜZELTİLMİŞ TEMİZLE BUTONU ---
             if curr is not None:
+                # Butonu sağa yaslamak yerine direkt gösteriyoruz, CSS ile rengini düzelttik
                 if st.button("🗑️ Seçimi Temizle", key=f"clr_{st.session_state.idx}", help="Bu sorudaki işaretlemeyi kaldır"):
                     del st.session_state.answers[st.session_state.idx]
                     if f"ans_{st.session_state.idx}" in st.session_state:
@@ -442,30 +417,30 @@ if df is not None:
             if st.button("🤖 AI Çözümle", use_container_width=True):
                 if not st.session_state.user_api_key: st.warning("⚠️ API Key Girin")
                 else:
-                    with st.spinner("🔍 Analiz..."):
+                    with st.spinner("🔍 Analiz Ediliyor..."):
                         try:
                             genai.configure(api_key=st.session_state.user_api_key)
                             model = genai.GenerativeModel('gemini-2.5-flash')
                             
-                            # GELİŞMİŞ PROMPT (RENKLENDİRME İÇİN KESİN FORMAT)
+                            # PROMPT
                             prompt = f"""
                             Sen uzman bir YDS öğretmenisin.
                             Soru: {q_raw}
                             Doğru: {row['Dogru_Cevap']}
                             
-                            Lütfen cevabı TAM OLARAK aşağıdaki 4 numaralı başlık formatında ver. Başka hiçbir giriş cümlesi veya markdown bloğu (```) kullanma. Sadece metni yaz.
-
-                            1. 🧠 **Sorunun Mantığı ve Stratejisi:**
-                            (Sorunun konusu ne? Bu tarz sorularda neye bakılır? Strateji nedir?)
+                            Lütfen cevabı TAM OLARAK aşağıdaki 4 numaralı başlık formatında ver. 
+                            
+                            1. 🧠 **Sorunun Mantığı:**
+                            (Kısa ve net strateji)
 
                             2. 🔍 **Detaylı Analiz:**
-                            (Neden doğru? Neden yanlış?)
+                            (Şık şık inceleme)
 
                             3. 📚 **Kritik Kelimeler:**
-                            (Önemli kelimeler ve anlamları)
+                            (Kelime - Anlam listesi)
 
                             4. 🇹🇷 **Tam Çeviri:**
-                            (Türkçe çevirisi)
+                            (Türkçe karşılığı)
                             """
                             
                             res = model.generate_content(prompt).text
@@ -479,30 +454,27 @@ if df is not None:
             if st.session_state.idx < len(df)-1 and c_n.button("Sonraki ➡️", use_container_width=True): 
                 st.session_state.idx += 1; st.rerun()
             
-        # --- AI ÇIKTISINI PARÇALAYIP RENKLİ KUTULARDA GÖSTERME ---
+        # --- MODERN AI ÇIKTISI (PARSER) ---
         if st.session_state.idx in st.session_state.gemini_res: 
             raw_text = st.session_state.gemini_res[st.session_state.idx]
-            
-            # Metni '1.', '2.' gibi numaralardan önce bölüyoruz
-            # Regex: Satır başındaki rakam ve noktayı yakalar
             sections = re.split(r'(?=\d+\.\s)', raw_text)
             
-            # Eğer regex çalışmazsa veya format bozuksa tek parça göster (Fallback)
             if len(sections) < 2:
                  st.markdown(f"<div class='ai-box ai-style-default'>{raw_text}</div>", unsafe_allow_html=True)
             else:
                 for sec in sections:
-                    if not sec.strip(): continue # Boşlukları atla
+                    if not sec.strip(): continue 
                     
-                    # İçeriğe göre stil ata
                     style_class = "ai-style-default"
-                    if "1." in sec and ("Mantığı" in sec or "Strateji" in sec): style_class = "ai-style-1"
-                    elif "2." in sec and "Analiz" in sec: style_class = "ai-style-2"
-                    elif "3." in sec and "Kelimeler" in sec: style_class = "ai-style-3"
-                    elif "4." in sec and "Çeviri" in sec: style_class = "ai-style-4"
+                    if "1." in sec: style_class = "ai-style-1"
+                    elif "2." in sec: style_class = "ai-style-2"
+                    elif "3." in sec: style_class = "ai-style-3"
+                    elif "4." in sec: style_class = "ai-style-4"
+                    
+                    # Başlık numaralarını (1., 2.) temizleyip daha temiz gösterelim istersen:
+                    # sec = re.sub(r'^\d+\.\s', '', sec) 
                     
                     st.markdown(f"<div class='ai-box {style_class}'>{sec}</div>", unsafe_allow_html=True)
-        # ---------------------------------------------------------
 
     else:
         st.title("📊 Sonuçlar")
@@ -522,7 +494,6 @@ if df is not None:
 else: st.warning("Dosya bulunamadı.")
 
 # --- 9. JAVASCRIPT: ŞIK ELEME ÖZELLİĞİ ---
-# Bilgisayarda Sağ Tık, Mobilde Uzun Basma (Basılı Tutma)
 components.html("""
 <script>
     function toggleStrikethrough(element) {
@@ -540,20 +511,10 @@ components.html("""
         labels.forEach(label => {
             if (label.getAttribute('data-strike-listener') === 'true') return;
             label.setAttribute('data-strike-listener', 'true');
-
-            // PC: Sağ Tık
-            label.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                toggleStrikethrough(this);
-            }, false);
-
-            // MOBİL: Uzun Basma
+            label.addEventListener('contextmenu', function(e) { e.preventDefault(); toggleStrikethrough(this); }, false);
             let pressTimer;
             label.addEventListener('touchstart', function(e) {
-                pressTimer = setTimeout(() => {
-                    toggleStrikethrough(this);
-                    if (navigator.vibrate) navigator.vibrate(50);
-                }, 600);
+                pressTimer = setTimeout(() => { toggleStrikethrough(this); if (navigator.vibrate) navigator.vibrate(50); }, 600);
             });
             label.addEventListener('touchend', function(e) { clearTimeout(pressTimer); });
             label.addEventListener('touchmove', function(e) { clearTimeout(pressTimer); });
