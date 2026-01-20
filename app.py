@@ -6,14 +6,16 @@ import google.generativeai as genai
 import os
 import json
 import nest_asyncio
+import html
+import re
 
-# Döngü yaması
+# Asenkron döngü yaması
 nest_asyncio.apply()
 
 # --- 1. AYARLAR ---
 st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 
-# --- 2. SESSION STATE ---
+# --- 2. SESSION STATE BAŞLATMA ---
 defaults = {
     'username': None, 'selected_exam_id': 1, 'idx': 0, 'answers': {}, 
     'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
@@ -24,196 +26,205 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE - GÖZ İKONU VE KENARLIK DÜZELTMESİ) ---
+# --- 3. CSS (GÖRÜNÜM AYARLARI) ---
 if st.session_state.dark_mode:
-    dark_css = """
-    /* ANA GÖVDE */
-    .stApp { 
-        background-color: #0e1117 !important; 
-        color: #fafafa !important; 
-    }
-    
-    /* SIDEBAR */
-    section[data-testid="stSidebar"] { 
-        background-color: #1a1d24 !important; 
-    }
-    section[data-testid="stSidebar"] * {
-        color: #fafafa !important;
-    }
-
-    /* KUTULAR VE METİNLER */
-    .passage-box, .login-container, .control-panel { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-        border-color: #41444e !important; 
-    }
-    .question-stem { 
-        color: #fafafa !important; 
-        background-color: #262730 !important; 
-        border-left-color: #4f83f5 !important;
-    }
-    h1, h2, h3, h4, h5, h6, p, span, div, label, li { 
-        color: #fafafa !important; 
-    }
-    
-    /* --- KRİTİK DÜZELTME: TEXT INPUT (API KEY & GÖZ İKONU) --- */
-    
-    /* 1. Input Kapsayıcısı (Kenar Çizgisi Rengi) */
-    div[data-baseweb="input"] {
-        background-color: #262730 !important;
-        border-color: #41444e !important; /* Beyaz yerine koyu gri */
-    }
-    
-    /* 2. Input Alanının İçi */
-    .stTextInput input { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-        border: none !important; /* İç border'ı kaldır, kapsayıcı hallediyor */
-    }
-    
-    /* 3. GÖZ İKONU (Button) DÜZELTMESİ */
-    .stTextInput button {
-        background-color: #262730 !important; /* Arkası beyaz olmasın */
-        color: #fafafa !important; /* İkon rengi beyaz */
-        border: none !important;
-    }
-    .stTextInput button:hover {
-        background-color: #363945 !important; /* Üzerine gelince hafif açıl */
-    }
-    .stTextInput button svg {
-        fill: #fafafa !important;
-    }
-
-    /* --- EXPANDER (AI AYARLARI) DÜZELTMESİ --- */
-    .streamlit-expanderHeader { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-        border-radius: 4px;
-    }
-    .streamlit-expanderHeader:hover {
-        background-color: #363945 !important;
-        color: #4f83f5 !important;
-    }
-    /* Açık haldeki içerik kısmı */
-    details[data-testid="stExpander"] {
-        background-color: #262730 !important;
-        border-color: #41444e !important;
-        color: #fafafa !important;
-    }
-    details[data-testid="stExpander"] > div {
-        color: #fafafa !important;
-    }
-
-    /* --- SELECTBOX (DROPDOWN) --- */
-    div[data-baseweb="select"] > div {
-        background-color: #262730 !important;
-        border-color: #41444e !important;
-        color: #fafafa !important;
-    }
-    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {
-        background-color: #262730 !important;
-    }
-    li[role="option"] {
-        background-color: #262730 !important;
-        color: #fafafa !important;
-    }
-    li[role="option"][aria-selected="true"], li[role="option"]:hover {
-        background-color: #4f83f5 !important;
-        color: white !important;
-    }
-    
-    /* BUTONLAR */
-    .stButton > button {
-        background-color: #262730 !important;
-        color: #fafafa !important;
-        border: 1px solid #41444e !important;
-    }
-    .stButton > button:hover {
-        border-color: #4f83f5 !important;
-        color: #4f83f5 !important;
-    }
-    
-    /* DİĞER */
-    .stRadio label { color: #fafafa !important; }
-    div[data-testid="stMetricValue"] { color: #fafafa !important; }
-    div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
-    """
+    bg_color = "#0e1117"
+    text_color = "#fafafa"
+    box_bg = "#262730"
+    border_color = "#41444e"
+    input_bg = "#262730"
 else:
-    dark_css = ""
+    bg_color = "#f8fafc"
+    text_color = "#1e293b"
+    box_bg = "#ffffff"
+    border_color = "#dfe6e9"
+    input_bg = "#ffffff"
 
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; }}
     
-    .stApp {{ 
-        font-family: 'Poppins', sans-serif; 
-        background-color: {'#0e1117' if st.session_state.dark_mode else '#f8fafc'}; 
-    }}
-    
-    {dark_css}
-    
-    /* SIDEBAR GENİŞLİK */
-    section[data-testid="stSidebar"] {{ 
-        min-width: 380px !important; 
-        max-width: 380px !important; 
-    }}
-
-    /* SORU HARİTASI */
-    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
-        display: grid !important;
-        grid-template-columns: repeat(5, 1fr) !important;
-        gap: 6px !important;
-        margin-bottom: 8px !important;
-    }}
-    div[data-testid="stSidebar"] div[data-testid="column"] {{
-        width: 100% !important; flex: none !important; padding: 0 !important; margin: 0 !important;
-    }}
-    div[data-testid="stSidebar"] div[data-testid="column"] button {{
-        width: 100% !important; height: 48px !important; padding: 4px !important;
-        font-size: 13px !important; font-weight: 600 !important; border-radius: 8px !important;
-        display: flex !important; flex-direction: column !important; align-items: center !important;
-        justify-content: center !important; line-height: 1.2 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }}
-    
-    /* ELEMENT STİLLERİ */
+    /* UI ELEMENTLERİ */
     .login-container {{
         max-width: 400px; margin: 60px auto; padding: 40px;
-        background: {'#262730' if st.session_state.dark_mode else 'white'}; 
-        border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-        text-align: center; border: 1px solid {'#41444e' if st.session_state.dark_mode else '#eef2f6'};
-    }}
-    .passage-box {{ 
-        background-color: {'#262730' if st.session_state.dark_mode else '#ffffff'}; 
-        padding: 25px; border-radius: 12px; 
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#dfe6e9'}; 
-        color: {'#fafafa' if st.session_state.dark_mode else '#2d3436'}; 
-        overflow-y: auto; max-height: 70vh;
-    }}
-    .question-stem {{ 
-        font-weight: 600; border-left: 5px solid {'#4f83f5' if st.session_state.dark_mode else '#2563eb'}; 
-        padding-left: 15px; margin-bottom: 20px; 
-        color: {'#fafafa' if st.session_state.dark_mode else '#1e293b'};
-        background-color: transparent;
+        background: {box_bg}; border-radius: 16px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; border: 1px solid {border_color};
     }}
     .control-panel {{
         position: sticky !important; top: 0; z-index: 999;
-        background: {'#262730' if st.session_state.dark_mode else 'white'};
-        padding: 15px 0; margin-bottom: 20px; 
-        border-bottom: 2px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
+        background: {box_bg}; padding: 15px 0; margin-bottom: 20px; 
+        border-bottom: 2px solid {border_color};
         display: flex; align-items: center; justify-content: space-between; gap: 10px;
     }}
-    .legend-box {{
-        background-color: {'#262730' if st.session_state.dark_mode else '#f8fafc'};
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        padding: 8px; border-radius: 8px; font-size: 11px;
-        display: flex; justify-content: space-between; margin-bottom: 10px;
-        color: {'#fafafa' if st.session_state.dark_mode else '#333'};
-    }}
+    
+    /* SIDEBAR */
+    section[data-testid="stSidebar"] {{ background-color: {('#1a1d24' if st.session_state.dark_mode else '#ffffff')} !important; }}
+    section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
+    
+    /* INPUT & BUTTONS - DARK MODE FIX */
+    .stTextInput input {{ color: {text_color} !important; background-color: {input_bg} !important; }}
+    div[data-baseweb="select"] > div {{ background-color: {box_bg} !important; color: {text_color} !important; }}
+    p, h1, h2, h3 {{ color: {text_color} !important; }}
+    
+    /* Radyo Butonlarını Biraz Daha Belirgin Yap */
+    .stRadio label {{ font-weight: 500 !important; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. VERİ VE DOSYA İŞLEMLERİ ---
+# --- 4. ÖZEL HTML METİN KUTUSU (VURGULAMA & GÖRÜNTÜLEME) ---
+def render_highlightable_text(text, height=300, is_stem=False, allow_html=False):
+    """
+    Bu fonksiyon metni bir HTML Iframe içine gömer.
+    1. Metin Vurgulama (Sarı Boyama) sağlar.
+    2. Sağ tık ile vurguyu kaldırır.
+    3. Python tarafından gönderilen HTML taglerini (Kırmızı Cevaplar) işler.
+    """
+    if st.session_state.dark_mode:
+        c_bg = "#262730"
+        c_txt = "#fafafa"
+        c_sel = "#bfa100" 
+        c_border = "#4f83f5" if is_stem else "#41444e"
+        c_border_width = "4px" if is_stem else "1px"
+    else:
+        c_bg = "#ffffff"
+        c_txt = "#2d3436"
+        c_sel = "#fff176" 
+        c_border = "#2563eb" if is_stem else "#dfe6e9"
+        c_border_width = "4px" if is_stem else "1px"
+
+    # HTML Escape İşlemi: Eğer dışarıdan HTML (cevaplar) geliyorsa escape yapma.
+    final_text = text if allow_html else html.escape(text)
+    final_text = final_text.replace('\n', '<br>')
+
+    html_code = f"""
+    <html>
+    <head>
+    <style>
+        body {{
+            font-family: 'Poppins', sans-serif;
+            background-color: {c_bg};
+            color: {c_txt};
+            font-size: {st.session_state.font_size}px;
+            font-weight: 600; /* Kullanıcı isteği: Koyu/Bold Metin */
+            line-height: 1.6;
+            margin: 0;
+            padding: 15px;
+            user-select: text;
+        }}
+        .container {{
+            border: {c_border_width} solid {c_border};
+            border-radius: 8px;
+            padding: 15px;
+            height: 100%;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-left: { "5px solid " + c_border if is_stem else "1px solid " + c_border };
+        }}
+        /* Sarı Vurgulama Stili */
+        .highlight {{
+            background-color: {c_sel};
+            color: #000;
+            cursor: context-menu;
+            border-radius: 2px;
+            padding: 0 2px;
+        }}
+        /* Scrollbar */
+        ::-webkit-scrollbar {{ width: 8px; }}
+        ::-webkit-scrollbar-track {{ background: {c_bg}; }}
+        ::-webkit-scrollbar-thumb {{ background: #888; border-radius: 4px; }}
+    </style>
+    </head>
+    <body>
+        <div class="container" id="content-area">{final_text}</div>
+
+        <script>
+            const area = document.getElementById('content-area');
+            
+            // 1. SOL TIK ile Seçim ve Boyama
+            document.addEventListener('mouseup', function() {{
+                let selection = window.getSelection();
+                if (selection.toString().length > 0) {{
+                    let range = selection.getRangeAt(0);
+                    // Seçim bizim kutumuzun içindeyse
+                    if (area.contains(range.commonAncestorContainer)) {{
+                        try {{
+                            let span = document.createElement('span');
+                            span.className = 'highlight';
+                            range.surroundContents(span);
+                            selection.removeAllRanges(); // Seçimi kaldır ki boya görünsün
+                        }} catch (e) {{ console.log("Çapraz seçim hatası engellendi."); }}
+                    }}
+                }}
+            }});
+
+            // 2. SAĞ TIK ile Boyayı Kaldırma
+            document.addEventListener('contextmenu', function(e) {{
+                if (e.target.classList.contains('highlight')) {{
+                    e.preventDefault(); // Menüyü engelle
+                    let parent = e.target.parentNode;
+                    // Span içindeki metni dışarı çıkar (unwrap)
+                    while (e.target.firstChild) {{ parent.insertBefore(e.target.firstChild, e.target); }}
+                    parent.removeChild(e.target);
+                }}
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    # Scrolling=False çünkü scroll bar'ı CSS ile iframe içinde hallettik
+    components.html(html_code, height=height, scrolling=False)
+
+# --- 5. GELİŞMİŞ BOŞLUK DOLDURMA (SPLIT & REGEX) ---
+def inject_answer_to_text(text, answer_full_str):
+    """
+    1. Şık metnini alır (Örn: "A) signified / moved" -> "signified / moved").
+    2. '/' işaretine göre parçalar.
+    3. Metindeki '----', '____', '....' alanlarını sırasıyla bu parçalarla doldurur.
+    4. Doldurulan metni Kırmızı ve Bold yapar.
+    """
+    if not answer_full_str:
+        return html.escape(text), False 
+
+    # 1. Şıkkı Temizle (A parantezini at)
+    try:
+        if ')' in answer_full_str:
+            ans_text = answer_full_str.split(')', 1)[1].strip()
+        else:
+            ans_text = answer_full_str
+    except:
+        ans_text = answer_full_str
+
+    # 2. Parçalara Böl (Slash varsa)
+    parts = [p.strip() for p in ans_text.split('/')]
+
+    # HTML güvenliği için önce ana metni escape et
+    safe_text = html.escape(text)
+
+    # 3. Regex: 3 veya daha fazla alt çizgi, tire veya nokta
+    pattern = r'([_\-\.]{3,})'
+    
+    # Python scope kısıtlaması için sözlük kullanıyoruz
+    state = {'idx': 0}
+
+    def replacement_func(match):
+        # Elimizde parça varsa sıradakini kullan
+        if state['idx'] < len(parts):
+            val = parts[state['idx']]
+            state['idx'] += 1
+        else:
+            # Parça kalmadıysa son parçayı tekrar kullan veya boş geç
+            val = parts[-1] 
+        
+        # HTML: Kırmızı, Kalın, Altı Çizili
+        return f"<span style='color:#e74c3c; font-weight:800; text-decoration:underline;'>{html.escape(val)}</span>"
+
+    # Regex Substitution
+    new_text, count = re.subn(pattern, replacement_func, safe_text)
+    
+    return new_text, True # True = HTML içeriyor demek
+
+# --- 6. DOSYA İŞLEMLERİ ---
 SCORES_FILE = "lms_scores.csv"
 
 @st.cache_data(show_spinner=False)
@@ -272,7 +283,7 @@ def load_progress():
             except: pass
     return False
 
-# --- 5. GİRİŞ EKRANI ---
+# --- 7. GİRİŞ EKRANI ---
 if st.session_state.username is None:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -292,7 +303,7 @@ if not st.session_state.progress_loaded:
     load_progress()
     st.session_state.progress_loaded = True
 
-# --- 6. VERİ YÜKLEME ---
+# --- 8. VERİ YÜKLEME ---
 exam_id = st.session_state.selected_exam_id
 if st.session_state.current_exam_data is None or st.session_state.cached_exam_id != exam_id:
     df = load_exam_file_cached(exam_id)
@@ -303,7 +314,7 @@ else: df = st.session_state.current_exam_data
 if not st.session_state.finish and datetime.now().timestamp() * 1000 >= st.session_state.end_timestamp:
     st.session_state.finish = True; st.rerun()
 
-# --- 7. SIDEBAR ---
+# --- 9. SIDEBAR ---
 with st.sidebar:
     st.success(f"👤 **{st.session_state.username}**")
     
@@ -324,7 +335,6 @@ with st.sidebar:
             </script>""", height=60
         )
     
-    # MOD VE AYARLAR
     c_set1, c_set2 = st.columns(2)
     with c_set1:
         mode = st.toggle("Sınav Modu", value=st.session_state.exam_mode)
@@ -345,9 +355,8 @@ with st.sidebar:
     with st.expander("🔑 AI Ayarları"):
         key_input = st.text_input("API Key:", type="password", value=st.session_state.user_api_key)
         if st.button("Kaydet"):
-            if key_input and len(key_input.strip()) > 0:
-                st.session_state.user_api_key = key_input.strip()
-                st.success("Kaydedildi.")
+            st.session_state.user_api_key = key_input.strip()
+            st.success("Kaydedildi.")
 
     if df is not None:
         st.write("---")
@@ -356,7 +365,7 @@ with st.sidebar:
         st.caption(f"📝 {answered}/{total} soru yanıtlandı")
         
         st.markdown("**🗺️ Soru Haritası**")
-        st.markdown('<div class="legend-box"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="display:flex;justify-content:space-between;background:{box_bg};border:1px solid {border_color};padding:8px;border-radius:8px;font-size:11px;color:{text_color}"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
 
         for row_start in range(0, len(df), 5):
             cols = st.columns(5)
@@ -384,13 +393,13 @@ with st.sidebar:
                 st.session_state.finish = True
                 st.rerun()
 
-# --- 8. ANA EKRAN ---
+# --- 10. ANA EKRAN ---
 if df is not None:
     if not st.session_state.finish:
         # ÜST PANEL
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
         with control_col1: 
-            st.markdown(f"<h3 style='margin:0;padding:0;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='margin:0;padding:0;color:{text_color}'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
         with control_col2: 
             if st.button("A➖", key="font_dec"): 
                 st.session_state.font_size = max(12, st.session_state.font_size - 2)
@@ -400,7 +409,7 @@ if df is not None:
                 st.session_state.font_size = min(30, st.session_state.font_size + 2)
                 st.rerun()
         with control_col4: 
-            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{text_color}'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
         with control_col5:
             is_m = st.session_state.idx in st.session_state.marked
             if st.button("⭐" if is_m else "☆", key="mark_tgl"):
@@ -410,26 +419,51 @@ if df is not None:
                 st.rerun()
 
         st.markdown("<hr style='margin:15px 0;'>", unsafe_allow_html=True)
+        
+        # VERİLERİ HAZIRLA
         row = df.iloc[st.session_state.idx]
         q_raw = str(row['Soru']).replace('\\n', '\n')
         passage, stem = (q_raw.split('\n\n', 1) if '\n\n' in q_raw else (None, q_raw))
         
-        f_size = st.session_state.font_size
+        # --- DİNAMİK CEVAP YERLEŞTİRME ---
+        current_ans_full = st.session_state.answers.get(st.session_state.idx)
+        
+        # Cevabı metin içine göm (Regex ve Split kullanarak)
+        final_stem, is_html_stem = inject_answer_to_text(stem, current_ans_full)
         if passage:
+            final_passage, is_html_passage = inject_answer_to_text(passage, current_ans_full)
+        else:
+            final_passage, is_html_passage = None, False
+
+        # --- EKRANA ÇİZME (IFRAME HTML) ---
+        if final_passage:
             l, r = st.columns(2)
-            l.markdown(f"<div class='passage-box' style='font-size:{f_size}px; line-height:{f_size*1.6}px;'>{passage}</div>", unsafe_allow_html=True)
+            with l:
+                render_highlightable_text(final_passage, height=450, is_stem=False, allow_html=is_html_passage)
             main_col = r
         else: main_col = st.container()
 
         with main_col:
-            st.markdown(f"<div class='question-stem' style='font-size:{f_size+2}px;'>{stem}</div>", unsafe_allow_html=True)
+            # Soru Kökü
+            render_highlightable_text(final_stem, height=200, is_stem=True, allow_html=is_html_stem)
+            
+            # Şıklar
             opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
-            curr = st.session_state.answers.get(st.session_state.idx)
-            sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(curr) + ")")), None)
-            sel = st.radio("Cevabınız:", opts, index=sel_idx, key=f"ans_{st.session_state.idx}")
+            
+            # Seçili indexi bul
+            sel_idx = None
+            if current_ans_full:
+                sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(current_ans_full) + ")")), None)
+            
+            # --- ST.RADIO KEY YÖNETİMİ ---
+            # Radio butonuna dinamik bir key atayarak "Temizle" butonunun çalışmasını sağlıyoruz.
+            radio_key = f"ans_{st.session_state.idx}"
+            
+            sel = st.radio("Cevabınız:", opts, index=sel_idx, key=radio_key)
             
             if sel:
                 chosen = sel.split(")")[0]
+                # Eğer yeni bir seçim yapıldıysa kaydet
                 if st.session_state.answers.get(st.session_state.idx) != chosen:
                     st.session_state.answers[st.session_state.idx] = chosen
                     autosave_progress()
@@ -438,6 +472,20 @@ if df is not None:
                 if not st.session_state.exam_mode:
                     if chosen == row['Dogru_Cevap']: st.success("✅ DOĞRU!")
                     else: st.error(f"❌ YANLIŞ! (Doğru: {row['Dogru_Cevap']})")
+            
+            # --- CEVABI SİLME BUTONU ---
+            st.write("")
+            if st.session_state.idx in st.session_state.answers:
+                if st.button("🗑️ Cevabı Temizle / Boş Bırak", type="secondary", use_container_width=True):
+                    # 1. Sözlükten sil
+                    del st.session_state.answers[st.session_state.idx]
+                    
+                    # 2. Session state içindeki Widget Key'ini de sil (BU ÇOK ÖNEMLİ, YOKSA SİLİNMEZ)
+                    if radio_key in st.session_state:
+                        del st.session_state[radio_key]
+                        
+                    autosave_progress()
+                    st.rerun()
 
         st.write("")
         c_act1, c_act2 = st.columns([1, 1])
@@ -479,3 +527,40 @@ if df is not None:
         if st.button("🔄 Yeni Sınav", type="primary"): 
             st.session_state.finish = False; st.session_state.answers = {}; st.session_state.idx = 0; st.rerun()
 else: st.warning("Dosya bulunamadı.")
+
+# --- 11. JAVASCRIPT: ŞIK ELEME (RADYO BUTONLARI İÇİN) ---
+# Sağ Tık (PC) veya Uzun Basma (Mobil) ile şıkların üzerini çizer.
+components.html("""
+<script>
+    function toggleStrikethrough(element) {
+        if (element.style.textDecoration === "line-through") {
+            element.style.textDecoration = "none";
+            element.style.opacity = "1";
+        } else {
+            element.style.textDecoration = "line-through";
+            element.style.opacity = "0.5";
+        }
+    }
+    const observer = new MutationObserver((mutations) => {
+        const labels = parent.document.querySelectorAll('div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p');
+        labels.forEach(label => {
+            if (label.getAttribute('data-strike-listener') === 'true') return;
+            label.setAttribute('data-strike-listener', 'true');
+            
+            // PC: Sağ Tık
+            label.addEventListener('contextmenu', function(e) {
+                e.preventDefault(); toggleStrikethrough(this);
+            }, false);
+            
+            // MOBİL: Uzun Basma
+            let pressTimer;
+            label.addEventListener('touchstart', function(e) {
+                pressTimer = setTimeout(() => { toggleStrikethrough(this); if(navigator.vibrate) navigator.vibrate(50); }, 600);
+            });
+            label.addEventListener('touchend', function(e) { clearTimeout(pressTimer); });
+            label.addEventListener('touchmove', function(e) { clearTimeout(pressTimer); });
+        });
+    });
+    observer.observe(parent.document.body, { childList: true, subtree: true });
+</script>
+""", height=0, width=0)
