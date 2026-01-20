@@ -89,11 +89,7 @@ if st.session_state.dark_mode:
         color: #fafafa !important;
     }
 
-    /* 3. Expander AÇIKKEN Mouse Üzerine Gelince (Hover) */
-    details[data-testid="stExpander"][open] > summary:hover {
-        background-color: #363945 !important; /* Hafif açılma efekti */
-        color: #4f83f5 !important;
-    }
+    
 
     /* 4. Expander AÇIKKEN İkon ve Yazı Renkleri */
     details[data-testid="stExpander"][open] > summary svg,
