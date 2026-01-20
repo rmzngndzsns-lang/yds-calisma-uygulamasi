@@ -6,6 +6,7 @@ import google.generativeai as genai
 import os
 import json
 import nest_asyncio
+import re  # Regex kütüphanesini ekledik
 
 # Döngü yaması
 nest_asyncio.apply()
@@ -24,54 +25,113 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE VE STİL DÜZELTMELERİ) ---
+# --- 3. CSS (DARK MODE, STİL VE AI KUTULARI) ---
+# AI Çıktıları için renkli kutu stilleri eklenmiştir.
+ai_box_css = """
+    /* AI KUTU GENEL STİLİ */
+    .ai-box {
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+        color: #ffffff !important; /* Yazılar hep beyaz olsun */
+        font-size: 15px;
+        line-height: 1.6;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-left: 6px solid;
+    }
+    .ai-box h1, .ai-box h2, .ai-box h3, .ai-box h4, .ai-box strong {
+        color: #ffffff !important;
+        font-weight: 600;
+    }
+    .ai-box ul {
+        margin-left: 20px;
+    }
+    .ai-box li {
+        margin-bottom: 8px;
+    }
+
+    /* BÖLÜM 1: MANTIK (Lacivert/Mavi) */
+    .ai-style-1 {
+        background-color: #1e3a8a !important; /* Koyu Mavi */
+        border-color: #60a5fa !important;     /* Açık Mavi Çizgi */
+    }
+
+    /* BÖLÜM 2: ANALİZ (Koyu Yeşil) */
+    .ai-style-2 {
+        background-color: #064e3b !important; /* Koyu Yeşil */
+        border-color: #34d399 !important;     /* Açık Yeşil Çizgi */
+    }
+
+    /* BÖLÜM 3: KELİME (Koyu Turuncu/Kahve) */
+    .ai-style-3 {
+        background-color: #7c2d12 !important; /* Koyu Kiremit */
+        border-color: #fbbf24 !important;     /* Sarı Çizgi */
+    }
+
+    /* BÖLÜM 4: ÇEVİRİ (Koyu Mor) */
+    .ai-style-4 {
+        background-color: #4c1d95 !important; /* Koyu Mor */
+        border-color: #a78bfa !important;     /* Açık Mor Çizgi */
+    }
+    
+    /* HATA veya DEFAULT DURUM İÇİN */
+    .ai-style-default {
+        background-color: #374151 !important;
+        border-color: #9ca3af !important;
+    }
+"""
+
 if st.session_state.dark_mode:
-    dark_css = """
+    dark_css = f"""
     /* ANA GÖVDE */
-    .stApp { background-color: #0e1117 !important; color: #fafafa !important; }
+    .stApp {{ background-color: #0e1117 !important; color: #fafafa !important; }}
     
     /* SIDEBAR */
-    section[data-testid="stSidebar"] { background-color: #1a1d24 !important; }
-    section[data-testid="stSidebar"] * { color: #fafafa !important; }
+    section[data-testid="stSidebar"] {{ background-color: #1a1d24 !important; }}
+    section[data-testid="stSidebar"] * {{ color: #fafafa !important; }}
 
     /* KUTULAR */
-    .passage-box, .login-container, .control-panel { 
+    .passage-box, .login-container, .control-panel {{ 
         background-color: #262730 !important; color: #fafafa !important; border-color: #41444e !important; 
-    }
-    .question-stem { 
+    }}
+    .question-stem {{ 
         color: #fafafa !important; background-color: #262730 !important; border-left-color: #4f83f5 !important;
-    }
-    h1, h2, h3, h4, h5, h6, p, span, div, label, li { color: #fafafa !important; }
+    }}
+    h1, h2, h3, h4, h5, h6, p, span, div, label, li {{ color: #fafafa !important; }}
     
     /* INPUT DÜZELTMELERİ */
-    div[data-baseweb="input"] { background-color: #262730 !important; border-color: #41444e !important; }
-    .stTextInput input { background-color: #262730 !important; color: #fafafa !important; border: none !important; }
-    .stTextInput button { background-color: #262730 !important; color: #fafafa !important; border: none !important; }
-    .stTextInput button:hover { background-color: #363945 !important; }
-    .stTextInput button svg { fill: #fafafa !important; }
+    div[data-baseweb="input"] {{ background-color: #262730 !important; border-color: #41444e !important; }}
+    .stTextInput input {{ background-color: #262730 !important; color: #fafafa !important; border: none !important; }}
+    .stTextInput button {{ background-color: #262730 !important; color: #fafafa !important; border: none !important; }}
+    .stTextInput button:hover {{ background-color: #363945 !important; }}
+    .stTextInput button svg {{ fill: #fafafa !important; }}
 
     /* EXPANDER */
-    .streamlit-expanderHeader { background-color: #262730 !important; color: #fafafa !important; border-radius: 4px; }
-    .streamlit-expanderHeader:hover { background-color: #363945 !important; color: #4f83f5 !important; }
-    details[data-testid="stExpander"] { background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }
+    .streamlit-expanderHeader {{ background-color: #262730 !important; color: #fafafa !important; border-radius: 4px; }}
+    .streamlit-expanderHeader:hover {{ background-color: #363945 !important; color: #4f83f5 !important; }}
+    details[data-testid="stExpander"] {{ background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }}
 
     /* SELECTBOX */
-    div[data-baseweb="select"] > div { background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }
-    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] { background-color: #262730 !important; }
-    li[role="option"] { background-color: #262730 !important; color: #fafafa !important; }
-    li[role="option"][aria-selected="true"], li[role="option"]:hover { background-color: #4f83f5 !important; color: white !important; }
+    div[data-baseweb="select"] > div {{ background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }}
+    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {{ background-color: #262730 !important; }}
+    li[role="option"] {{ background-color: #262730 !important; color: #fafafa !important; }}
+    li[role="option"][aria-selected="true"], li[role="option"]:hover {{ background-color: #4f83f5 !important; color: white !important; }}
     
     /* BUTONLAR */
-    .stButton > button { background-color: #262730 !important; color: #fafafa !important; border: 1px solid #41444e !important; }
-    .stButton > button:hover { border-color: #4f83f5 !important; color: #4f83f5 !important; }
+    .stButton > button {{ background-color: #262730 !important; color: #fafafa !important; border: 1px solid #41444e !important; }}
+    .stButton > button:hover {{ border-color: #4f83f5 !important; color: #4f83f5 !important; }}
     
     /* DİĞER */
-    .stRadio label { color: #fafafa !important; }
-    div[data-testid="stMetricValue"] { color: #fafafa !important; }
-    div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
+    .stRadio label {{ color: #fafafa !important; }}
+    div[data-testid="stMetricValue"] {{ color: #fafafa !important; }}
+    div[data-testid="stMetricLabel"] {{ color: #c5c5c5 !important; }}
+    
+    /* AI KUTULARI EKLE */
+    {ai_box_css}
     """
 else:
-    dark_css = ""
+    # Light Mode için sadece AI kutularını ekle
+    dark_css = ai_box_css
 
 st.markdown(f"""
 <style>
@@ -387,29 +447,25 @@ if df is not None:
                             genai.configure(api_key=st.session_state.user_api_key)
                             model = genai.GenerativeModel('gemini-2.5-flash')
                             
-                            # GELİŞMİŞ PROMPT (STRATEJİ VE TAKTİK ODAKLI)
+                            # GELİŞMİŞ PROMPT (RENKLENDİRME İÇİN KESİN FORMAT)
                             prompt = f"""
-                            Sen öğrencilere YDS (Yabancı Dil Sınavı) hazırlayan uzman bir sınav stratejistisin.
+                            Sen uzman bir YDS öğretmenisin.
+                            Soru: {q_raw}
+                            Doğru: {row['Dogru_Cevap']}
                             
-                            Soru Metni: {q_raw}
-                            Doğru Cevap: {row['Dogru_Cevap']}
-                            
-                            Lütfen bu soruyu şu başlıklar altında yapılandırılmış, eğitici ve net bir dille açıkla:
+                            Lütfen cevabı TAM OLARAK aşağıdaki 4 numaralı başlık formatında ver. Başka hiçbir giriş cümlesi veya markdown bloğu (```) kullanma. Sadece metni yaz.
 
-                            1. 🧠 **Sorunun Mantığı ve Çözüm Stratejisi:**
-                               - Bu soru hangi konudan (Zamanlar, Bağlaçlar, Kelime, Preposition vb.) sorulmuş?
-                               - Bu TARZ sorularda nelere dikkat edilmeli? (Örn: "Boşluktan sonraki kelimeye bak", "Zıtlık ara", "Zaman uyumu kontrol et" gibi genel taktikler ver).
-                               - Şıkları elerken hangi ipuçlarını kullanmalıydık?
+                            1. 🧠 **Sorunun Mantığı ve Stratejisi:**
+                            (Sorunun konusu ne? Bu tarz sorularda neye bakılır? Strateji nedir?)
 
                             2. 🔍 **Detaylı Analiz:**
-                               - Doğru cevap neden doğru? Gramer veya anlam ilişkisini açıkla.
-                               - Çeldirici şıklar (yanlış olanlar) neden olmaz?
+                            (Neden doğru? Neden yanlış?)
 
-                            3. 📚 **Kritik Kelime Hazinesi:**
-                               - Soruda geçen önemli kelimeler, anlamları ve varsa eş anlamlıları (Synonyms).
+                            3. 📚 **Kritik Kelimeler:**
+                            (Önemli kelimeler ve anlamları)
 
                             4. 🇹🇷 **Tam Çeviri:**
-                               - Cümlenin/Paragrafın anlaşılır Türkçe çevirisi.
+                            (Türkçe çevirisi)
                             """
                             
                             res = model.generate_content(prompt).text
@@ -423,8 +479,30 @@ if df is not None:
             if st.session_state.idx < len(df)-1 and c_n.button("Sonraki ➡️", use_container_width=True): 
                 st.session_state.idx += 1; st.rerun()
             
+        # --- AI ÇIKTISINI PARÇALAYIP RENKLİ KUTULARDA GÖSTERME ---
         if st.session_state.idx in st.session_state.gemini_res: 
-            st.info(st.session_state.gemini_res[st.session_state.idx])
+            raw_text = st.session_state.gemini_res[st.session_state.idx]
+            
+            # Metni '1.', '2.' gibi numaralardan önce bölüyoruz
+            # Regex: Satır başındaki rakam ve noktayı yakalar
+            sections = re.split(r'(?=\d+\.\s)', raw_text)
+            
+            # Eğer regex çalışmazsa veya format bozuksa tek parça göster (Fallback)
+            if len(sections) < 2:
+                 st.markdown(f"<div class='ai-box ai-style-default'>{raw_text}</div>", unsafe_allow_html=True)
+            else:
+                for sec in sections:
+                    if not sec.strip(): continue # Boşlukları atla
+                    
+                    # İçeriğe göre stil ata
+                    style_class = "ai-style-default"
+                    if "1." in sec and ("Mantığı" in sec or "Strateji" in sec): style_class = "ai-style-1"
+                    elif "2." in sec and "Analiz" in sec: style_class = "ai-style-2"
+                    elif "3." in sec and "Kelimeler" in sec: style_class = "ai-style-3"
+                    elif "4." in sec and "Çeviri" in sec: style_class = "ai-style-4"
+                    
+                    st.markdown(f"<div class='ai-box {style_class}'>{sec}</div>", unsafe_allow_html=True)
+        # ---------------------------------------------------------
 
     else:
         st.title("📊 Sonuçlar")
