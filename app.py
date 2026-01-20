@@ -24,90 +24,140 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE TAMİRİ - SELECTBOX & EXPANDER) ---
+# --- 3. CSS (DARK MODE TAM DÜZELTMELERİ İLE) ---
 if st.session_state.dark_mode:
     dark_css = """
-    /* Temel Dark Mode Renkleri */
-    .stApp { background-color: #0e1117 !important; color: #fafafa !important; }
+    .stApp { 
+        background-color: #0e1117 !important; 
+        color: #fafafa !important; 
+    }
     
-    /* Sidebar */
-    section[data-testid="stSidebar"] { background-color: #1a1d24 !important; }
-    section[data-testid="stSidebar"] * { color: #fafafa !important; }
+    /* Sidebar Dark Mode */
+    section[data-testid="stSidebar"] { 
+        background-color: #1a1d24 !important; 
+    }
+    section[data-testid="stSidebar"] * {
+        color: #fafafa !important;
+    }
     
-    /* --- SELECTBOX (SINAV SEÇ) DÜZELTMESİ --- */
-    /* Seçim kutusunun kendisi */
-    div[data-baseweb="select"] > div {
-        background-color: #262730 !important;
-        color: #fafafa !important;
-        border-color: #41444e !important;
-    }
-    /* Açılır menü (Dropdown) arka planı */
-    div[data-baseweb="popover"] > div {
-        background-color: #262730 !important;
-    }
-    /* Seçeneklerin yazı rengi */
-    div[data-baseweb="menu"] li {
-        color: #fafafa !important;
-    }
-    /* Seçilen öğe rengi */
-    div[data-baseweb="select"] span {
-        color: #fafafa !important;
-    }
-    /* Sağdaki ok işareti */
-    div[data-baseweb="select"] svg {
-        fill: #fafafa !important;
-    }
-
-    /* --- EXPANDER (AI AYARLARI) DÜZELTMESİ --- */
-    .streamlit-expanderHeader {
-        background-color: #262730 !important;
-        color: #fafafa !important;
-        border: 1px solid #41444e !important;
-    }
-    /* Mouse üzerine gelince (Hover) */
-    .streamlit-expanderHeader:hover {
-        background-color: #363945 !important;
-        color: #ffffff !important;
-    }
-    /* İçerik kısmı */
-    div[data-testid="stExpanderDetails"] {
-        background-color: #262730 !important;
-        color: #fafafa !important;
-        border: 1px solid #41444e !important;
-        border-top: none !important;
-    }
-
-    /* --- TEXT INPUT (API KEY & GÖZ İKONU) DÜZELTMESİ --- */
-    /* Input kutusu */
-    input[type="password"], input[type="text"] {
-        background-color: #1a1d24 !important;
-        color: #fafafa !important;
-        border-color: #41444e !important;
-    }
-    /* Şifre Göster/Gizle Göz İkonu */
-    button[aria-label="Show password text"], button[aria-label="Hide password text"] {
-        color: #fafafa !important; /* İkon rengini beyaz yap */
-    }
-    /* Göz ikonuna hover yapınca */
-    button[aria-label="Show password text"]:hover, button[aria-label="Hide password text"]:hover {
-        background-color: #363945 !important;
-    }
-
-    /* DİĞER BİLEŞENLER */
+    /* Passage Box ve Container'lar */
     .passage-box, .login-container, .control-panel { 
         background-color: #262730 !important; 
         color: #fafafa !important; 
         border-color: #41444e !important; 
     }
+    
+    /* Soru metni */
     .question-stem { 
         color: #fafafa !important; 
         background-color: #262730 !important; 
         border-left-color: #4f83f5 !important;
     }
-    h1, h2, h3, h4, h5, h6, p, span, div, label, li { color: #fafafa !important; }
+    
+    /* Tüm yazılar */
+    h1, h2, h3, h4, h5, h6, p, span, div, label, li { 
+        color: #fafafa !important; 
+    }
+    
+    /* Radio buttonlar ve seçenekler */
+    .stRadio > label { color: #fafafa !important; }
+    .stRadio > div { color: #fafafa !important; }
     .stRadio label { color: #fafafa !important; }
+    
+    /* Metric kartları */
     div[data-testid="stMetricValue"] { color: #fafafa !important; }
     div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
+    
+    /* Selectbox - DÜZELTME */
+    .stSelectbox > label { color: #fafafa !important; }
+    .stSelectbox > div > div { background-color: #262730 !important; }
+    div[data-baseweb="select"] { 
+        background-color: #262730 !important; 
+        color: #fafafa !important;
+    }
+    div[data-baseweb="select"] > div { 
+        background-color: #262730 !important; 
+        color: #fafafa !important;
+    }
+    div[data-baseweb="select"] * { 
+        color: #fafafa !important; 
+        background-color: #262730 !important;
+    }
+    /* Selectbox dropdown menüsü */
+    ul[role="listbox"] {
+        background-color: #262730 !important;
+    }
+    ul[role="listbox"] li {
+        background-color: #262730 !important;
+        color: #fafafa !important;
+    }
+    ul[role="listbox"] li:hover {
+        background-color: #363945 !important;
+    }
+    
+    /* Text Input - DÜZELTME */
+    .stTextInput > label { color: #fafafa !important; }
+    .stTextInput > div > div { background-color: #262730 !important; }
+    input { 
+        background-color: #262730 !important; 
+        color: #fafafa !important; 
+        border-color: #41444e !important; 
+    }
+    input::placeholder {
+        color: #8b8d98 !important;
+    }
+    /* Password input icon düzeltmesi */
+    .stTextInput button {
+        background-color: #262730 !important;
+        color: #fafafa !important;
+        border-color: #41444e !important;
+    }
+    .stTextInput button:hover {
+        background-color: #363945 !important;
+    }
+    .stTextInput button svg {
+        fill: #fafafa !important;
+        color: #fafafa !important;
+    }
+    
+    /* Expander - DÜZELTME */
+    .streamlit-expanderHeader { 
+        background-color: #262730 !important; 
+        color: #fafafa !important; 
+    }
+    details[data-testid="stExpander"] {
+        background-color: #262730 !important;
+        border-color: #41444e !important;
+    }
+    details[data-testid="stExpander"] summary {
+        background-color: #262730 !important;
+        color: #fafafa !important;
+    }
+    details[data-testid="stExpander"] summary:hover {
+        background-color: #363945 !important;
+    }
+    details[data-testid="stExpander"] > div {
+        background-color: #262730 !important;
+    }
+    
+    /* Progress bar metni */
+    .stProgress > div > div { color: #fafafa !important; }
+    p, .stMarkdown, .stMarkdown p { color: #fafafa !important; }
+    
+    /* Caption */
+    .caption { color: #c5c5c5 !important; }
+    
+    /* Legend Box */
+    .legend-box { 
+        background-color: #262730 !important; 
+        border-color: #41444e !important; 
+        color: #fafafa !important; 
+    }
+    
+    /* HR çizgisi */
+    hr { border-color: #41444e !important; }
+    
+    /* Butonlar */
     .stButton > button {
         background-color: #262730 !important;
         color: #fafafa !important;
@@ -117,12 +167,9 @@ if st.session_state.dark_mode:
         background-color: #363945 !important;
         border-color: #5a5f73 !important;
     }
-    .legend-box { 
-        background-color: #262730 !important; 
-        border-color: #41444e !important; 
-        color: #fafafa !important; 
-    }
-    hr { border-color: #41444e !important; }
+    
+    /* Toggle */
+    .stCheckbox > label { color: #fafafa !important; }
     """
 else:
     dark_css = ""
@@ -137,76 +184,119 @@ st.markdown(f"""
     
     {dark_css}
     
-    /* SIDEBAR GENİŞLİK */
+    /* SIDEBAR GENİŞLİK - Profesyonel Ayarlama */
     section[data-testid="stSidebar"] {{ 
         min-width: 380px !important; 
         max-width: 380px !important; 
     }}
 
     /* --- SORU HARİTASI BUTON DÜZENLEMESİ --- */
+    /* 5 Sütunlu Grid Layout */
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
         display: grid !important;
         grid-template-columns: repeat(5, 1fr) !important;
         gap: 6px !important;
         margin-bottom: 8px !important;
     }}
+    
+    /* Her kolon aynı genişlik */
     div[data-testid="stSidebar"] div[data-testid="column"] {{
         width: 100% !important;
         flex: none !important;
-        padding: 0 !important; margin: 0 !important;
+        min-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }}
+
+    /* BUTON STİLİ - Sabit Boyutlar */
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
-        width: 100% !important; height: 48px !important;
-        min-height: 48px !important; max-height: 48px !important;
-        padding: 4px !important; font-size: 13px !important;
-        font-weight: 600 !important; border-radius: 8px !important;
-        display: flex !important; flex-direction: column !important;
-        align-items: center !important; justify-content: center !important;
-        line-height: 1.2 !important; white-space: normal !important;
-        overflow: visible !important; box-sizing: border-box !important;
+        width: 100% !important;
+        height: 48px !important;
+        min-height: 48px !important;
+        max-height: 48px !important;
+        padding: 4px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        line-height: 1.2 !important;
+        white-space: normal !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
         transition: all 0.2s ease !important;
     }}
+    
+    /* Buton hover efekti */
     div[data-testid="stSidebar"] div[data-testid="column"] button:hover {{
         transform: translateY(-2px) !important;
         box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
     }}
 
-    /* DİĞER CSS */
+    /* DİĞER CSS AYARLARI */
     .login-container {{
-        max-width: 400px; margin: 60px auto; padding: 40px;
+        max-width: 400px; 
+        margin: 60px auto; 
+        padding: 40px;
         background: {'#262730' if st.session_state.dark_mode else 'white'}; 
-        border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-        text-align: center; border: 1px solid {'#41444e' if st.session_state.dark_mode else '#eef2f6'};
+        border-radius: 16px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+        text-align: center; 
+        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#eef2f6'};
     }}
+    
     .stTextInput > div > div > input {{ width: 100% !important; }}
-    div.stButton > button {{ width: 100% !important; border-radius: 8px; font-weight: 600; }}
+    div.stButton > button {{ 
+        width: 100% !important; 
+        border-radius: 8px; 
+        font-weight: 600; 
+    }}
     
     .passage-box {{ 
         background-color: {'#262730' if st.session_state.dark_mode else '#ffffff'}; 
-        padding: 25px; border-radius: 12px; 
+        padding: 25px; 
+        border-radius: 12px; 
         border: 1px solid {'#41444e' if st.session_state.dark_mode else '#dfe6e9'}; 
         color: {'#fafafa' if st.session_state.dark_mode else '#2d3436'}; 
-        overflow-y: auto; max-height: 70vh;
+        overflow-y: auto; 
+        max-height: 70vh;
     }}
+    
     .question-stem {{ 
-        font-weight: 600; border-left: 5px solid {'#4f83f5' if st.session_state.dark_mode else '#2563eb'}; 
-        padding-left: 15px; margin-bottom: 20px; 
+        font-weight: 600; 
+        border-left: 5px solid {'#4f83f5' if st.session_state.dark_mode else '#2563eb'}; 
+        padding-left: 15px; 
+        margin-bottom: 20px; 
         color: {'#fafafa' if st.session_state.dark_mode else '#1e293b'};
         background-color: transparent;
     }}
     
     .control-panel {{
-        position: sticky !important; top: 0; z-index: 999;
+        position: sticky !important; 
+        top: 0; 
+        z-index: 999;
         background: {'#262730' if st.session_state.dark_mode else 'white'};
-        padding: 15px 0; margin-bottom: 20px; 
+        padding: 15px 0; 
+        margin-bottom: 20px; 
         border-bottom: 2px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between; 
+        gap: 10px;
     }}
+    
+    /* Legend box düzeltmesi */
     .legend-box {{
         background-color: {'#262730' if st.session_state.dark_mode else '#f8fafc'};
         border: 1px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        padding: 8px; border-radius: 8px; font-size: 11px;
-        display: flex; justify-content: space-between; margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 11px;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -362,7 +452,7 @@ with st.sidebar:
         st.caption(f"📝 {answered}/{total} soru yanıtlandı")
         
         st.markdown("**🗺️ Soru Haritası**")
-        st.markdown(f'<div class="legend-box" style="color:{"#fafafa" if st.session_state.dark_mode else "#333"};"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="legend-box"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
 
         # 5'li KOLON DÖNGÜSÜ - Sabit Grid
         for row_start in range(0, len(df), 5):
@@ -378,35 +468,51 @@ with st.sidebar:
                     icon = ""
                     
                     if u_a:
-                        if st.session_state.exam_mode: icon = "🟦"
-                        else: icon = "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
-                    elif q_idx in st.session_state.marked: icon = "⭐"
+                        if st.session_state.exam_mode: 
+                            icon = "🟦"
+                        else: 
+                            icon = "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
+                    elif q_idx in st.session_state.marked: 
+                        icon = "⭐"
                     
+                    # Numara ve icon yan yana
                     lbl = f"{num}\n{icon}" if icon else num
+                    
                     b_type = "primary" if q_idx == st.session_state.idx else "secondary"
                     if st.button(lbl, key=f"nav_{q_idx}", type=b_type):
-                        st.session_state.idx = q_idx; st.rerun()
+                        st.session_state.idx = q_idx
+                        st.rerun()
         
         st.write("---")
         if not st.session_state.finish:
-            if st.button("🏁 SINAVI BİTİR", type="primary"): st.session_state.finish = True; st.rerun()
+            if st.button("🏁 SINAVI BİTİR", type="primary"): 
+                st.session_state.finish = True
+                st.rerun()
 
 # --- 8. ANA EKRAN ---
 if df is not None:
     if not st.session_state.finish:
+        # ÜST PANEL
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
-        with control_col1: st.markdown(f"<h3 style='margin:0;padding:0;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
+        with control_col1: 
+            st.markdown(f"<h3 style='margin:0;padding:0;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
         with control_col2: 
-            if st.button("A➖", key="font_dec"): st.session_state.font_size = max(12, st.session_state.font_size - 2); st.rerun()
+            if st.button("A➖", key="font_dec"): 
+                st.session_state.font_size = max(12, st.session_state.font_size - 2)
+                st.rerun()
         with control_col3: 
-            if st.button("A➕", key="font_inc"): st.session_state.font_size = min(30, st.session_state.font_size + 2); st.rerun()
-        with control_col4: st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
+            if st.button("A➕", key="font_inc"): 
+                st.session_state.font_size = min(30, st.session_state.font_size + 2)
+                st.rerun()
+        with control_col4: 
+            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
         with control_col5:
             is_m = st.session_state.idx in st.session_state.marked
             if st.button("⭐" if is_m else "☆", key="mark_tgl"):
                 if is_m: st.session_state.marked.remove(st.session_state.idx)
                 else: st.session_state.marked.add(st.session_state.idx)
-                autosave_progress(); st.rerun()
+                autosave_progress()
+                st.rerun()
 
         st.markdown("<hr style='margin:15px 0;'>", unsafe_allow_html=True)
         row = df.iloc[st.session_state.idx]
@@ -418,7 +524,8 @@ if df is not None:
             l, r = st.columns(2)
             l.markdown(f"<div class='passage-box' style='font-size:{f_size}px; line-height:{f_size*1.6}px;'>{passage}</div>", unsafe_allow_html=True)
             main_col = r
-        else: main_col = st.container()
+        else: 
+            main_col = st.container()
 
         with main_col:
             st.markdown(f"<div class='question-stem' style='font-size:{f_size+2}px;'>{stem}</div>", unsafe_allow_html=True)
@@ -431,31 +538,42 @@ if df is not None:
                 chosen = sel.split(")")[0]
                 if st.session_state.answers.get(st.session_state.idx) != chosen:
                     st.session_state.answers[st.session_state.idx] = chosen
-                    autosave_progress(); st.rerun()
+                    autosave_progress()
+                    st.rerun()
 
                 if not st.session_state.exam_mode:
-                    if chosen == row['Dogru_Cevap']: st.success("✅ DOĞRU!")
-                    else: st.error(f"❌ YANLIŞ! (Doğru: {row['Dogru_Cevap']})")
+                    if chosen == row['Dogru_Cevap']: 
+                        st.success("✅ DOĞRU!")
+                    else: 
+                        st.error(f"❌ YANLIŞ! (Doğru: {row['Dogru_Cevap']})")
 
         st.write("")
         c_act1, c_act2 = st.columns([1, 1])
         with c_act1:
             if st.button("🤖 AI Çözümle", use_container_width=True):
-                if not st.session_state.user_api_key: st.warning("⚠️ API Key Girin")
+                if not st.session_state.user_api_key: 
+                    st.warning("⚠️ API Key Girin")
                 else:
                     with st.spinner("🔍 Analiz..."):
                         try:
                             genai.configure(api_key=st.session_state.user_api_key)
                             model = genai.GenerativeModel('gemini-2.5-flash')
                             res = model.generate_content(f"Soru: {q_raw}. Doğru: {row['Dogru_Cevap']}. Detaylı anlat.").text
-                            st.session_state.gemini_res[st.session_state.idx] = res; st.rerun()
-                        except Exception as e: st.error(f"Hata: {e}")
+                            st.session_state.gemini_res[st.session_state.idx] = res
+                            st.rerun()
+                        except Exception as e: 
+                            st.error(f"Hata: {e}")
         with c_act2:
             c_p, c_n = st.columns(2)
-            if st.session_state.idx > 0 and c_p.button("⬅️ Önceki", use_container_width=True): st.session_state.idx -= 1; st.rerun()
-            if st.session_state.idx < len(df)-1 and c_n.button("Sonraki ➡️", use_container_width=True): st.session_state.idx += 1; st.rerun()
+            if st.session_state.idx > 0 and c_p.button("⬅️ Önceki", use_container_width=True): 
+                st.session_state.idx -= 1
+                st.rerun()
+            if st.session_state.idx < len(df)-1 and c_n.button("Sonraki ➡️", use_container_width=True): 
+                st.session_state.idx += 1
+                st.rerun()
             
-        if st.session_state.idx in st.session_state.gemini_res: st.info(st.session_state.gemini_res[st.session_state.idx])
+        if st.session_state.idx in st.session_state.gemini_res: 
+            st.info(st.session_state.gemini_res[st.session_state.idx])
 
     else:
         st.title("📊 Sonuçlar")
@@ -465,9 +583,11 @@ if df is not None:
         score = correct * 1.25
         if not st.session_state.data_saved:
             save_score_to_csv(st.session_state.username, f"Deneme {st.session_state.selected_exam_id}", score, correct, wrong, empty)
-            st.session_state.data_saved = True; st.balloons()
+            st.session_state.data_saved = True
+            st.balloons()
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Puan", score); m2.metric("Doğru", correct); m3.metric("Yanlış", wrong); m4.metric("Boş", empty)
+        m1.metric("Puan", score)
+        m2.metric("Doğru", correct); m3.metric("Yanlış", wrong); m4.metric("Boş", empty)
         if st.button("🔄 Yeni Sınav", type="primary"): 
             st.session_state.finish = False; st.session_state.answers = {}; st.session_state.idx = 0; st.rerun()
 else: st.warning("Dosya bulunamadı.")
