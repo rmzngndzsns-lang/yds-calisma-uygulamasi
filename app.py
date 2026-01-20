@@ -348,8 +348,11 @@ if df is not None:
         with main_col:
             st.markdown(f"<div class='question-stem' style='font-size:{f_size+2}px;'>{stem}</div>", unsafe_allow_html=True)
             opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
+            
+            # --- CEVAP MEKANİZMASI VE TEMİZLEME ÖZELLİĞİ ---
             curr = st.session_state.answers.get(st.session_state.idx)
             sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(curr) + ")")), None)
+            
             sel = st.radio("Cevabınız:", opts, index=sel_idx, key=f"ans_{st.session_state.idx}")
             
             if sel:
@@ -362,6 +365,16 @@ if df is not None:
                 if not st.session_state.exam_mode:
                     if chosen == row['Dogru_Cevap']: st.success("✅ DOĞRU!")
                     else: st.error(f"❌ YANLIŞ! (Doğru: {row['Dogru_Cevap']})")
+            
+            # CEVABI TEMİZLE BUTONU (Eğer cevap varsa göster)
+            if curr is not None:
+                if st.button("🗑️ Seçimi Temizle", key=f"clr_{st.session_state.idx}", help="Bu sorudaki işaretlemeyi kaldır"):
+                    del st.session_state.answers[st.session_state.idx]
+                    if f"ans_{st.session_state.idx}" in st.session_state:
+                        del st.session_state[f"ans_{st.session_state.idx}"]
+                    autosave_progress()
+                    st.rerun()
+            # ------------------------------------------------
 
         st.write("")
         c_act1, c_act2 = st.columns([1, 1])
