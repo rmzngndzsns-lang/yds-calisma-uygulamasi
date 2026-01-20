@@ -84,22 +84,25 @@ if st.session_state.dark_mode:
         fill: #fafafa !important;
     }
 
-    /* --- EXPANDER (AI AYARLARI) --- */
-.streamlit-expanderHeader { 
-    background-color: #262730 !important; 
-    color: #fafafa !important; 
-    border-radius: 4px;
-}
-.streamlit-expanderHeader:hover {
-    background-color: #363945 !important;
-    color: #4f83f5 !important;
-}
-
-.streamlit-expanderContent {
-    background-color: #262730 !important;
-    border: 1px solid #41444e !important;
-    color: #fafafa !important;
-}
+    /* --- EXPANDER (AI AYARLARI) DÜZELTMESİ --- */
+    .streamlit-expanderHeader { 
+        background-color: #262730 !important; 
+        color: #fafafa !important; 
+        border-radius: 4px;
+    }
+    .streamlit-expanderHeader:hover {
+        background-color: #363945 !important;
+        color: #4f83f5 !important;
+    }
+    /* Açık haldeki içerik kısmı */
+    details[data-testid="stExpander"] {
+        background-color: #262730 !important;
+        border-color: #41444e !important;
+        color: #fafafa !important;
+    }
+    details[data-testid="stExpander"] > div {
+        color: #fafafa !important;
+    }
 
     /* --- SELECTBOX (DROPDOWN) --- */
     div[data-baseweb="select"] > div {
