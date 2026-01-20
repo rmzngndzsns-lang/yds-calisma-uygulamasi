@@ -24,114 +24,46 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE - GÖZ İKONU VE KENARLIK DÜZELTMESİ) ---
+# --- 3. CSS (DARK MODE VE STİL DÜZELTMELERİ) ---
 if st.session_state.dark_mode:
     dark_css = """
     /* ANA GÖVDE */
-    .stApp { 
-        background-color: #0e1117 !important; 
-        color: #fafafa !important; 
-    }
+    .stApp { background-color: #0e1117 !important; color: #fafafa !important; }
     
     /* SIDEBAR */
-    section[data-testid="stSidebar"] { 
-        background-color: #1a1d24 !important; 
-    }
-    section[data-testid="stSidebar"] * {
-        color: #fafafa !important;
-    }
+    section[data-testid="stSidebar"] { background-color: #1a1d24 !important; }
+    section[data-testid="stSidebar"] * { color: #fafafa !important; }
 
-    /* KUTULAR VE METİNLER */
+    /* KUTULAR */
     .passage-box, .login-container, .control-panel { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-        border-color: #41444e !important; 
+        background-color: #262730 !important; color: #fafafa !important; border-color: #41444e !important; 
     }
     .question-stem { 
-        color: #fafafa !important; 
-        background-color: #262730 !important; 
-        border-left-color: #4f83f5 !important;
+        color: #fafafa !important; background-color: #262730 !important; border-left-color: #4f83f5 !important;
     }
-    h1, h2, h3, h4, h5, h6, p, span, div, label, li { 
-        color: #fafafa !important; 
-    }
+    h1, h2, h3, h4, h5, h6, p, span, div, label, li { color: #fafafa !important; }
     
-    /* --- KRİTİK DÜZELTME: TEXT INPUT (API KEY & GÖZ İKONU) --- */
-    
-    /* 1. Input Kapsayıcısı (Kenar Çizgisi Rengi) */
-    div[data-baseweb="input"] {
-        background-color: #262730 !important;
-        border-color: #41444e !important; /* Beyaz yerine koyu gri */
-    }
-    
-    /* 2. Input Alanının İçi */
-    .stTextInput input { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-        border: none !important; /* İç border'ı kaldır, kapsayıcı hallediyor */
-    }
-    
-    /* 3. GÖZ İKONU (Button) DÜZELTMESİ */
-    .stTextInput button {
-        background-color: #262730 !important; /* Arkası beyaz olmasın */
-        color: #fafafa !important; /* İkon rengi beyaz */
-        border: none !important;
-    }
-    .stTextInput button:hover {
-        background-color: #363945 !important; /* Üzerine gelince hafif açıl */
-    }
-    .stTextInput button svg {
-        fill: #fafafa !important;
-    }
+    /* INPUT DÜZELTMELERİ */
+    div[data-baseweb="input"] { background-color: #262730 !important; border-color: #41444e !important; }
+    .stTextInput input { background-color: #262730 !important; color: #fafafa !important; border: none !important; }
+    .stTextInput button { background-color: #262730 !important; color: #fafafa !important; border: none !important; }
+    .stTextInput button:hover { background-color: #363945 !important; }
+    .stTextInput button svg { fill: #fafafa !important; }
 
-    /* --- EXPANDER (AI AYARLARI) DÜZELTMESİ --- */
-    .streamlit-expanderHeader { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-        border-radius: 4px;
-    }
-    .streamlit-expanderHeader:hover {
-        background-color: #363945 !important;
-        color: #4f83f5 !important;
-    }
-    /* Açık haldeki içerik kısmı */
-    details[data-testid="stExpander"] {
-        background-color: #262730 !important;
-        border-color: #41444e !important;
-        color: #fafafa !important;
-    }
-    details[data-testid="stExpander"] > div {
-        color: #fafafa !important;
-    }
+    /* EXPANDER */
+    .streamlit-expanderHeader { background-color: #262730 !important; color: #fafafa !important; border-radius: 4px; }
+    .streamlit-expanderHeader:hover { background-color: #363945 !important; color: #4f83f5 !important; }
+    details[data-testid="stExpander"] { background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }
 
-    /* --- SELECTBOX (DROPDOWN) --- */
-    div[data-baseweb="select"] > div {
-        background-color: #262730 !important;
-        border-color: #41444e !important;
-        color: #fafafa !important;
-    }
-    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] {
-        background-color: #262730 !important;
-    }
-    li[role="option"] {
-        background-color: #262730 !important;
-        color: #fafafa !important;
-    }
-    li[role="option"][aria-selected="true"], li[role="option"]:hover {
-        background-color: #4f83f5 !important;
-        color: white !important;
-    }
+    /* SELECTBOX */
+    div[data-baseweb="select"] > div { background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }
+    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] { background-color: #262730 !important; }
+    li[role="option"] { background-color: #262730 !important; color: #fafafa !important; }
+    li[role="option"][aria-selected="true"], li[role="option"]:hover { background-color: #4f83f5 !important; color: white !important; }
     
     /* BUTONLAR */
-    .stButton > button {
-        background-color: #262730 !important;
-        color: #fafafa !important;
-        border: 1px solid #41444e !important;
-    }
-    .stButton > button:hover {
-        border-color: #4f83f5 !important;
-        color: #4f83f5 !important;
-    }
+    .stButton > button { background-color: #262730 !important; color: #fafafa !important; border: 1px solid #41444e !important; }
+    .stButton > button:hover { border-color: #4f83f5 !important; color: #4f83f5 !important; }
     
     /* DİĞER */
     .stRadio label { color: #fafafa !important; }
@@ -145,38 +77,25 @@ st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
     
-    .stApp {{ 
-        font-family: 'Poppins', sans-serif; 
-        background-color: {'#0e1117' if st.session_state.dark_mode else '#f8fafc'}; 
-    }}
-    
+    .stApp {{ font-family: 'Poppins', sans-serif; background-color: {'#0e1117' if st.session_state.dark_mode else '#f8fafc'}; }}
     {dark_css}
     
-    /* SIDEBAR GENİŞLİK */
-    section[data-testid="stSidebar"] {{ 
-        min-width: 380px !important; 
-        max-width: 380px !important; 
-    }}
+    /* SIDEBAR */
+    section[data-testid="stSidebar"] {{ min-width: 380px !important; max-width: 380px !important; }}
 
     /* SORU HARİTASI */
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
-        display: grid !important;
-        grid-template-columns: repeat(5, 1fr) !important;
-        gap: 6px !important;
-        margin-bottom: 8px !important;
+        display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; margin-bottom: 8px !important;
     }}
-    div[data-testid="stSidebar"] div[data-testid="column"] {{
-        width: 100% !important; flex: none !important; padding: 0 !important; margin: 0 !important;
-    }}
+    div[data-testid="stSidebar"] div[data-testid="column"] {{ width: 100% !important; flex: none !important; padding: 0 !important; margin: 0 !important; }}
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
         width: 100% !important; height: 48px !important; padding: 4px !important;
         font-size: 13px !important; font-weight: 600 !important; border-radius: 8px !important;
         display: flex !important; flex-direction: column !important; align-items: center !important;
-        justify-content: center !important; line-height: 1.2 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        justify-content: center !important; line-height: 1.2 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }}
     
-    /* ELEMENT STİLLERİ */
+    /* UI ELEMENTLERİ */
     .login-container {{
         max-width: 400px; margin: 60px auto; padding: 40px;
         background: {'#262730' if st.session_state.dark_mode else 'white'}; 
@@ -193,8 +112,7 @@ st.markdown(f"""
     .question-stem {{ 
         font-weight: 600; border-left: 5px solid {'#4f83f5' if st.session_state.dark_mode else '#2563eb'}; 
         padding-left: 15px; margin-bottom: 20px; 
-        color: {'#fafafa' if st.session_state.dark_mode else '#1e293b'};
-        background-color: transparent;
+        color: {'#fafafa' if st.session_state.dark_mode else '#1e293b'}; background-color: transparent;
     }}
     .control-panel {{
         position: sticky !important; top: 0; z-index: 999;
@@ -209,6 +127,12 @@ st.markdown(f"""
         padding: 8px; border-radius: 8px; font-size: 11px;
         display: flex; justify-content: space-between; margin-bottom: 10px;
         color: {'#fafafa' if st.session_state.dark_mode else '#333'};
+    }}
+    
+    /* MOBİLDE KOPYALA MENÜSÜNÜ ENGELLEMEK İÇİN */
+    .stRadio label {{
+        user-select: none !important; 
+        -webkit-user-select: none !important;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -479,3 +403,45 @@ if df is not None:
         if st.button("🔄 Yeni Sınav", type="primary"): 
             st.session_state.finish = False; st.session_state.answers = {}; st.session_state.idx = 0; st.rerun()
 else: st.warning("Dosya bulunamadı.")
+
+# --- 9. JAVASCRIPT: ŞIK ELEME ÖZELLİĞİ ---
+# Bilgisayarda Sağ Tık, Mobilde Uzun Basma (Basılı Tutma)
+components.html("""
+<script>
+    function toggleStrikethrough(element) {
+        if (element.style.textDecoration === "line-through") {
+            element.style.textDecoration = "none";
+            element.style.opacity = "1";
+        } else {
+            element.style.textDecoration = "line-through";
+            element.style.opacity = "0.5";
+        }
+    }
+
+    const observer = new MutationObserver((mutations) => {
+        const labels = parent.document.querySelectorAll('div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p');
+        labels.forEach(label => {
+            if (label.getAttribute('data-strike-listener') === 'true') return;
+            label.setAttribute('data-strike-listener', 'true');
+
+            // PC: Sağ Tık
+            label.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                toggleStrikethrough(this);
+            }, false);
+
+            // MOBİL: Uzun Basma
+            let pressTimer;
+            label.addEventListener('touchstart', function(e) {
+                pressTimer = setTimeout(() => {
+                    toggleStrikethrough(this);
+                    if (navigator.vibrate) navigator.vibrate(50);
+                }, 600);
+            });
+            label.addEventListener('touchend', function(e) { clearTimeout(pressTimer); });
+            label.addEventListener('touchmove', function(e) { clearTimeout(pressTimer); });
+        });
+    });
+    observer.observe(parent.document.body, { childList: true, subtree: true });
+</script>
+""", height=0, width=0)
