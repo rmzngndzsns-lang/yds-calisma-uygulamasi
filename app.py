@@ -69,9 +69,14 @@ if st.session_state.dark_mode:
     .stRadio label { color: #fafafa !important; }
     div[data-testid="stMetricValue"] { color: #fafafa !important; }
     div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
+    
+    /* VURGULAMA RENGİ (Koyu Modda biraz daha koyu sarı) */
+    .highlight-text { background-color: #bfa100 !important; color: #fff !important; cursor: context-menu; }
     """
 else:
-    dark_css = ""
+    dark_css = """
+    .highlight-text { background-color: #fff176; cursor: context-menu; }
+    """
 
 st.markdown(f"""
 <style>
@@ -341,11 +346,13 @@ if df is not None:
         f_size = st.session_state.font_size
         if passage:
             l, r = st.columns(2)
+            # passage-box sınıfı JS için önemli
             l.markdown(f"<div class='passage-box' style='font-size:{f_size}px; line-height:{f_size*1.6}px;'>{passage}</div>", unsafe_allow_html=True)
             main_col = r
         else: main_col = st.container()
 
         with main_col:
+            # question-stem sınıfı JS için önemli
             st.markdown(f"<div class='question-stem' style='font-size:{f_size+2}px;'>{stem}</div>", unsafe_allow_html=True)
             opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
             curr = st.session_state.answers.get(st.session_state.idx)
@@ -404,10 +411,14 @@ if df is not None:
             st.session_state.finish = False; st.session_state.answers = {}; st.session_state.idx = 0; st.rerun()
 else: st.warning("Dosya bulunamadı.")
 
-# --- 9. JAVASCRIPT: ŞIK ELEME ÖZELLİĞİ ---
-# Bilgisayarda Sağ Tık, Mobilde Uzun Basma (Basılı Tutma)
+# --- 9. JAVASCRIPT: ŞIK ELEME VE METİN VURGULAMA (HIGHLIGHT) ---
+# Özellik 1: Şıkların üstüne sağ tıklayınca/uzun basınca üzerini çizer.
+# Özellik 2: Metin seçince (paragraf/soru kökü) otomatik SARI yapar.
+# Özellik 3: Sarı metne sağ tıklayınca sarı rengi kaldırır.
+
 components.html("""
 <script>
+    // --- ŞIK ELEME (STRIKETHROUGH) ---
     function toggleStrikethrough(element) {
         if (element.style.textDecoration === "line-through") {
             element.style.textDecoration = "none";
@@ -418,19 +429,60 @@ components.html("""
         }
     }
 
+    // --- METİN VURGULAMA (HIGHLIGHT) ---
+    function highlightSelection() {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        
+        const range = selection.getRangeAt(0);
+        const selectedText = selection.toString();
+        
+        if (selectedText.length === 0) return;
+
+        // Sadece passage-box veya question-stem içindeyse izin ver
+        let node = range.commonAncestorContainer;
+        while (node) {
+            if (node.nodeType === 1 && (node.classList.contains('passage-box') || node.classList.contains('question-stem'))) {
+                try {
+                    const span = document.createElement("span");
+                    span.className = "highlight-text"; // CSS'de tanımlı sarı renk
+                    range.surroundContents(span);
+                    selection.removeAllRanges(); // Seçimi temizle ki sarı renk net görünsün
+                } catch (e) {
+                    console.log("Karmaşık seçim hatası (farklı bloklar seçildiğinde oluşabilir)");
+                }
+                break;
+            }
+            node = node.parentNode;
+        }
+    }
+
+    // --- VURGULAMA KALDIRMA ---
+    function removeHighlight(element) {
+        // Elementi kendi içeriğiyle değiştir (unwrap)
+        const parent = element.parentNode;
+        while (element.firstChild) {
+            parent.insertBefore(element.firstChild, element);
+        }
+        parent.removeChild(element);
+    }
+
+    // --- ANA GÖZLEMCİ ---
     const observer = new MutationObserver((mutations) => {
+        
+        // 1. Radyo Butonları (Şık Eleme) için Dinleyiciler
         const labels = parent.document.querySelectorAll('div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p');
         labels.forEach(label => {
             if (label.getAttribute('data-strike-listener') === 'true') return;
             label.setAttribute('data-strike-listener', 'true');
 
-            // PC: Sağ Tık
+            // PC: Sağ Tık (Eleme)
             label.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
                 toggleStrikethrough(this);
             }, false);
 
-            // MOBİL: Uzun Basma
+            // MOBİL: Uzun Basma (Eleme)
             let pressTimer;
             label.addEventListener('touchstart', function(e) {
                 pressTimer = setTimeout(() => {
@@ -441,7 +493,30 @@ components.html("""
             label.addEventListener('touchend', function(e) { clearTimeout(pressTimer); });
             label.addEventListener('touchmove', function(e) { clearTimeout(pressTimer); });
         });
+
+        // 2. Metin Kutuları (Vurgulama) için Dinleyiciler
+        // Sadece passage-box ve question-stem sınıflarını hedefle
+        const textAreas = parent.document.querySelectorAll('.passage-box, .question-stem');
+        
+        textAreas.forEach(area => {
+            if (area.getAttribute('data-highlight-listener') === 'true') return;
+            area.setAttribute('data-highlight-listener', 'true');
+
+            // Metin Seçimi Bittiğinde (Mouse Up)
+            area.addEventListener('mouseup', function(e) {
+                highlightSelection();
+            });
+
+            // Sağ Tık (Vurgulamayı Kaldırmak İçin)
+            area.addEventListener('contextmenu', function(e) {
+                if (e.target.classList.contains('highlight-text')) {
+                    e.preventDefault(); // Menüyü engelle
+                    removeHighlight(e.target);
+                }
+            });
+        });
     });
+
     observer.observe(parent.document.body, { childList: true, subtree: true });
 </script>
 """, height=0, width=0)
