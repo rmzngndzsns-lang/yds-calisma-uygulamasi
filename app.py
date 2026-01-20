@@ -7,6 +7,7 @@ import os
 import json
 import nest_asyncio
 import html
+import re  # Regex için eklendi
 
 # Döngü yaması
 nest_asyncio.apply()
@@ -31,11 +32,13 @@ if st.session_state.dark_mode:
     text_color = "#fafafa"
     box_bg = "#262730"
     border_color = "#41444e"
+    input_bg = "#262730"
 else:
     bg_color = "#f8fafc"
     text_color = "#1e293b"
     box_bg = "#ffffff"
     border_color = "#dfe6e9"
+    input_bg = "#ffffff"
 
 st.markdown(f"""
 <style>
@@ -60,35 +63,42 @@ st.markdown(f"""
     section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
     
     /* INPUT & BUTTONS - DARK MODE FIX */
-    .stTextInput input {{ color: {text_color} !important; }}
+    .stTextInput input {{ color: {text_color} !important; background-color: {input_bg} !important; }}
     div[data-baseweb="select"] > div {{ background-color: {box_bg} !important; color: {text_color} !important; }}
     p, h1, h2, h3 {{ color: {text_color} !important; }}
+    
+    /* Radyo Butonlarını Biraz Daha Belirgin Yap */
+    .stRadio label {{ font-weight: 500 !important; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. ÖZEL HTML METİN KUTUSU FONKSİYONU (BOYAMA İÇİN) ---
-def render_highlightable_text(text, height=300, is_stem=False):
+# --- 4. ÖZEL HTML METİN KUTUSU FONKSİYONU ---
+def render_highlightable_text(text, height=300, is_stem=False, allow_html=False):
     """
     Bu fonksiyon metni bir HTML Iframe içine gömer.
-    Böylece JS ile seçim ve boyama işlemi %100 çalışır.
+    allow_html=True ise dışarıdan gelen HTML taglerini (kırmızı span gibi) işler.
     """
     # Renk Ayarları
     if st.session_state.dark_mode:
         c_bg = "#262730"
         c_txt = "#fafafa"
-        c_sel = "#bfa100" # Koyu mod için sarı
+        c_sel = "#bfa100" 
         c_border = "#4f83f5" if is_stem else "#41444e"
         c_border_width = "4px" if is_stem else "1px"
-        font_weight = "600" if is_stem else "400"
     else:
         c_bg = "#ffffff"
         c_txt = "#2d3436"
-        c_sel = "#fff176" # Açık mod için sarı
+        c_sel = "#fff176" 
         c_border = "#2563eb" if is_stem else "#dfe6e9"
         c_border_width = "4px" if is_stem else "1px"
-        font_weight = "600" if is_stem else "400"
 
-    # HTML İçeriği
+    # HTML Escape İşlemi (Güvenlik ve Format İçin)
+    # Eğer biz python tarafında <span> eklediysek (allow_html=True), escape yapmıyoruz.
+    final_text = text if allow_html else html.escape(text)
+    
+    # Satır sonlarını <br> yap
+    final_text = final_text.replace('\n', '<br>')
+
     html_code = f"""
     <html>
     <head>
@@ -98,10 +108,12 @@ def render_highlightable_text(text, height=300, is_stem=False):
             background-color: {c_bg};
             color: {c_txt};
             font-size: {st.session_state.font_size}px;
+            /* BURASI GÜNCELLENDİ: Yazıları Bold Yap */
+            font-weight: 600; 
             line-height: 1.6;
             margin: 0;
             padding: 15px;
-            user-select: text; /* Seçime izin ver */
+            user-select: text;
         }}
         .container {{
             border: {c_border_width} solid {c_border};
@@ -112,7 +124,6 @@ def render_highlightable_text(text, height=300, is_stem=False):
             overflow-y: auto;
             border-left: { "5px solid " + c_border if is_stem else "1px solid " + c_border };
         }}
-        /* Sarı Boyama Sınıfı */
         .highlight {{
             background-color: {c_sel};
             color: #000;
@@ -120,49 +131,35 @@ def render_highlightable_text(text, height=300, is_stem=False):
             border-radius: 2px;
             padding: 0 2px;
         }}
-        /* Scrollbar şıklığı */
         ::-webkit-scrollbar {{ width: 8px; }}
         ::-webkit-scrollbar-track {{ background: {c_bg}; }}
         ::-webkit-scrollbar-thumb {{ background: #888; border-radius: 4px; }}
-        ::-webkit-scrollbar-thumb:hover {{ background: #555; }}
     </style>
     </head>
     <body>
-        <div class="container" id="content-area">{html.escape(text).replace(chr(10), '<br>')}</div>
+        <div class="container" id="content-area">{final_text}</div>
 
         <script>
             const area = document.getElementById('content-area');
-
-            // 1. SOL TIK SEÇİM İLE BOYAMA
             document.addEventListener('mouseup', function() {{
                 let selection = window.getSelection();
                 if (selection.toString().length > 0) {{
                     let range = selection.getRangeAt(0);
-                    
-                    // Seçim sadece bizim kutumuzun içindeyse işlem yap
                     if (area.contains(range.commonAncestorContainer)) {{
                         try {{
                             let span = document.createElement('span');
                             span.className = 'highlight';
                             range.surroundContents(span);
-                            selection.removeAllRanges(); // Seçimi kaldır ki boya görünsün
-                        }} catch (e) {{
-                            console.log("Karmaşık HTML yapısında seçim hatası (normaldir).");
-                        }}
+                            selection.removeAllRanges();
+                        }} catch (e) {{ console.log("Seçim hatası"); }}
                     }}
                 }}
             }});
-
-            // 2. SAĞ TIK İLE BOYAYI SİLME
             document.addEventListener('contextmenu', function(e) {{
                 if (e.target.classList.contains('highlight')) {{
-                    e.preventDefault(); // Menüyü açma
-                    
-                    // Boyalı span'ı kaldır ama metni koru
+                    e.preventDefault();
                     let parent = e.target.parentNode;
-                    while (e.target.firstChild) {{
-                        parent.insertBefore(e.target.firstChild, e.target);
-                    }}
+                    while (e.target.firstChild) {{ parent.insertBefore(e.target.firstChild, e.target); }}
                     parent.removeChild(e.target);
                 }}
             }});
@@ -172,7 +169,40 @@ def render_highlightable_text(text, height=300, is_stem=False):
     """
     components.html(html_code, height=height, scrolling=False)
 
-# --- 5. VERİ YÜKLEME ---
+# --- 5. YARDIMCI FONKSİYON: METİN İÇİNE CEVAP GÖMME ---
+def inject_answer_to_text(text, answer_full_str):
+    """
+    Metin içindeki '----', '____' veya '....' gibi alanları bulur
+    ve seçilen şıkkın metniyle (Kırmızı/Bold HTML) değiştirir.
+    answer_full_str: "A) Apple" gibi gelir, biz sadece "Apple" kısmını alırız.
+    """
+    if not answer_full_str:
+        return html.escape(text), False # Cevap yoksa normal escape yap
+
+    # Şıkkın sadece metin kısmını al (Örn: "A) name" -> "name")
+    try:
+        if ')' in answer_full_str:
+            ans_text = answer_full_str.split(')', 1)[1].strip()
+        else:
+            ans_text = answer_full_str
+    except:
+        ans_text = answer_full_str
+
+    # HTML formatında kırmızı cevap
+    replacement_html = f"<span style='color:#e74c3c; font-weight:800; text-decoration:underline;'>{html.escape(ans_text)}</span>"
+
+    # Önce ana metni güvenli hale getir (escape)
+    safe_text = html.escape(text)
+
+    # Regex ile boşlukları bul (3 veya daha fazla -, _ veya . yan yana)
+    # pattern: [-_\\.]{3,}
+    # safe_text içinde çalıştığımız için html entity bozulmamalı, ama escape sonrası _ ve - değişmez.
+    
+    new_text, count = re.subn(r'([_\-\.]{3,})', replacement_html, safe_text)
+    
+    return new_text, True # True = HTML içeriyor demek
+
+# --- 6. VERİ YÜKLEME ---
 SCORES_FILE = "lms_scores.csv"
 
 @st.cache_data(show_spinner=False)
@@ -231,7 +261,7 @@ def load_progress():
             except: pass
     return False
 
-# --- 6. GİRİŞ EKRANI ---
+# --- 7. GİRİŞ VE SAYAÇ ---
 if st.session_state.username is None:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -251,7 +281,6 @@ if not st.session_state.progress_loaded:
     load_progress()
     st.session_state.progress_loaded = True
 
-# --- 7. VERİ YÜKLEME ---
 exam_id = st.session_state.selected_exam_id
 if st.session_state.current_exam_data is None or st.session_state.cached_exam_id != exam_id:
     df = load_exam_file_cached(exam_id)
@@ -368,28 +397,48 @@ if df is not None:
                 st.rerun()
 
         st.markdown("<hr style='margin:15px 0;'>", unsafe_allow_html=True)
+        
+        # VERİLERİ HAZIRLA
         row = df.iloc[st.session_state.idx]
         q_raw = str(row['Soru']).replace('\\n', '\n')
         passage, stem = (q_raw.split('\n\n', 1) if '\n\n' in q_raw else (None, q_raw))
         
-        # --- ANA DEĞİŞİKLİK BURADA: Metinleri HTML Component ile çiziyoruz ---
+        # --- DİNAMİK CEVAP YERLEŞTİRME ---
+        current_ans_full = st.session_state.answers.get(st.session_state.idx)
+        
+        # Cevabı metin içine göm (HTML Formatında)
+        # Eğer cevap varsa gömer, yoksa metni escape edip döner
+        final_stem, is_html_stem = inject_answer_to_text(stem, current_ans_full)
         if passage:
+            final_passage, is_html_passage = inject_answer_to_text(passage, current_ans_full)
+        else:
+            final_passage, is_html_passage = None, False
+
+        # --- EKRANA ÇİZME ---
+        if final_passage:
             l, r = st.columns(2)
             with l:
-                render_highlightable_text(passage, height=450, is_stem=False)
+                # height'i biraz artırdık, okuma kolaylığı için
+                render_highlightable_text(final_passage, height=450, is_stem=False, allow_html=is_html_passage)
             main_col = r
         else: main_col = st.container()
 
         with main_col:
             # Soru Kökü
-            render_highlightable_text(stem, height=150 if passage else 200, is_stem=True)
+            render_highlightable_text(final_stem, height=200, is_stem=True, allow_html=is_html_stem)
             
             # Şıklar
             opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
-            curr = st.session_state.answers.get(st.session_state.idx)
-            sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(curr) + ")")), None)
+            
+            # Seçili indexi bul
+            sel_idx = None
+            if current_ans_full:
+                sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(current_ans_full) + ")")), None)
+            
+            # Radio Buton
             sel = st.radio("Cevabınız:", opts, index=sel_idx, key=f"ans_{st.session_state.idx}")
             
+            # Cevabı Kaydet
             if sel:
                 chosen = sel.split(")")[0]
                 if st.session_state.answers.get(st.session_state.idx) != chosen:
@@ -400,6 +449,14 @@ if df is not None:
                 if not st.session_state.exam_mode:
                     if chosen == row['Dogru_Cevap']: st.success("✅ DOĞRU!")
                     else: st.error(f"❌ YANLIŞ! (Doğru: {row['Dogru_Cevap']})")
+            
+            # --- CEVABI SİLME BUTONU ---
+            st.write("")
+            if st.session_state.idx in st.session_state.answers:
+                if st.button("🗑️ Cevabı Temizle / Boş Bırak", type="secondary", use_container_width=True):
+                    del st.session_state.answers[st.session_state.idx]
+                    autosave_progress()
+                    st.rerun()
 
         st.write("")
         c_act1, c_act2 = st.columns([1, 1])
@@ -443,8 +500,6 @@ if df is not None:
 else: st.warning("Dosya bulunamadı.")
 
 # --- 10. JAVASCRIPT: ŞIK ELEME (RADYO BUTONLARI İÇİN) ---
-# Soru metinleri için yukarıdaki özel fonksiyon çalışıyor.
-# Şıklar içinse (st.radio) bu script gerekli.
 components.html("""
 <script>
     function toggleStrikethrough(element) {
@@ -462,12 +517,10 @@ components.html("""
             if (label.getAttribute('data-strike-listener') === 'true') return;
             label.setAttribute('data-strike-listener', 'true');
             
-            // PC Sağ Tık
             label.addEventListener('contextmenu', function(e) {
                 e.preventDefault(); toggleStrikethrough(this);
             }, false);
             
-            // Mobil Uzun Basma
             let pressTimer;
             label.addEventListener('touchstart', function(e) {
                 pressTimer = setTimeout(() => { toggleStrikethrough(this); if(navigator.vibrate) navigator.vibrate(50); }, 600);
