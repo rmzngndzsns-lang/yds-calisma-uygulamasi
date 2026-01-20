@@ -25,20 +25,20 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. PROFESYONEL CSS (MINIMALIST & DARK) ---
+# --- 3. PROFESYONEL CSS (DÜZELTİLMİŞ & MINIMALIST) ---
 # AI Kutuları için yeni, modern, göz yormayan tasarım
 ai_box_css = """
     /* AI KUTU GENEL STİLİ - Modern Card Yapısı */
     .ai-box {
-        background-color: #1e2025 !important; /* Çok koyu gri arka plan */
+        background-color: #1e2126 !important; /* Çok koyu gri/antrasit arka plan */
         padding: 18px 22px;
         border-radius: 8px;
         margin-bottom: 16px;
-        color: #e2e8f0 !important; /* Kırık beyaz metin */
+        color: #e6e6e6 !important; /* Kırık beyaz metin - Okunabilirlik için */
         font-size: 15px;
         line-height: 1.7;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        border: 1px solid #2d3748; /* İnce çerçeve */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* Hafif gölge */
+        border: 1px solid #363b42; /* İnce çerçeve */
         border-left-width: 5px; /* Sol çizgi kalın */
     }
     
@@ -46,6 +46,7 @@ ai_box_css = """
         font-weight: 600;
         margin-bottom: 8px;
         display: block;
+        color: #ffffff !important;
     }
     
     .ai-box ul { margin-left: 18px; margin-top: 5px; }
@@ -77,22 +78,22 @@ ai_box_css = """
 if st.session_state.dark_mode:
     main_css = f"""
     /* GENEL RENKLER */
-    .stApp {{ background-color: #0e1117 !important; color: #f1f5f9 !important; }}
+    .stApp {{ background-color: #0e1117 !important; color: #e6e6e6 !important; }}
     
     /* SIDEBAR */
     section[data-testid="stSidebar"] {{ background-color: #161b22 !important; border-right: 1px solid #30363d; }}
-    section[data-testid="stSidebar"] * {{ color: #e6edf3 !important; }}
+    section[data-testid="stSidebar"] * {{ color: #e6e6e6 !important; }}
 
     /* KUTULAR (Passage, Login) */
     .passage-box, .login-container {{ 
-        background-color: #1e2025 !important; 
-        color: #e6edf3 !important; 
-        border: 1px solid #30363d !important; 
+        background-color: #1e2126 !important; 
+        color: #e6e6e6 !important; 
+        border: 1px solid #363b42 !important; 
     }}
     
     /* SORU KÖKÜ */
     .question-stem {{ 
-        color: #e6edf3 !important; 
+        color: #ffffff !important; 
         background-color: transparent !important; 
         border-left: 4px solid #3b82f6 !important;
         padding-left: 15px;
@@ -101,38 +102,43 @@ if st.session_state.dark_mode:
     /* INPUT & SELECTBOX ARKAPLANLARI */
     .stTextInput input, .stSelectbox div[data-baseweb="select"] > div {{ 
         background-color: #0d1117 !important; 
-        color: #e6edf3 !important; 
+        color: #e6e6e6 !important; 
         border: 1px solid #30363d !important; 
     }}
     
-    /* BUTONLAR İÇİN KESİN ÇÖZÜM (Seçimi Temizle Dahil) */
-    .stButton > button {{
-        background-color: #21262d !important; /* Koyu Gri Arkaplan */
-        color: #c9d1d9 !important;
+    /* --- BUTON DÜZELTMESİ (KRİTİK) --- */
+    /* Tüm butonları koyu yap, beyaz arka planı engelle */
+    div.stButton > button {{
+        background-color: #21262d !important; /* Koyu Gri */
+        color: #c9d1d9 !important; /* Açık Gri Yazı */
         border: 1px solid #30363d !important;
         transition: all 0.2s ease;
     }}
-    .stButton > button:hover {{
-        background-color: #30363d !important; /* Hoverda biraz açılır */
+    
+    /* Hover (Üzerine gelince) */
+    div.stButton > button:hover {{
+        background-color: #30363d !important; /* Biraz daha açık gri */
         color: #58a6ff !important; /* Mavi yazı */
         border-color: #8b949e !important;
     }}
-    .stButton > button:active {{
-        background-color: #238636 !important; /* Tıklayınca yeşil */
+    
+    /* Active (Tıklayınca) */
+    div.stButton > button:active {{
+        background-color: #238636 !important; 
         color: white !important;
     }}
 
     /* RADIO BUTTON YAZILARI */
-    .stRadio label {{ color: #e6edf3 !important; }}
+    .stRadio label {{ color: #e6e6e6 !important; }}
     
     /* EXPANDER */
-    .streamlit-expanderHeader {{ background-color: #1e2025 !important; color: #e6edf3 !important; }}
+    .streamlit-expanderHeader {{ background-color: #1e2126 !important; color: #e6e6e6 !important; }}
     
     {ai_box_css}
     """
 else:
-    # Light Mode olsa bile AI kutuları şık kalsın, sadece arka planı biraz açalım
-    main_css = ai_box_css.replace("#1e2025", "#ffffff").replace("#e2e8f0", "#1e293b").replace("#2d3748", "#e2e8f0")
+    # Light Mode ayarları (AI kutuları yine de temiz kalsın)
+    main_css = ai_box_css.replace("#1e2126", "#ffffff").replace("#e6e6e6", "#1e293b").replace("#363b42", "#e2e8f0")
 
 st.markdown(f"""
 <style>
@@ -141,10 +147,12 @@ st.markdown(f"""
     .stApp {{ font-family: 'Inter', sans-serif; }}
     {main_css}
     
-    /* SIDEBAR SORU BUTONLARI */
+    /* SIDEBAR SORU BUTONLARI ÖZEL AYAR */
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
         font-size: 12px !important; font-weight: 600 !important; border-radius: 6px !important;
         box-shadow: none !important;
+        background-color: #21262d !important; /* Buton içi koyu */
+        color: #c9d1d9 !important;
     }}
     
     /* UI ELEMENTLERİ */
@@ -348,7 +356,7 @@ if df is not None:
         # ÜST PANEL
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
         with control_col1: 
-            st.markdown(f"<h3 style='margin:0;padding:0;color:{'#f1f5f9' if st.session_state.dark_mode else '#1e293b'};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='margin:0;padding:0;color:{'#ffffff' if st.session_state.dark_mode else '#1e293b'};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
         with control_col2: 
             if st.button("A➖", key="font_dec"): 
                 st.session_state.font_size = max(12, st.session_state.font_size - 2)
@@ -358,7 +366,7 @@ if df is not None:
                 st.session_state.font_size = min(30, st.session_state.font_size + 2)
                 st.rerun()
         with control_col4: 
-            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{'#f1f5f9' if st.session_state.dark_mode else '#1e293b'};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{'#e6e6e6' if st.session_state.dark_mode else '#1e293b'};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
         with control_col5:
             is_m = st.session_state.idx in st.session_state.marked
             if st.button("⭐" if is_m else "☆", key="mark_tgl"):
@@ -402,7 +410,6 @@ if df is not None:
             
             # --- DÜZELTİLMİŞ TEMİZLE BUTONU ---
             if curr is not None:
-                # Butonu sağa yaslamak yerine direkt gösteriyoruz, CSS ile rengini düzelttik
                 if st.button("🗑️ Seçimi Temizle", key=f"clr_{st.session_state.idx}", help="Bu sorudaki işaretlemeyi kaldır"):
                     del st.session_state.answers[st.session_state.idx]
                     if f"ans_{st.session_state.idx}" in st.session_state:
@@ -470,9 +477,6 @@ if df is not None:
                     elif "2." in sec: style_class = "ai-style-2"
                     elif "3." in sec: style_class = "ai-style-3"
                     elif "4." in sec: style_class = "ai-style-4"
-                    
-                    # Başlık numaralarını (1., 2.) temizleyip daha temiz gösterelim istersen:
-                    # sec = re.sub(r'^\d+\.\s', '', sec) 
                     
                     st.markdown(f"<div class='ai-box {style_class}'>{sec}</div>", unsafe_allow_html=True)
 
