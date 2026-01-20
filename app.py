@@ -19,102 +19,178 @@ defaults = {
     'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
     'user_api_key': "", 'font_size': 16, 'exam_mode': False, 'end_timestamp': 0,
     'current_exam_data': None, 'cached_exam_id': None, 'progress_loaded': False,
-    'dark_mode': False # Dark Mod Durumu
+    'dark_mode': False
 }
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (MOBİL VE DARK MODE DÜZELTMELERİ İLE) ---
-dark_css = """
-    .stApp { background-color: #0e1117 !important; color: #fafafa !important; }
-    .passage-box, .login-container, .control-panel { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-        border-color: #41444e !important; 
-    }
-    .question-stem { color: #e0e0e0 !important; background-color: #262730 !important; }
-    h1, h2, h3, p, span, div { color: #fafafa !important; }
-    .stMarkdown { color: #fafafa !important; }
-    div[data-testid="stSidebar"] { background-color: #262730 !important; }
-    .legend-box { background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }
-""" if st.session_state.dark_mode else ""
+# --- 3. CSS (DARK MODE VE KUTU DÜZELTMELERİ) ---
+
+# Renk Paletleri
+light_bg = "#ffffff"
+light_text = "#31333F"
+dark_bg = "#262730"
+dark_text = "#FAFAFA"
+sidebar_light = "#f0f2f6"
+sidebar_dark = "#1c1e24"
+
+# Dinamik CSS Oluşturma
+current_theme = "dark" if st.session_state.dark_mode else "light"
+bg_color = dark_bg if st.session_state.dark_mode else light_bg
+text_color = dark_text if st.session_state.dark_mode else light_text
+sidebar_bg = sidebar_dark if st.session_state.dark_mode else sidebar_light
 
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-    .stApp {{ font-family: 'Poppins', sans-serif; background-color: #f8fafc; }}
     
-    {dark_css}
-    
-    /* SIDEBAR GENİŞLİK */
-    section[data-testid="stSidebar"] {{ min-width: 350px !important; max-width: 350px !important; }}
-
-    /* --- KRİTİK MOBİL DÜZELTMESİ (5 SÜTUN ZORLAMASI) --- */
-    /* Telefondaki dikey (column) davranışını eziyoruz */
-    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
-        flex-direction: row !important; /* Yan yana diz */
-        flex-wrap: nowrap !important;   /* Satırı kırma (5 tane sığdıracağız) */
+    /* GENEL SAYFA AYARLARI */
+    .stApp {{
+        background-color: {bg_color} !important;
+        color: {text_color} !important;
+        font-family: 'Poppins', sans-serif;
     }}
     
-    /* Kolonların kendisi */
+    /* SIDEBAR GENİŞLİK VE RENK */
+    section[data-testid="stSidebar"] {{
+        min-width: 380px !important;
+        max-width: 380px !important;
+        background-color: {sidebar_bg} !important;
+    }}
+    
+    /* SIDEBAR İÇİNDEKİ YAZILARIN RENGİ */
+    section[data-testid="stSidebar"] .stMarkdown, 
+    section[data-testid="stSidebar"] h1, 
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3, 
+    section[data-testid="stSidebar"] p, 
+    section[data-testid="stSidebar"] span {{
+        color: {text_color} !important;
+    }}
+
+    /* --- SORU HARİTASI (BETONARME YAPI) --- */
+    
+    /* 1. Kolonları Sabitleme */
     div[data-testid="stSidebar"] div[data-testid="column"] {{
-        width: 20% !important;        /* 5 tane olduğu için %20 */
-        flex: 1 1 auto !important;
-        min-width: 40px !important;   /* Minimum genişlik */
-        padding: 0px !important;
+        width: 52px !important;       /* Genişlik ARTIRILDI */
+        min-width: 52px !important;
+        max-width: 52px !important;
+        flex: 0 0 52px !important;    /* Esneme SIFIR */
+        padding: 1px !important;
         margin: 1px !important;
     }}
 
-    /* BUTON STİLİ (İKON DESTEKLİ) */
+    /* 2. Butonları Sabitleme */
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
-        width: 100% !important;       /* Kolonu doldur */
-        height: 42px !important;
-        padding: 0 !important;
-        font-size: 10px !important;   /* Yazı sığsın diye küçülttük */
+        width: 50px !important;       /* Buton Genişliği */
+        height: 45px !important;      /* Buton Yüksekliği */
+        min-width: 50px !important;
+        max-width: 50px !important;
+        min-height: 45px !important;
+        max-height: 45px !important;
+        
+        padding: 0px !important;
+        font-size: 11px !important;   /* Fontu biraz küçülttük ki sığsın */
         font-weight: 700 !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
+        
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        line-height: 1 !important;
+        text-align: center !important;
+        
         white-space: nowrap !important;
-        overflow: hidden !important;  /* Taşmayı gizle */
+        overflow: hidden !important;
+        
+        /* Dark modda buton yazı rengi */
+        color: #31333F !important; 
+    }}
+    
+    /* Aktif butonun rengi (Primary) */
+    div[data-testid="stSidebar"] div[data-testid="column"] button:focus {{
+        color: white !important;
     }}
 
-    /* DİĞER CSS AYARLARI */
+    /* KUTULAR ARASI BOŞLUKLARI DÜZENLE */
+    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
+        gap: 2px !important;
+        justify-content: center !important;
+    }}
+
+    /* --- İÇERİK KUTULARI (DARK MOD UYUMLU) --- */
+    .passage-box, .login-container, .control-panel {{
+        background-color: {sidebar_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#dfe6e9'} !important;
+        padding: 25px;
+        border-radius: 12px;
+    }}
+    
+    /* Okuma Parçası Scroll */
+    .passage-box {{
+        overflow-y: auto;
+        max-height: 70vh;
+        transition: font-size 0.2s ease;
+    }}
+
+    /* SORU KÖKÜ */
+    .question-stem {{
+        font-weight: 600;
+        border-left: 5px solid #2563eb;
+        padding-left: 15px;
+        margin-bottom: 20px;
+        color: {text_color} !important;
+        background-color: transparent !important;
+    }}
+    
+    /* GİRİŞ EKRANI ORTALAMA */
     .login-container {{
-        max-width: 400px; margin: 60px auto; padding: 40px;
-        background: white; border-radius: 16px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; border: 1px solid #eef2f6;
-    }}
-    .stTextInput > div > div > input {{ width: 100% !important; }}
-    div.stButton > button {{ width: 100% !important; border-radius: 8px; font-weight: 600; }}
-    
-    .passage-box {{ 
-        background-color: #ffffff; padding: 25px; border-radius: 12px; 
-        border: 1px solid #dfe6e9; color: #2d3436; 
-        overflow-y: auto; max-height: 70vh;
-    }}
-    .question-stem {{ 
-        font-weight: 600; border-left: 5px solid #2563eb; 
-        padding-left: 15px; margin-bottom: 20px; color: #1e293b;
+        max-width: 400px; margin: 60px auto; text-align: center;
     }}
     
+    /* RADIO BUTTON YAZILARI DARK MOD */
+    .stRadio label {{
+        color: {text_color} !important;
+    }}
+    .stRadio div[role="radiogroup"] {{
+        color: {text_color} !important;
+    }}
+
+    /* BUTONLAR */
+    div.stButton > button {{
+        width: 100% !important;
+        border-radius: 8px;
+        font-weight: 600;
+        background-color: #ffffff;
+        color: #31333F;
+        border: 1px solid #d1d5db;
+    }}
+    /* Primary Buton (Mavi) */
+    div.stButton > button[kind="primary"] {{
+        background-color: #2563eb !important;
+        color: white !important;
+        border: none !important;
+    }}
+    
+    /* Header Kontrol Paneli Sabitleme */
     .control-panel {{
-        position: sticky !important; top: 0; z-index: 999;
-        background: {'#262730' if st.session_state.dark_mode else 'white'};
-        padding: 15px 0; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb;
-        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        position: sticky !important;
+        top: 0;
+        z-index: 999;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }}
+
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. VERİ VE DOSYA İŞLEMLERİ ---
+# --- 4. DOSYA VE VERİ YÖNETİMİ ---
 SCORES_FILE = "lms_scores.csv"
 
 @st.cache_data(show_spinner=False)
 def load_exam_file_cached(exam_id):
-    if not isinstance(exam_id, int) or exam_id < 1 or exam_id > 10: return None
     names = [f"Sinav_{exam_id}.xlsx", f"sinav_{exam_id}.xlsx", f"Sinav_{exam_id}.csv"]
     for name in names:
         if os.path.exists(name):
@@ -228,14 +304,13 @@ with st.sidebar:
             </script>""", height=60
         )
     
-    # MOD VE AYARLAR
-    c_set1, c_set2 = st.columns(2)
-    with c_set1:
+    # AYARLAR (Dark Mode & Sınav Modu)
+    c1, c2 = st.columns(2)
+    with c1:
         mode = st.toggle("Sınav Modu", value=st.session_state.exam_mode)
         if mode != st.session_state.exam_mode: st.session_state.exam_mode = mode; st.rerun()
-    with c_set2:
-        # DARK MODE BUTONU
-        dm = st.toggle("🌙 Dark Mod", value=st.session_state.dark_mode)
+    with c2:
+        dm = st.toggle("🌙 Dark", value=st.session_state.dark_mode)
         if dm != st.session_state.dark_mode: st.session_state.dark_mode = dm; st.rerun()
 
     new_exam_id = st.selectbox("Sınav Seç:", range(1, 11), format_func=lambda x: f"YDS Deneme {x}", index=st.session_state.selected_exam_id - 1)
@@ -258,21 +333,21 @@ with st.sidebar:
         st.write("---")
         total, answered = len(df), len(st.session_state.answers)
         st.progress(answered / total if total > 0 else 0)
-        st.caption(f"📝 {answered}/{total} soru yanıtlandı")
+        st.caption(f"📝 {answered}/{total} soru")
         
         st.markdown("**🗺️ Soru Haritası**")
-        st.markdown('<div class="legend-box" style="font-size:11px; display:flex; justify-content:space-between; margin-bottom:10px;"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="legend-box" style="font-size:11px; display:flex; justify-content:space-between; margin-bottom:10px; color:{text_color}"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
 
-        # 5'li KOLON DÖNGÜSÜ
+        # 5'li KOLON DÖNGÜSÜ (KESİN ÇÖZÜM)
         cols = st.columns(5)
         for i in range(len(df)):
             q_idx = i
             col_idx = i % 5 
             with cols[col_idx]:
                 u_a = st.session_state.answers.get(q_idx)
-                # İKONLARI BURADA ETİKETE EKLİYORUZ
                 lbl = str(q_idx + 1)
                 
+                # İKONLARI EKLİYORUZ AMA KUTU ZATEN BÜYÜK (50px) OLDUĞU İÇİN TAŞMAZ
                 if u_a:
                     if st.session_state.exam_mode: lbl += "🟦"
                     else: lbl += "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
@@ -291,12 +366,12 @@ if df is not None:
     if not st.session_state.finish:
         # ÜST PANEL
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
-        with control_col1: st.markdown(f"<h3 style='margin:0;padding:0;'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
+        with control_col1: st.markdown(f"<h3 style='margin:0;padding:0;color:{text_color}'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
         with control_col2: 
             if st.button("A➖", key="font_dec"): st.session_state.font_size = max(12, st.session_state.font_size - 2); st.rerun()
         with control_col3: 
             if st.button("A➕", key="font_inc"): st.session_state.font_size = min(30, st.session_state.font_size + 2); st.rerun()
-        with control_col4: st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
+        with control_col4: st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{text_color};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
         with control_col5:
             is_m = st.session_state.idx in st.session_state.marked
             if st.button("⭐" if is_m else "☆", key="mark_tgl"):
@@ -327,8 +402,7 @@ if df is not None:
                 chosen = sel.split(")")[0]
                 if st.session_state.answers.get(st.session_state.idx) != chosen:
                     st.session_state.answers[st.session_state.idx] = chosen
-                    autosave_progress()
-                    st.rerun() # Anlık geri bildirim için
+                    autosave_progress(); st.rerun()
 
                 if not st.session_state.exam_mode:
                     if chosen == row['Dogru_Cevap']: st.success("✅ DOĞRU!")
