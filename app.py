@@ -24,7 +24,7 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE - EXPANDER AÇIK HALİ DÜZELTMESİ) ---
+# --- 3. CSS (DARK MODE - EXPANDER AÇIK HALİ KESİN ÇÖZÜM) ---
 if st.session_state.dark_mode:
     dark_css = """
     /* ANA GÖVDE */
@@ -41,7 +41,7 @@ if st.session_state.dark_mode:
         color: #fafafa !important;
     }
 
-    /* KUTULAR VE METİNLER */
+    /* KUTULAR */
     .passage-box, .login-container, .control-panel { 
         background-color: #262730 !important; 
         color: #fafafa !important; 
@@ -56,7 +56,7 @@ if st.session_state.dark_mode:
         color: #fafafa !important; 
     }
     
-    /* --- INPUT ALANLARI VE GÖZ İKONU --- */
+    /* --- INPUT ALANLARI --- */
     div[data-baseweb="input"] {
         background-color: #262730 !important;
         border-color: #41444e !important;
@@ -75,38 +75,35 @@ if st.session_state.dark_mode:
         fill: #fafafa !important;
     }
 
-    /* --- KRİTİK DÜZELTME: EXPANDER (AI AYARLARI) --- */
+    /* --- EXPANDER (AI AYARLARI) KESİN ÇÖZÜM --- */
     
-    /* 1. Başlık kısmı (Kapalıyken) */
-    .streamlit-expanderHeader { 
-        background-color: #262730 !important; 
-        color: #fafafa !important; 
-        border-radius: 4px;
-    }
-    
-    /* 2. Başlık kısmı (AÇIKKEN - Tıklandıktan Sonra) - BU EKLENDİ */
-    details[data-testid="stExpander"][open] > summary {
+    /* 1. Expander'ın Başlık Kısmı (Genel Sınıf) */
+    .streamlit-expanderHeader {
         background-color: #262730 !important;
         color: #fafafa !important;
     }
-    
-    /* 3. Başlık üzerindeki yazı ve ikon rengi */
-    .streamlit-expanderHeader p, 
-    .streamlit-expanderHeader span, 
-    .streamlit-expanderHeader svg,
-    details[data-testid="stExpander"][open] > summary svg {
+
+    /* 2. Expander AÇIKKEN (Details[open]) ve Mouse Üzerinde DEĞİLKEN */
+    details[data-testid="stExpander"][open] > summary {
+        background-color: #262730 !important; /* İşte burası beyazlığı engeller */
+        color: #fafafa !important;
+    }
+
+    /* 3. Expander AÇIKKEN Mouse Üzerine Gelince (Hover) */
+    details[data-testid="stExpander"][open] > summary:hover {
+        background-color: #363945 !important; /* Hafif açılma efekti */
+        color: #4f83f5 !important;
+    }
+
+    /* 4. Expander AÇIKKEN İkon ve Yazı Renkleri */
+    details[data-testid="stExpander"][open] > summary svg,
+    details[data-testid="stExpander"][open] > summary span,
+    details[data-testid="stExpander"][open] > summary p {
         color: #fafafa !important;
         fill: #fafafa !important;
     }
 
-    /* 4. Hover (Üzerine gelince) */
-    .streamlit-expanderHeader:hover,
-    details[data-testid="stExpander"][open] > summary:hover {
-        background-color: #363945 !important;
-        color: #4f83f5 !important;
-    }
-
-    /* 5. İçerik kısmı */
+    /* 5. Expander İçerik Gövdesi */
     details[data-testid="stExpander"] {
         background-color: #262730 !important;
         border-color: #41444e !important;
