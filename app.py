@@ -7,7 +7,7 @@ import os
 import json
 import nest_asyncio
 import html
-import re  # Regex için eklendi
+import re
 
 # Döngü yaması
 nest_asyncio.apply()
@@ -78,7 +78,6 @@ def render_highlightable_text(text, height=300, is_stem=False, allow_html=False)
     Bu fonksiyon metni bir HTML Iframe içine gömer.
     allow_html=True ise dışarıdan gelen HTML taglerini (kırmızı span gibi) işler.
     """
-    # Renk Ayarları
     if st.session_state.dark_mode:
         c_bg = "#262730"
         c_txt = "#fafafa"
@@ -92,11 +91,7 @@ def render_highlightable_text(text, height=300, is_stem=False, allow_html=False)
         c_border = "#2563eb" if is_stem else "#dfe6e9"
         c_border_width = "4px" if is_stem else "1px"
 
-    # HTML Escape İşlemi (Güvenlik ve Format İçin)
-    # Eğer biz python tarafında <span> eklediysek (allow_html=True), escape yapmıyoruz.
     final_text = text if allow_html else html.escape(text)
-    
-    # Satır sonlarını <br> yap
     final_text = final_text.replace('\n', '<br>')
 
     html_code = f"""
@@ -108,8 +103,7 @@ def render_highlightable_text(text, height=300, is_stem=False, allow_html=False)
             background-color: {c_bg};
             color: {c_txt};
             font-size: {st.session_state.font_size}px;
-            /* BURASI GÜNCELLENDİ: Yazıları Bold Yap */
-            font-weight: 600; 
+            font-weight: 600; /* Kullanıcı isteği: Koyu Bold */
             line-height: 1.6;
             margin: 0;
             padding: 15px;
@@ -169,17 +163,17 @@ def render_highlightable_text(text, height=300, is_stem=False, allow_html=False)
     """
     components.html(html_code, height=height, scrolling=False)
 
-# --- 5. YARDIMCI FONKSİYON: METİN İÇİNE CEVAP GÖMME ---
+# --- 5. GELİŞMİŞ CEVAP YERLEŞTİRME (SPLIT MANTIĞI) ---
 def inject_answer_to_text(text, answer_full_str):
     """
-    Metin içindeki '----', '____' veya '....' gibi alanları bulur
-    ve seçilen şıkkın metniyle (Kırmızı/Bold HTML) değiştirir.
-    answer_full_str: "A) Apple" gibi gelir, biz sadece "Apple" kısmını alırız.
+    1. 'A) kelime / kelime2' formatından 'kelime / kelime2' kısmını ayıklar.
+    2. Eğer '/' varsa parçalara böler.
+    3. Metindeki '----' boşluklarını sırasıyla bu parçalarla doldurur.
     """
     if not answer_full_str:
-        return html.escape(text), False # Cevap yoksa normal escape yap
+        return html.escape(text), False 
 
-    # Şıkkın sadece metin kısmını al (Örn: "A) name" -> "name")
+    # 1. Şıkkı Temizle (A) kısmını at)
     try:
         if ')' in answer_full_str:
             ans_text = answer_full_str.split(')', 1)[1].strip()
@@ -188,19 +182,34 @@ def inject_answer_to_text(text, answer_full_str):
     except:
         ans_text = answer_full_str
 
-    # HTML formatında kırmızı cevap
-    replacement_html = f"<span style='color:#e74c3c; font-weight:800; text-decoration:underline;'>{html.escape(ans_text)}</span>"
+    # 2. Parçalara Böl (Slash varsa)
+    parts = [p.strip() for p in ans_text.split('/')]
 
-    # Önce ana metni güvenli hale getir (escape)
+    # HTML güvenliği
     safe_text = html.escape(text)
 
-    # Regex ile boşlukları bul (3 veya daha fazla -, _ veya . yan yana)
-    # pattern: [-_\\.]{3,}
-    # safe_text içinde çalıştığımız için html entity bozulmamalı, ama escape sonrası _ ve - değişmez.
+    # 3. Regex ile boşlukları bul
+    # 3 veya daha fazla alt çizgi, tire veya nokta
+    pattern = r'([_\-\.]{3,})'
     
-    new_text, count = re.subn(r'([_\-\.]{3,})', replacement_html, safe_text)
+    # Yer değiştirme mantığı
+    state = {'idx': 0}
+
+    def replacement_func(match):
+        # Eğer elimizde parça varsa sıradakini kullan
+        if state['idx'] < len(parts):
+            val = parts[state['idx']]
+            state['idx'] += 1
+        else:
+            # Parça kalmadıysa son parçayı tekrar kullan veya boş geç
+            val = parts[-1] 
+        
+        # Kırmızı ve Bold stil
+        return f"<span style='color:#e74c3c; font-weight:800; text-decoration:underline;'>{html.escape(val)}</span>"
+
+    new_text, count = re.subn(pattern, replacement_func, safe_text)
     
-    return new_text, True # True = HTML içeriyor demek
+    return new_text, True # True = HTML var
 
 # --- 6. VERİ YÜKLEME ---
 SCORES_FILE = "lms_scores.csv"
@@ -261,7 +270,7 @@ def load_progress():
             except: pass
     return False
 
-# --- 7. GİRİŞ VE SAYAÇ ---
+# --- 7. GİRİŞ ---
 if st.session_state.username is None:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -312,7 +321,6 @@ with st.sidebar:
             </script>""", height=60
         )
     
-    # MOD VE AYARLAR
     c_set1, c_set2 = st.columns(2)
     with c_set1:
         mode = st.toggle("Sınav Modu", value=st.session_state.exam_mode)
@@ -374,7 +382,6 @@ with st.sidebar:
 # --- 9. ANA EKRAN ---
 if df is not None:
     if not st.session_state.finish:
-        # ÜST PANEL
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
         with control_col1: 
             st.markdown(f"<h3 style='margin:0;padding:0;color:{text_color}'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
@@ -398,49 +405,45 @@ if df is not None:
 
         st.markdown("<hr style='margin:15px 0;'>", unsafe_allow_html=True)
         
-        # VERİLERİ HAZIRLA
         row = df.iloc[st.session_state.idx]
         q_raw = str(row['Soru']).replace('\\n', '\n')
         passage, stem = (q_raw.split('\n\n', 1) if '\n\n' in q_raw else (None, q_raw))
         
-        # --- DİNAMİK CEVAP YERLEŞTİRME ---
+        # --- CEVAP ENTEGRASYONU ---
         current_ans_full = st.session_state.answers.get(st.session_state.idx)
         
-        # Cevabı metin içine göm (HTML Formatında)
-        # Eğer cevap varsa gömer, yoksa metni escape edip döner
         final_stem, is_html_stem = inject_answer_to_text(stem, current_ans_full)
         if passage:
             final_passage, is_html_passage = inject_answer_to_text(passage, current_ans_full)
         else:
             final_passage, is_html_passage = None, False
 
-        # --- EKRANA ÇİZME ---
+        # --- GÖRSELLEŞTİRME ---
         if final_passage:
             l, r = st.columns(2)
             with l:
-                # height'i biraz artırdık, okuma kolaylığı için
                 render_highlightable_text(final_passage, height=450, is_stem=False, allow_html=is_html_passage)
             main_col = r
         else: main_col = st.container()
 
         with main_col:
-            # Soru Kökü
             render_highlightable_text(final_stem, height=200, is_stem=True, allow_html=is_html_stem)
             
-            # Şıklar
             opts = [f"{c}) {row[c]}" for c in "ABCDE" if pd.notna(row[c])]
             
-            # Seçili indexi bul
             sel_idx = None
             if current_ans_full:
                 sel_idx = next((i for i,v in enumerate(opts) if v.startswith(str(current_ans_full) + ")")), None)
             
-            # Radio Buton
-            sel = st.radio("Cevabınız:", opts, index=sel_idx, key=f"ans_{st.session_state.idx}")
+            # --- ST.RADIO KEY YÖNETİMİ ---
+            # Radio butonuna dinamik bir key atayarak state yönetimini sağlamlaştırıyoruz.
+            radio_key = f"ans_{st.session_state.idx}"
             
-            # Cevabı Kaydet
+            sel = st.radio("Cevabınız:", opts, index=sel_idx, key=radio_key)
+            
             if sel:
                 chosen = sel.split(")")[0]
+                # Eğer yeni bir seçim yapıldıysa kaydet
                 if st.session_state.answers.get(st.session_state.idx) != chosen:
                     st.session_state.answers[st.session_state.idx] = chosen
                     autosave_progress()
@@ -450,11 +453,17 @@ if df is not None:
                     if chosen == row['Dogru_Cevap']: st.success("✅ DOĞRU!")
                     else: st.error(f"❌ YANLIŞ! (Doğru: {row['Dogru_Cevap']})")
             
-            # --- CEVABI SİLME BUTONU ---
+            # --- TEMİZLE BUTONU DÜZELTMESİ ---
             st.write("")
             if st.session_state.idx in st.session_state.answers:
                 if st.button("🗑️ Cevabı Temizle / Boş Bırak", type="secondary", use_container_width=True):
+                    # 1. Sözlükten sil
                     del st.session_state.answers[st.session_state.idx]
+                    
+                    # 2. Session state içindeki Radio key'ini de sil (BU ÇOK ÖNEMLİ)
+                    if radio_key in st.session_state:
+                        del st.session_state[radio_key]
+                        
                     autosave_progress()
                     st.rerun()
 
@@ -499,7 +508,7 @@ if df is not None:
             st.session_state.finish = False; st.session_state.answers = {}; st.session_state.idx = 0; st.rerun()
 else: st.warning("Dosya bulunamadı.")
 
-# --- 10. JAVASCRIPT: ŞIK ELEME (RADYO BUTONLARI İÇİN) ---
+# --- 10. JAVASCRIPT: ŞIK ELEME ---
 components.html("""
 <script>
     function toggleStrikethrough(element) {
