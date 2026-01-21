@@ -24,16 +24,17 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DÜZELTİLMİŞ DARK MODE VE ELEMENTLER) ---
+# --- 3. CSS (TAMAMEN REVİZE EDİLMİŞ DARK MODE) ---
 if st.session_state.dark_mode:
     # Dark Mode Renkleri
     bg_color = "#0e1117"
     card_bg = "#262730"
-    text_color = "#e0e0e0" # Daha yumuşak beyaz
+    text_color = "#e0e0e0" 
     border_color = "#41444e"
     primary_color = "#4f83f5"
-    button_bg = "#2b313e" # Buton arka planı
+    button_bg = "#2b313e" 
     button_hover = "#363945"
+    input_bg = "#262730" # Inputlar için koyu zemin
     shadow = "0 4px 15px rgba(0,0,0,0.4)"
     
     ai_box_bg = "linear-gradient(145deg, #1e2028, #23252e)"
@@ -41,6 +42,60 @@ if st.session_state.dark_mode:
     ai_text_color = "#e0e0e0"
     ai_title_color = "#8baaf0"
     ai_shadow = "0 4px 15px rgba(0,0,0,0.4)"
+    
+    # Dark Mode için Özel CSS Blokları
+    custom_dark_css = f"""
+    /* SELECTBOX (Açılır Menü) Düzeltmesi */
+    div[data-baseweb="select"] > div {{
+        background-color: {input_bg} !important;
+        border-color: {border_color} !important;
+        color: {text_color} !important;
+    }}
+    div[data-baseweb="select"] span {{
+        color: {text_color} !important;
+    }}
+    /* Dropdown Açılınca Görünen Liste */
+    ul[role="listbox"] {{
+        background-color: {input_bg} !important;
+    }}
+    li[role="option"] {{
+        color: {text_color} !important;
+        background-color: {input_bg} !important;
+    }}
+    li[role="option"]:hover, li[role="option"][aria-selected="true"] {{
+        background-color: {primary_color} !important;
+        color: white !important;
+    }}
+
+    /* TEXT INPUT (Yazı Girişi) Düzeltmesi */
+    div[data-baseweb="input"] > div {{
+        background-color: {input_bg} !important;
+        border-color: {border_color} !important;
+        color: {text_color} !important;
+    }}
+    input {{
+        color: {text_color} !important;
+    }}
+    
+    /* EXPANDER (Açılır Kutu - AI Ayarları) */
+    .streamlit-expanderHeader {{
+        background-color: {input_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 5px;
+    }}
+    div[data-testid="stExpander"] {{
+        background-color: transparent !important;
+        border: none !important;
+        color: {text_color} !important;
+    }}
+    div[data-testid="stExpander"] > details > div {{
+        border: 1px solid {border_color};
+        border-top: none;
+        border-radius: 0 0 5px 5px;
+        background-color: {input_bg};
+    }}
+    """
 else:
     # Light Mode Renkleri
     bg_color = "#f8fafc"
@@ -50,6 +105,7 @@ else:
     primary_color = "#2563eb"
     button_bg = "#ffffff"
     button_hover = "#f1f5f9"
+    input_bg = "#ffffff"
     shadow = "0 20px 40px -5px rgba(0,0,0,0.08)"
     
     ai_box_bg = "linear-gradient(145deg, #f0f4ff, #eef2ff)"
@@ -57,6 +113,7 @@ else:
     ai_text_color = "#334155"
     ai_title_color = "#4338ca"
     ai_shadow = "0 10px 25px -5px rgba(99, 102, 241, 0.15)"
+    custom_dark_css = ""
 
 st.markdown(f"""
 <style>
@@ -64,10 +121,10 @@ st.markdown(f"""
     
     .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; color: {text_color}; }}
     
-    /* GENEL YAZI RENGİ DÜZELTMESİ */
+    /* GENEL YAZI RENGİ */
     p, label, span, div {{ color: {text_color}; }}
 
-    /* --- GİRİŞ EKRANI KUTUSU --- */
+    /* GİRİŞ EKRANI */
     div[data-testid="stForm"] {{
         background-color: {card_bg};
         border: 1px solid {border_color};
@@ -78,24 +135,13 @@ st.markdown(f"""
         margin: auto;
     }}
     
-    /* INPUT ALANLARI */
-    .stTextInput input {{
-        background-color: {card_bg} !important;
-        color: {text_color} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 10px;
-    }}
-    
-    /* --- RADYO BUTONLARI (ŞIKLAR) --- */
+    /* RADYO BUTONLARI */
     div[role="radiogroup"] label {{
         color: {text_color} !important;
         background-color: transparent !important;
     }}
-    div[role="radiogroup"] p {{
-        color: {text_color} !important;
-    }}
     
-    /* --- BUTON TASARIMLARI --- */
+    /* BUTONLAR (Genel) */
     .stButton > button {{ 
         background-color: {button_bg} !important;
         color: {text_color} !important;
@@ -109,8 +155,14 @@ st.markdown(f"""
         border-color: {primary_color} !important;
         color: {primary_color} !important;
     }}
-    
-    /* --- SINAV ALANI KUTULARI --- */
+    /* Primary Butonlar (Giriş Yap, Sınavı Bitir vb.) */
+    .stButton > button[kind="primary"] {{
+        background-color: {primary_color} !important;
+        color: white !important;
+        border: none !important;
+    }}
+
+    /* SINAV ALANI */
     .passage-box {{ 
         background-color: {card_bg}; 
         padding: 25px; border-radius: 12px; 
@@ -119,7 +171,6 @@ st.markdown(f"""
         overflow-y: auto; max-height: 70vh;
         line-height: 1.8;
     }}
-    
     .question-stem {{ 
         font-weight: 600; 
         border-left: 5px solid {primary_color}; 
@@ -128,9 +179,8 @@ st.markdown(f"""
         color: {text_color};
     }}
 
-    /* --- AI SONUÇ KUTUSU --- */
+    /* AI KUTUSU */
     @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-    
     .ai-result-box {{
         margin-top: 25px;
         background: {ai_box_bg};
@@ -149,17 +199,20 @@ st.markdown(f"""
     .ai-header-icon {{ font-size: 24px; background: {ai_box_border}; color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }}
     .ai-title {{ font-size: 18px; font-weight: 700; color: {ai_title_color}; }}
     .ai-content {{ font-size: 16px; line-height: 1.7; color: {ai_text_color}; text-align: justify; }}
-    
-    /* DİĞER DÜZELTMELER */
+
+    /* SIDEBAR */
     section[data-testid="stSidebar"] {{ background-color: {bg_color} !important; border-right: 1px solid {border_color}; }}
     section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
-    
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{ display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; }}
     div[data-testid="stSidebar"] div[data-testid="column"] button {{ width: 100% !important; border-radius: 8px !important; }}
-    
+
+    /* DİĞERLERİ */
     .stRadio label {{ user-select: none !important; -webkit-user-select: none !important; }}
     .login-title {{ text-align: center; font-size: 32px; font-weight: 700; color: {primary_color}; margin-bottom: 5px; }}
     .login-subtitle {{ text-align: center; font-size: 14px; color: {text_color}; opacity: 0.7; margin-bottom: 30px; }}
+
+    /* DARK MODE ÖZEL YAMALARI */
+    {custom_dark_css}
 </style>
 """, unsafe_allow_html=True)
 
@@ -471,11 +524,10 @@ if df is not None:
         m1.metric("Puan", score)
         m2.metric("Doğru", correct); m3.metric("Yanlış", wrong); m4.metric("Boş", empty)
         
-        # --- BURADA İŞARETLERİ SIFIRLADIK ---
         if st.button("🔄 Yeni Sınav", type="primary"): 
             st.session_state.finish = False
             st.session_state.answers = {}
-            st.session_state.marked = set() # Düzeltme eklendi
+            st.session_state.marked = set()
             st.session_state.idx = 0
             st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
             st.rerun()
