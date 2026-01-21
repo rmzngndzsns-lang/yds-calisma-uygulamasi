@@ -24,26 +24,34 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS ---
+# --- 3. CSS (DÜZELTİLMİŞ DARK MODE VE ELEMENTLER) ---
 if st.session_state.dark_mode:
+    # Dark Mode Renkleri
     bg_color = "#0e1117"
     card_bg = "#262730"
-    text_color = "#fafafa"
+    text_color = "#e0e0e0" # Daha yumuşak beyaz
     border_color = "#41444e"
     primary_color = "#4f83f5"
+    button_bg = "#2b313e" # Buton arka planı
+    button_hover = "#363945"
     shadow = "0 4px 15px rgba(0,0,0,0.4)"
+    
     ai_box_bg = "linear-gradient(145deg, #1e2028, #23252e)"
     ai_box_border = "#4f83f5"
     ai_text_color = "#e0e0e0"
     ai_title_color = "#8baaf0"
     ai_shadow = "0 4px 15px rgba(0,0,0,0.4)"
 else:
+    # Light Mode Renkleri
     bg_color = "#f8fafc"
     card_bg = "#ffffff"
     text_color = "#334155"
     border_color = "#e2e8f0"
     primary_color = "#2563eb"
+    button_bg = "#ffffff"
+    button_hover = "#f1f5f9"
     shadow = "0 20px 40px -5px rgba(0,0,0,0.08)"
+    
     ai_box_bg = "linear-gradient(145deg, #f0f4ff, #eef2ff)"
     ai_box_border = "#6366f1"
     ai_text_color = "#334155"
@@ -53,40 +61,85 @@ else:
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
     .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; color: {text_color}; }}
     
-    div[data-testid="stForm"] {{
-        background-color: {card_bg}; border: 1px solid {border_color};
-        padding: 50px 40px; border-radius: 24px; box-shadow: {shadow};
-        max-width: 450px; margin: auto;
-    }}
-    .login-input input {{
-        background-color: {'#1a1d24' if st.session_state.dark_mode else '#f1f5f9'} !important;
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#cbd5e1'} !important;
-        border-radius: 12px !important; padding: 10px 15px !important; color: {text_color} !important;
-    }}
-    .login-title {{ text-align: center; font-size: 32px; font-weight: 700; color: {primary_color}; margin-bottom: 5px; }}
-    .login-subtitle {{ text-align: center; font-size: 14px; color: {'#9ca3af' if st.session_state.dark_mode else '#64748b'}; margin-bottom: 30px; }}
-    
-    section[data-testid="stSidebar"] {{ background-color: {'#1a1d24' if st.session_state.dark_mode else '#ffffff'} !important; border-right: 1px solid {border_color}; }}
-    section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
+    /* GENEL YAZI RENGİ DÜZELTMESİ */
+    p, label, span, div {{ color: {text_color}; }}
 
-    .passage-box {{ 
-        background-color: {card_bg}; padding: 25px; border-radius: 12px; 
-        border: 1px solid {border_color}; color: {text_color}; 
-        overflow-y: auto; max-height: 70vh; line-height: 1.8;
+    /* --- GİRİŞ EKRANI KUTUSU --- */
+    div[data-testid="stForm"] {{
+        background-color: {card_bg};
+        border: 1px solid {border_color};
+        padding: 50px 40px;
+        border-radius: 24px;
+        box-shadow: {shadow};
+        max-width: 450px;
+        margin: auto;
     }}
-    .question-stem {{ 
-        font-weight: 600; border-left: 5px solid {primary_color}; 
-        padding-left: 20px; margin-bottom: 25px; color: {text_color};
-    }}
-    .stButton > button {{ border-radius: 10px !important; font-weight: 500 !important; transition: all 0.2s ease; }}
     
+    /* INPUT ALANLARI */
+    .stTextInput input {{
+        background-color: {card_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 10px;
+    }}
+    
+    /* --- RADYO BUTONLARI (ŞIKLAR) --- */
+    div[role="radiogroup"] label {{
+        color: {text_color} !important;
+        background-color: transparent !important;
+    }}
+    div[role="radiogroup"] p {{
+        color: {text_color} !important;
+    }}
+    
+    /* --- BUTON TASARIMLARI --- */
+    .stButton > button {{ 
+        background-color: {button_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 10px !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease;
+    }}
+    .stButton > button:hover {{
+        background-color: {button_hover} !important;
+        border-color: {primary_color} !important;
+        color: {primary_color} !important;
+    }}
+    
+    /* --- SINAV ALANI KUTULARI --- */
+    .passage-box {{ 
+        background-color: {card_bg}; 
+        padding: 25px; border-radius: 12px; 
+        border: 1px solid {border_color}; 
+        color: {text_color}; 
+        overflow-y: auto; max-height: 70vh;
+        line-height: 1.8;
+    }}
+    
+    .question-stem {{ 
+        font-weight: 600; 
+        border-left: 5px solid {primary_color}; 
+        padding-left: 20px; 
+        margin-bottom: 25px; 
+        color: {text_color};
+    }}
+
+    /* --- AI SONUÇ KUTUSU --- */
     @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+    
     .ai-result-box {{
-        margin-top: 25px; background: {ai_box_bg}; border-radius: 16px; padding: 24px;
-        box-shadow: {ai_shadow}; border-left: 6px solid {ai_box_border};
-        animation: fadeIn 0.6s ease-out forwards; position: relative; overflow: hidden;
+        margin-top: 25px;
+        background: {ai_box_bg};
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: {ai_shadow};
+        border-left: 6px solid {ai_box_border};
+        animation: fadeIn 0.6s ease-out forwards;
+        position: relative; overflow: hidden;
     }}
     .ai-result-box::before {{
         content: '🤖'; position: absolute; right: -10px; bottom: -20px;
@@ -97,9 +150,16 @@ st.markdown(f"""
     .ai-title {{ font-size: 18px; font-weight: 700; color: {ai_title_color}; }}
     .ai-content {{ font-size: 16px; line-height: 1.7; color: {ai_text_color}; text-align: justify; }}
     
+    /* DİĞER DÜZELTMELER */
+    section[data-testid="stSidebar"] {{ background-color: {bg_color} !important; border-right: 1px solid {border_color}; }}
+    section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
+    
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{ display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; }}
     div[data-testid="stSidebar"] div[data-testid="column"] button {{ width: 100% !important; border-radius: 8px !important; }}
+    
     .stRadio label {{ user-select: none !important; -webkit-user-select: none !important; }}
+    .login-title {{ text-align: center; font-size: 32px; font-weight: 700; color: {primary_color}; margin-bottom: 5px; }}
+    .login-subtitle {{ text-align: center; font-size: 14px; color: {text_color}; opacity: 0.7; margin-bottom: 30px; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -135,7 +195,6 @@ def save_score_to_csv(username, exam_name, score, correct, wrong, empty):
         return True
     except: return False
 
-# --- DÜZELTME 1: Zaman Damgasını Kaydetme (Mobil Kopma İçin) ---
 def autosave_progress():
     if st.session_state.username and st.session_state.selected_exam_id:
         progress_file = f"progress_{st.session_state.username}_{st.session_state.selected_exam_id}.json"
@@ -144,13 +203,12 @@ def autosave_progress():
             'marked': list(st.session_state.marked),
             'idx': st.session_state.idx,
             'timestamp': datetime.now().isoformat(),
-            'end_timestamp': st.session_state.end_timestamp # Zamanı da kaydediyoruz
+            'end_timestamp': st.session_state.end_timestamp
         }
         try:
             with open(progress_file, 'w', encoding='utf-8') as f: json.dump(data, f)
         except: pass
 
-# --- DÜZELTME 2: Zaman Damgasını Geri Yükleme ---
 def load_progress():
     if st.session_state.username and st.session_state.selected_exam_id:
         progress_file = f"progress_{st.session_state.username}_{st.session_state.selected_exam_id}.json"
@@ -161,17 +219,13 @@ def load_progress():
                     st.session_state.answers = {int(k): v for k, v in data['answers'].items()}
                     st.session_state.marked = set(data['marked'])
                     st.session_state.idx = data.get('idx', 0)
-                    # Eğer kaydedilmiş bir bitiş süresi varsa ve sınav bitmemişse onu yükle
                     saved_end_time = data.get('end_timestamp', 0)
                     if saved_end_time > datetime.now().timestamp() * 1000:
                         st.session_state.end_timestamp = saved_end_time
                     elif st.session_state.end_timestamp == 0:
-                         # Yeni başlıyorsa
                         st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
                     return True
             except: pass
-    
-    # Dosya yoksa veya yüklenemezse yeni süre başlat
     if st.session_state.end_timestamp == 0:
         st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
     return False
@@ -190,7 +244,6 @@ if st.session_state.username is None:
             if submitted:
                 if name.strip():
                     st.session_state.username = name.strip()
-                    # Giriş yapıldığında önce yüklemeyi dene, yoksa yeni süre ata
                     if not load_progress(): 
                          st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
                     st.rerun()
@@ -210,7 +263,6 @@ if st.session_state.current_exam_data is None or st.session_state.cached_exam_id
     st.session_state.cached_exam_id = exam_id
 else: df = st.session_state.current_exam_data
 
-# Süre kontrolü
 if not st.session_state.finish and datetime.now().timestamp() * 1000 >= st.session_state.end_timestamp:
     st.session_state.finish = True; st.rerun()
 
@@ -219,14 +271,12 @@ with st.sidebar:
     st.success(f"👤 **{st.session_state.username}**")
     
     if not st.session_state.finish:
-        # --- DÜZELTME 3: Mobil Uyku Engelleme Scripti (NoSleep) ---
-        # Bu script görünmez bir video oynatarak telefonun uyku moduna geçmesini zorlaştırır.
+        # NoSleep ve Sayaç Scripti
         components.html(
             f"""
             <div id="countdown" style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:bold;color:#dc2626;text-align:center;padding:8px;background:#fee2e2;border-radius:8px;border:1px solid #fecaca;">⏳ Hesapla...</div>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
             <script>
-                // Geri Sayım
                 var dest={st.session_state.end_timestamp};
                 var interval = setInterval(function(){{
                     var now=new Date().getTime();
@@ -237,15 +287,13 @@ with st.sidebar:
                     var s=Math.floor((dist%(1000*60))/1000);
                     document.getElementById("countdown").innerHTML="⏳ "+(h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);
                 }}, 1000);
-
-                // NoSleep (Ekranı Açık Tutma)
                 document.addEventListener('click', function enableNoSleep() {{
                     document.removeEventListener('click', enableNoSleep, false);
                     var noSleep = new NoSleep();
                     noSleep.enable();
                 }}, false);
             </script>
-            """, height=80 # Height artırıldı
+            """, height=80
         )
     
     c_set1, c_set2 = st.columns(2)
@@ -261,7 +309,6 @@ with st.sidebar:
         st.session_state.selected_exam_id = new_exam_id
         st.session_state.answers, st.session_state.marked, st.session_state.idx = {}, set(), 0
         st.session_state.finish, st.session_state.data_saved = False, False
-        # Yeni sınav seçilirse süreyi sıfırla
         st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
         st.session_state.current_exam_data = None
         st.rerun()
@@ -280,7 +327,7 @@ with st.sidebar:
         st.caption(f"📝 {answered}/{total} soru yanıtlandı")
         
         st.markdown("**🗺️ Soru Haritası**")
-        st.markdown('<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:10px;padding:5px;border:1px solid #ccc;border-radius:5px;"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:10px;padding:5px;border:1px solid {border_color};border-radius:5px;color:{text_color};"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
 
         for row_start in range(0, len(df), 5):
             cols = st.columns(5)
@@ -311,7 +358,6 @@ with st.sidebar:
 # --- 8. ANA EKRAN ---
 if df is not None:
     if not st.session_state.finish:
-        # ÜST PANEL
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
         with control_col1: 
             st.markdown(f"<h3 style='margin:0;padding:0;color:{text_color};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
@@ -374,33 +420,18 @@ if df is not None:
                         try:
                             genai.configure(api_key=st.session_state.user_api_key)
                             model = genai.GenerativeModel('gemini-2.5-flash')
-                            
                             custom_prompt = f"""
                             Sen uzman bir YDS (Yabancı Dil Sınavı) İngilizce öğretmenisin. 
                             Aşağıdaki soruyu analiz et ve öğrenciye özel ders verir gibi açıkla.
-                            
                             Soru: {q_raw}
                             Doğru Cevap: {row['Dogru_Cevap']}
-                            
                             Lütfen cevabını şu katı şablona göre ver (Markdown kullanarak):
-                            
                             ### 1. 🎯 Soru Tipi ve Yaklaşım Stratejisi
-                            * Önce bu sorunun hangi kategoride olduğunu belirt (Kelime, Tense, Bağlaç, Cümle Tamamlama, Çeviri vb.).
-                            * **Kritik Taktik:** Bu soru tipini çözerken öğrenci nereye bakmalı? (Örn: "Zaman uyumuna bak", "Boşluktan sonraki edata dikkat et", "Zıtlık bağlacı ara" gibi).
-                            
                             ### 2. 💡 Detaylı Çözüm
-                            * Doğru cevabın neden doğru olduğunu gramer ve anlam açısından açıkla.
-                            * Cümledeki ipucu (keyword) nedir?
-                            
                             ### 3. ❌ Çeldiriciler Neden Yanlış?
-                            * Diğer şıkların neden elendiğini kısaca açıkla (Örn: "A şıkkı Past Tense gerektirir ama cümle Future").
-                            
                             ### 4. 🇹🇷 Türkçe Çeviri
-                            * Sorunun ve doğru cevabın tam Türkçe çevirisi.
-                            
                             Lütfen samimi, teşvik edici ve öğretici bir ton kullan.
                             """
-                            
                             res = model.generate_content(custom_prompt).text
                             st.session_state.gemini_res[st.session_state.idx] = res
                             st.rerun()
@@ -440,12 +471,12 @@ if df is not None:
         m1.metric("Puan", score)
         m2.metric("Doğru", correct); m3.metric("Yanlış", wrong); m4.metric("Boş", empty)
         
-        # --- DÜZELTME 4: Buton Tıklandığında SÜREYİ DE SIFIRLA ---
+        # --- BURADA İŞARETLERİ SIFIRLADIK ---
         if st.button("🔄 Yeni Sınav", type="primary"): 
             st.session_state.finish = False
             st.session_state.answers = {}
+            st.session_state.marked = set() # Düzeltme eklendi
             st.session_state.idx = 0
-            # Kritik Düzeltme: Yeni sınav için süreyi tekrar 180dk yap
             st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
             st.rerun()
 else: st.warning("Lütfen sınav dosyasını proje klasörüne yükleyin (Örn: Sinav_1.xlsx).")
@@ -462,18 +493,15 @@ components.html("""
             element.style.opacity = "0.5";
         }
     }
-
     const observer = new MutationObserver((mutations) => {
         const labels = parent.document.querySelectorAll('div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p');
         labels.forEach(label => {
             if (label.getAttribute('data-strike-listener') === 'true') return;
             label.setAttribute('data-strike-listener', 'true');
-
             label.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
                 toggleStrikethrough(this);
             }, false);
-
             let pressTimer;
             label.addEventListener('touchstart', function(e) {
                 pressTimer = setTimeout(() => {
