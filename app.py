@@ -443,6 +443,7 @@ if df is not None:
         duration_min = math.floor(duration_ms / 60000)
         duration_str = f"{duration_min} dk"
         
+        # --- VERİ KAYDI ---
         if not st.session_state.data_saved:
             save_score_to_csv(st.session_state.username, f"Deneme {st.session_state.selected_exam_id}", score, correct, wrong, empty, duration_str)
             st.session_state.data_saved = True
@@ -471,20 +472,18 @@ if df is not None:
         with g_col2:
             st.subheader("📈 Gelişim Grafiği")
             if os.path.exists(SCORES_FILE):
+                # Önbelleği (cache) delmek için her seferinde taze oku
                 hist_df = pd.read_csv(SCORES_FILE)
                 user_hist = hist_df[hist_df['Kullanıcı'] == st.session_state.username].copy()
                 
                 if "Süre" not in user_hist.columns: user_hist["Süre"] = "0 dk"
 
                 if not user_hist.empty:
-                    # --- X EKSENİ DÜZELTMESİ (ORDINAL) ---
-                    # Sıralı numara veriyoruz: 1, 2, 3...
                     user_hist = user_hist.reset_index(drop=True)
                     user_hist['Deneme No'] = user_hist.index + 1
 
                     base = alt.Chart(user_hist).encode(
-                        # X eksenini Ordinal (:O) yaparak 1, 2, 3 diye kesin gösteririz
-                        x=alt.X('Deneme No:O', title='Deneme Tekrar Sayısı')
+                        x=alt.X('Deneme No:O', title='Deneme Tekrar Sayısı') # Ordinal (:O)
                     )
 
                     area = base.mark_area(line={'color':primary_color}, color=alt.Gradient(
@@ -502,7 +501,7 @@ if df is not None:
                     )
                     
                     st.altair_chart(area + points, use_container_width=True)
-                else: st.info("Henüz geçmiş sınav veriniz bulunmamaktadır.")
+                else: st.info("Geçmiş veri yok.")
             else: st.info("İlk sınavınız kaydedildi.")
         
         st.divider()
@@ -522,8 +521,19 @@ if df is not None:
                 if st.button("🚀 Analizi Başlat", type="primary", use_container_width=True):
                     if not st.session_state.user_api_key: st.warning("⚠️ API Key girin.")
                     else:
-                        with st.spinner("🔍 Koç senin sonuçlarını ve süreni analiz ediyor..."):
+                        with st.spinner("🔍 Koç analiz yapıyor..."):
                             try:
+                                # --- GEÇMİŞ VERİYİ HAZIRLA ---
+                                history_summary = "Henüz geçmiş veri yok."
+                                if os.path.exists(SCORES_FILE):
+                                    h_df = pd.read_csv(SCORES_FILE)
+                                    u_h = h_df[h_df['Kullanıcı'] == st.session_state.username]
+                                    if not u_h.empty:
+                                        history_list = []
+                                        for i, r in u_h.iterrows():
+                                            history_list.append(f"- {r['Tarih']}: {r['Puan']} Puan (D:{r['Doğru']} Y:{r['Yanlış']} B:{r['Boş']})")
+                                        history_summary = "\n".join(history_list)
+
                                 genai.configure(api_key=st.session_state.user_api_key)
                                 model = genai.GenerativeModel('gemini-2.5-flash')
                                 
@@ -539,7 +549,10 @@ if df is not None:
                                 Sen öğrencisine değer veren, motive edici, pozitif ve stratejik bir YDS koçusun.
                                 Asla hakaret etme, asla "korkak" gibi kelimeler kullanma. Amacın yapıcı olmak.
                                 
-                                Öğrenci Sonucu:
+                                GEÇMİŞ PERFORMANS GEÇMİŞİ (Gelişim Grafiği Verisi):
+                                {history_summary}
+                                
+                                ŞU ANKİ SINAV SONUCU:
                                 - Toplam Puan: {score}
                                 - Doğru: {correct} / 80
                                 - Yanlış: {wrong}
@@ -551,18 +564,21 @@ if df is not None:
                                 
                                 Lütfen şu formatta nazik ve yönlendirici bir rapor yaz (Markdown):
                                 
+                                ### 📈 Gelişim Trendi Analizi
+                                * Geçmiş sınavlara göre bu sınavdaki yerini yorumla (Yükselişte mi, düşüşte mi, yerinde mi sayıyor?).
+                                
                                 ### 📋 Durum Analizi
-                                * Puanını ve boş sayısını değerlendir. Eğer çok boş varsa, "Bu potansiyelini tam yansıtmıyor, bir dahaki sefere daha cesur olalım" minvalinde konuş.
+                                * Puanını ve boş sayısını değerlendir. 
                                 * Süreyi nasıl kullandığını yorumla.
                                 
                                 ### 💡 Tespit Edilen Gelişim Alanları
-                                * Hatalarına ve boşlarına bakarak (Kelime, Okuma, Dilbilgisi) eksiğini tahmin et.
+                                * Hatalarına ve boşlarına bakarak eksiğini tahmin et.
                                 
                                 ### 🚀 Bir Sonraki Adım (Eylem Planı)
                                 * 3 adet somut ve uygulanabilir çalışma önerisi ver.
                                 
                                 ### 🌟 Koçun Notu
-                                * Kapanışta moral verici, "Sana inanıyorum" mesajı ver.
+                                * Kapanışta moral verici mesaj ver.
                                 """
                                 
                                 coach_res = model.generate_content(coach_prompt).text
@@ -571,17 +587,13 @@ if df is not None:
                             except Exception as e: st.error(f"Hata: {e}")
 
         st.write("")
-        
-        # --- DÜZELTME: BUTONA BASINCA KAYIT FLAG'İNİ SIFIRLIYORUZ ---
         if st.button("🔄 Yeni Sınav", type="primary"): 
             st.session_state.finish = False
             st.session_state.answers = {}
             st.session_state.marked = set()
             st.session_state.idx = 0
             st.session_state.coach_analysis = None
-            
-            # Kayıt bayrağını sıfırla ki sonraki sınavı da kaydetsin
-            st.session_state.data_saved = False 
+            st.session_state.data_saved = False # --- KAYDI SIFIRLA ---
             
             now_ms = datetime.now().timestamp() * 1000
             st.session_state.start_timestamp = now_ms
