@@ -9,7 +9,7 @@ import nest_asyncio
 import altair as alt
 import math
 
-# Döngü yaması
+# Döngü yaması (Asyncio çakışmalarını önler)
 nest_asyncio.apply()
 
 # --- 1. AYARLAR ---
@@ -29,7 +29,7 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS ---
+# --- 3. CSS (TASARIM) ---
 if st.session_state.dark_mode:
     bg_color = "#0e1117"
     card_bg = "#262730"
@@ -123,22 +123,51 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. VERİ VE DOSYA İŞLEMLERİ ---
+# --- 4. VERİ VE DOSYA İŞLEMLERİ (GÜÇLENDİRİLMİŞ DOSYA OKUMA) ---
 SCORES_FILE = "lms_scores.csv"
 
 @st.cache_data(show_spinner=False)
 def load_exam_file_cached(exam_id):
     if not isinstance(exam_id, int) or exam_id < 1 or exam_id > 10: return None
-    names = [f"Sinav_{exam_id}.xlsx", f"sinav_{exam_id}.xlsx", f"Sinav_{exam_id}.csv"]
-    for name in names:
+    
+    # Olası tüm dosya adı varyasyonlarını kontrol et (Büyük/Küçük harf, uzantı)
+    possible_names = [
+        f"Sinav_{exam_id}.xlsx", f"sinav_{exam_id}.xlsx", 
+        f"Sinav_{exam_id}.xls", f"sinav_{exam_id}.xls",
+        f"Sinav_{exam_id}.csv", f"sinav_{exam_id}.csv"
+    ]
+    
+    for name in possible_names:
         if os.path.exists(name):
             try:
-                df = pd.read_excel(name, engine='openpyxl') if name.endswith('xlsx') else pd.read_csv(name)
-                df.columns = df.columns.str.strip()
+                # 1. Önce CSV mi diye bak
+                if name.endswith('.csv'):
+                    df = pd.read_csv(name)
+                else:
+                    # 2. Excel ise önce varsayılan motoru dene, olmazsa openpyxl dene
+                    try:
+                        df = pd.read_excel(name)
+                    except:
+                        try:
+                            df = pd.read_excel(name, engine='openpyxl')
+                        except:
+                            continue # Okunamıyorsa diğer dosya adına geç
+
+                # Sütun isimlerini temizle (boşlukları sil)
+                df.columns = df.columns.astype(str).str.strip()
+                
+                # Eğer 'Dogru_Cevap' varsa temizle
                 if 'Dogru_Cevap' in df.columns: 
                     df['Dogru_Cevap'] = df['Dogru_Cevap'].astype(str).str.strip().str.upper()
-                return df
+                
+                # Basit bir kontrol: En azından 'Soru' sütunu olmalı (veya ilk sütun soru kabul edilebilir)
+                if 'Soru' in df.columns:
+                    return df
+                elif len(df.columns) > 1: # Sütun adı farklıysa bile veri varsa döndür
+                     return df
+                     
             except: continue
+            
     return None
 
 def save_score_to_csv(username, exam_name, score, correct, wrong, empty, duration_str):
@@ -472,7 +501,6 @@ if df is not None:
         with g_col2:
             st.subheader("📈 Gelişim Grafiği")
             if os.path.exists(SCORES_FILE):
-                # Önbelleği (cache) delmek için her seferinde taze oku
                 hist_df = pd.read_csv(SCORES_FILE)
                 user_hist = hist_df[hist_df['Kullanıcı'] == st.session_state.username].copy()
                 
@@ -483,7 +511,7 @@ if df is not None:
                     user_hist['Deneme No'] = user_hist.index + 1
 
                     base = alt.Chart(user_hist).encode(
-                        x=alt.X('Deneme No:O', title='Deneme Tekrar Sayısı') # Ordinal (:O)
+                        x=alt.X('Deneme No:O', title='Deneme Tekrar Sayısı')
                     )
 
                     area = base.mark_area(line={'color':primary_color}, color=alt.Gradient(
@@ -523,7 +551,6 @@ if df is not None:
                     else:
                         with st.spinner("🔍 Koç analiz yapıyor..."):
                             try:
-                                # --- GEÇMİŞ VERİYİ HAZIRLA ---
                                 history_summary = "Henüz geçmiş veri yok."
                                 if os.path.exists(SCORES_FILE):
                                     h_df = pd.read_csv(SCORES_FILE)
@@ -593,7 +620,7 @@ if df is not None:
             st.session_state.marked = set()
             st.session_state.idx = 0
             st.session_state.coach_analysis = None
-            st.session_state.data_saved = False # --- KAYDI SIFIRLA ---
+            st.session_state.data_saved = False 
             
             now_ms = datetime.now().timestamp() * 1000
             st.session_state.start_timestamp = now_ms
