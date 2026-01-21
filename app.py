@@ -225,7 +225,6 @@ if st.session_state.username is None:
         with st.form("login_form"):
             # Başlıkları Formun İÇİNE aldık, böylece hepsi tek bir kutuda görünecek
             st.markdown('<div class="login-title">YDS Pro</div>', unsafe_allow_html=True)
-            st.markdown('<div class="login-subtitle">Giriş Yapın</div>', unsafe_allow_html=True)
             
             # Input Alanı
             name = st.text_input("Ad Soyad:", placeholder="İsim giriniz...", label_visibility="visible")
