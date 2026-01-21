@@ -221,7 +221,33 @@ st.markdown(f"""
     section[data-testid="stSidebar"] {{ background-color: {bg_color} !important; border-right: 1px solid {border_color}; }}
     section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{ display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; }}
-    div[data-testid="stSidebar"] div[data-testid="column"] button {{ width: 100% !important; border-radius: 8px !important; }}
+    div[data-testid="stSidebar"] div[data-testid="column"] button {{ 
+        width: 100% !important; 
+        border-radius: 8px !important;
+        position: relative !important;
+        overflow: visible !important;
+    }}
+    
+    /* TRANSPARAN İKON KATMANI */
+    .icon-overlay {{
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        opacity: 0.25;
+        pointer-events: none;
+        z-index: 1;
+    }}
+    .button-number {{
+        position: relative;
+        z-index: 2;
+        font-weight: 600;
+    }}
 
     /* DİĞERLERİ */
     .stRadio label {{ user-select: none !important; -webkit-user-select: none !important; }}
@@ -413,9 +439,15 @@ with st.sidebar:
                         else: icon = "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
                     elif q_idx in st.session_state.marked: icon = "⭐"
                     
-                    lbl = f"{num}\n{icon}" if icon else num
+                    # HTML ile transparan ikon oluştur
+                    if icon:
+                        btn_html = f'<div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span class="button-number">{num}</span><span class="icon-overlay">{icon}</span></div>'
+                        lbl = btn_html
+                    else:
+                        lbl = num
+                    
                     b_type = "primary" if q_idx == st.session_state.idx else "secondary"
-                    if st.button(lbl, key=f"nav_{q_idx}", type=b_type):
+                    if st.button(lbl, key=f"nav_{q_idx}", type=b_type, use_container_width=True):
                         st.session_state.idx = q_idx
                         st.rerun()
         
@@ -499,7 +531,7 @@ if df is not None:
                             ### 1. 🎯 Soru Tipi ve Yaklaşım Stratejisi
                             ### 2. 💡 Detaylı Çözüm
                             ### 3. ❌ Çeldiriciler Neden Yanlış?
-                            ### 4. 🇹🇷 Türkçe Çeviri
+                            ### 4. Türkçe Çeviri
                             Lütfen samimi, teşvik edici ve öğretici bir ton kullan.
                             """
                             res = model.generate_content(custom_prompt).text
