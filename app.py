@@ -7,6 +7,7 @@ import os
 import json
 import nest_asyncio
 import altair as alt
+import math
 
 # Döngü yaması
 nest_asyncio.apply()
@@ -18,7 +19,9 @@ st.set_page_config(page_title="YDS Pro", page_icon="🎓", layout="wide")
 defaults = {
     'username': None, 'selected_exam_id': 1, 'idx': 0, 'answers': {}, 
     'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
-    'user_api_key': "", 'font_size': 16, 'exam_mode': False, 'end_timestamp': 0,
+    'user_api_key': "", 'font_size': 16, 'exam_mode': False, 
+    'end_timestamp': 0, 
+    'start_timestamp': 0, # Süre takibi için başlangıç zamanı eklendi
     'current_exam_data': None, 'cached_exam_id': None, 'progress_loaded': False,
     'dark_mode': False,
     'coach_analysis': None
@@ -26,7 +29,7 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (TÜM DÜZELTMELER DAHİL) ---
+# --- 3. CSS (OVERLAY + EXPANDER FIX + DARK MODE) ---
 if st.session_state.dark_mode:
     bg_color = "#0e1117"
     card_bg = "#262730"
@@ -79,39 +82,27 @@ else:
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-    
     .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; color: {text_color}; }}
     p, label, span, div, h1, h2, h3, h4, h5, h6 {{ color: {text_color}; }}
 
-    /* --- SIDEBAR BUTONLARI --- */
+    /* --- SIDEBAR BUTONLARI (Overlay) --- */
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
-        height: 50px !important;
-        min-height: 50px !important;
-        max-height: 50px !important;
-        width: 100% !important;
-        padding: 0px !important;
-        position: relative !important;
-        overflow: hidden !important;
-        border-radius: 8px !important;
+        height: 50px !important; min-height: 50px !important; max-height: 50px !important;
+        width: 100% !important; padding: 0px !important; position: relative !important;
+        overflow: hidden !important; border-radius: 8px !important;
     }}
     div[data-testid="stSidebar"] div[data-testid="column"] button div[data-testid="stMarkdownContainer"] p {{
-        display: grid !important;
-        place-items: center !important;
-        height: 100% !important;
-        margin: 0 !important;
-        line-height: 0 !important;
+        display: grid !important; place-items: center !important; height: 100% !important;
+        margin: 0 !important; line-height: 0 !important;
     }}
     
-    /* --- DİĞER --- */
     div[data-testid="stForm"] {{ background-color: {card_bg}; border: 1px solid {border_color}; padding: 50px 40px; border-radius: 24px; box-shadow: {shadow}; max-width: 450px; margin: auto; }}
     div[role="radiogroup"] label {{ color: {text_color} !important; background-color: transparent !important; }}
     .stButton > button {{ background-color: {button_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; border-radius: 10px !important; font-weight: 500 !important; transition: all 0.2s ease; }}
     .stButton > button:hover {{ background-color: {button_hover} !important; border-color: {primary_color} !important; color: {primary_color} !important; }}
     .stButton > button[kind="primary"] {{ background-color: {primary_color} !important; color: white !important; border: none !important; }}
     
-    /* --- AI BOX --- */
-    @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-    .ai-result-box {{ margin-top: 25px; background: {ai_box_bg}; border-radius: 16px; padding: 24px; box-shadow: {ai_shadow}; border-left: 6px solid {ai_box_border}; animation: fadeIn 0.6s ease-out forwards; position: relative; overflow: hidden; }}
+    .ai-result-box {{ margin-top: 25px; background: {ai_box_bg}; border-radius: 16px; padding: 24px; box-shadow: {ai_shadow}; border-left: 6px solid {ai_box_border}; position: relative; overflow: hidden; }}
     .ai-result-box::before {{ content: '🤖'; position: absolute; right: -10px; bottom: -20px; font-size: 120px; opacity: 0.05; transform: rotate(-15deg); pointer-events: none; }}
     .ai-header {{ display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0, 0.05); }}
     .ai-header-icon {{ font-size: 24px; background: {ai_box_border}; color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }}
@@ -125,7 +116,6 @@ st.markdown(f"""
     .stRadio label {{ user-select: none !important; -webkit-user-select: none !important; }}
     .login-title {{ text-align: center; font-size: 32px; font-weight: 700; color: {primary_color}; margin-bottom: 5px; }}
     .login-subtitle {{ text-align: center; font-size: 14px; color: {text_color}; opacity: 0.7; margin-bottom: 30px; }}
-    
     .passage-box {{ background-color: {card_bg}; padding: 25px; border-radius: 12px; border: 1px solid {border_color}; color: {text_color}; overflow-y: auto; max-height: 70vh; line-height: 1.8; }}
     .question-stem {{ font-weight: 600; border-left: 5px solid {primary_color}; padding-left: 20px; margin-bottom: 25px; color: {text_color}; }}
 
@@ -151,16 +141,14 @@ def load_exam_file_cached(exam_id):
             except: continue
     return None
 
-# --- DÜZELTME: KAYIT SİSTEMİ (APPEND MODE) ---
-def save_score_to_csv(username, exam_name, score, correct, wrong, empty):
+# --- KAYIT SİSTEMİ (SÜRE EKLENDİ) ---
+def save_score_to_csv(username, exam_name, score, correct, wrong, empty, duration_str):
     try:
         if os.path.exists(SCORES_FILE): df = pd.read_csv(SCORES_FILE)
-        else: df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih"])
+        else: df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih", "Süre"])
         
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
         
-        # ARTIK ÜZERİNE YAZMA YOK. HER SINAV YENİ BİR KAYIT.
-        # Böylece gelişim grafiği oluşabilir.
         new_row = pd.DataFrame({
             "Kullanıcı": [username], 
             "Sınav": [exam_name], 
@@ -168,7 +156,8 @@ def save_score_to_csv(username, exam_name, score, correct, wrong, empty):
             "Doğru": [correct], 
             "Yanlış": [wrong], 
             "Boş": [empty], 
-            "Tarih": [date_str]
+            "Tarih": [date_str],
+            "Süre": [duration_str] # Yeni Süre Kolonu
         })
         
         df = pd.concat([df, new_row], ignore_index=True)
@@ -184,7 +173,8 @@ def autosave_progress():
             'marked': list(st.session_state.marked),
             'idx': st.session_state.idx,
             'timestamp': datetime.now().isoformat(),
-            'end_timestamp': st.session_state.end_timestamp
+            'end_timestamp': st.session_state.end_timestamp,
+            'start_timestamp': st.session_state.start_timestamp # Başlangıcı kaydet
         }
         try:
             with open(progress_file, 'w', encoding='utf-8') as f: json.dump(data, f)
@@ -201,14 +191,21 @@ def load_progress():
                     st.session_state.marked = set(data['marked'])
                     st.session_state.idx = data.get('idx', 0)
                     saved_end_time = data.get('end_timestamp', 0)
+                    saved_start_time = data.get('start_timestamp', 0)
+                    
                     if saved_end_time > datetime.now().timestamp() * 1000:
                         st.session_state.end_timestamp = saved_end_time
+                        st.session_state.start_timestamp = saved_start_time if saved_start_time > 0 else (datetime.now().timestamp() * 1000)
                     elif st.session_state.end_timestamp == 0:
-                        st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
+                        now_ms = datetime.now().timestamp() * 1000
+                        st.session_state.start_timestamp = now_ms
+                        st.session_state.end_timestamp = now_ms + (180 * 60 * 1000)
                     return True
             except: pass
     if st.session_state.end_timestamp == 0:
-        st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
+        now_ms = datetime.now().timestamp() * 1000
+        st.session_state.start_timestamp = now_ms
+        st.session_state.end_timestamp = now_ms + (180 * 60 * 1000)
     return False
 
 # --- 5. GİRİŞ EKRANI ---
@@ -225,7 +222,9 @@ if st.session_state.username is None:
                 if name.strip():
                     st.session_state.username = name.strip()
                     if not load_progress(): 
-                         st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
+                         now_ms = datetime.now().timestamp() * 1000
+                         st.session_state.start_timestamp = now_ms
+                         st.session_state.end_timestamp = now_ms + (180 * 60 * 1000)
                     st.rerun()
                 else: st.error("Lütfen isminizi giriniz.")
     st.stop()
@@ -288,7 +287,12 @@ with st.sidebar:
         st.session_state.answers, st.session_state.marked, st.session_state.idx = {}, set(), 0
         st.session_state.finish, st.session_state.data_saved = False, False
         st.session_state.coach_analysis = None
-        st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
+        
+        # Yeni sınav için süreleri sıfırla
+        now_ms = datetime.now().timestamp() * 1000
+        st.session_state.start_timestamp = now_ms
+        st.session_state.end_timestamp = now_ms + (180 * 60 * 1000)
+        
         st.session_state.current_exam_data = None
         st.rerun()
 
@@ -337,6 +341,7 @@ with st.sidebar:
 # --- 8. ANA EKRAN ---
 if df is not None:
     if not st.session_state.finish:
+        # --- SORU EKRANI ---
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
         with control_col1: st.markdown(f"<h3 style='margin:0;padding:0;color:{text_color};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
         with control_col2: 
@@ -425,7 +430,7 @@ if df is not None:
             st.markdown("</div></div>", unsafe_allow_html=True)
 
     else:
-        # --- SONUÇ EKRANI (DÜZELTİLMİŞ) ---
+        # --- SONUÇ EKRANI (DÜZELTİLMİŞ & SÜRE EKLENMİŞ) ---
         st.title("🏆 Sınav Sonuç Paneli")
         
         correct = sum(1 for i, a in st.session_state.answers.items() if a == df.iloc[i]['Dogru_Cevap'])
@@ -433,8 +438,16 @@ if df is not None:
         empty = len(df) - len(st.session_state.answers)
         score = correct * 1.25
         
+        # SÜRE HESAPLAMA (Geçen Süre = Şimdi - Başlangıç)
+        end_time_ms = datetime.now().timestamp() * 1000
+        start_time_ms = st.session_state.start_timestamp
+        duration_ms = max(0, end_time_ms - start_time_ms)
+        duration_min = math.floor(duration_ms / 60000)
+        duration_str = f"{duration_min} dk"
+        
         if not st.session_state.data_saved:
-            save_score_to_csv(st.session_state.username, f"Deneme {st.session_state.selected_exam_id}", score, correct, wrong, empty)
+            # Artık süreyi de kaydediyoruz
+            save_score_to_csv(st.session_state.username, f"Deneme {st.session_state.selected_exam_id}", score, correct, wrong, empty, duration_str)
             st.session_state.data_saved = True
             st.balloons()
             
@@ -442,14 +455,14 @@ if df is not None:
         m1.metric("Toplam Puan", f"{score:.2f}", help="Doğru sayısı x 1.25")
         m2.metric("✅ Doğru", correct)
         m3.metric("❌ Yanlış", wrong)
-        m4.metric("⭕ Boş", empty)
+        m4.metric("⏱️ Süre", duration_str) # Boş yerine Süre gösterdik
         
         st.divider()
         
         g_col1, g_col2 = st.columns([1, 2])
         
         with g_col1:
-            st.subheader("📊 Bu Sınavın Dağılımı")
+            st.subheader("📊 Dağılım")
             pie_data = pd.DataFrame({'Durum': ['Doğru', 'Yanlış', 'Boş'], 'Sayı': [correct, wrong, empty]})
             pie_chart = alt.Chart(pie_data).mark_arc(innerRadius=50).encode(
                 theta=alt.Theta(field="Sayı", type="quantitative"),
@@ -459,16 +472,17 @@ if df is not None:
             st.altair_chart(pie_chart, use_container_width=True)
 
         with g_col2:
-            st.subheader("📈 Tarihsel Gelişim Grafiği (Area Chart)")
+            st.subheader("📈 Gelişim Grafiği")
             if os.path.exists(SCORES_FILE):
                 hist_df = pd.read_csv(SCORES_FILE)
                 user_hist = hist_df[hist_df['Kullanıcı'] == st.session_state.username].copy()
                 
-                # Sadece ilgili denemeye ait geçmişi filtrelemek isterseniz:
-                # user_hist = user_hist[user_hist['Sınav'] == f"Deneme {st.session_state.selected_exam_id}"]
+                # Eğer "Süre" kolonu yoksa (eski dosya), NaN yap
+                if "Süre" not in user_hist.columns:
+                    user_hist["Süre"] = "0 dk"
 
                 if not user_hist.empty:
-                    # Yeni Gelişmiş Alan Grafiği (Area Chart)
+                    # Area Chart (Lekeli Alan Grafiği)
                     base = alt.Chart(user_hist.reset_index()).encode(x=alt.X('index', title='Deneme Tekrarı', axis=alt.Axis(tickMinStep=1)))
 
                     area = base.mark_area(line={'color':primary_color}, color=alt.Gradient(
@@ -476,13 +490,13 @@ if df is not None:
                         stops=[alt.GradientStop(color=primary_color, offset=0), alt.GradientStop(color='rgba(255,255,255,0)', offset=1)],
                         x1=1, x2=1, y1=1, y2=0
                     ), opacity=0.5).encode(
-                        y=alt.Y('Puan', title='Puan (0-100)', scale=alt.Scale(domain=[0, 100])),
-                        tooltip=['Sınav', 'Puan', 'Tarih', 'Doğru', 'Yanlış']
+                        y=alt.Y('Puan', title='Puan', scale=alt.Scale(domain=[0, 100])),
+                        tooltip=['Sınav', 'Puan', 'Tarih', 'Süre', 'Doğru', 'Yanlış', 'Boş']
                     )
                     
                     points = base.mark_circle(color=primary_color, size=100).encode(
                         y='Puan',
-                        tooltip=['Sınav', 'Puan', 'Tarih', 'Doğru', 'Yanlış']
+                        tooltip=['Sınav', 'Puan', 'Tarih', 'Süre', 'Doğru', 'Yanlış', 'Boş']
                     )
                     
                     st.altair_chart(area + points, use_container_width=True)
@@ -491,7 +505,7 @@ if df is not None:
         
         st.divider()
 
-        st.subheader("🧠 YDS Baş Koç Analizi")
+        st.subheader("🧠 YDS Baş Koç Analizi (Motive Edici Mod)")
         
         if st.session_state.coach_analysis:
             st.markdown(f"""
@@ -506,42 +520,49 @@ if df is not None:
                 if st.button("🚀 Analizi Başlat", type="primary", use_container_width=True):
                     if not st.session_state.user_api_key: st.warning("⚠️ API Key girin.")
                     else:
-                        with st.spinner("🔍 Koç senin yanlışlarını ve boşlarını inceliyor..."):
+                        with st.spinner("🔍 Koç senin sonuçlarını ve süreni analiz ediyor..."):
                             try:
                                 genai.configure(api_key=st.session_state.user_api_key)
                                 model = genai.GenerativeModel('gemini-2.5-flash')
                                 
-                                # Yanlışlar ve Boşlar Analizi
+                                # Yanlışlar
                                 wrong_qs = []
                                 for idx, ans in st.session_state.answers.items():
                                     row_q = df.iloc[idx]
                                     if ans != row_q['Dogru_Cevap']:
                                         wrong_qs.append(f"YANLIŞ YAPILAN SORU: {row_q['Soru'][:100]}... | Cevabın: {ans} | Doğru: {row_q['Dogru_Cevap']}")
                                 
-                                mistakes_text = "\n".join(wrong_qs[:5]) # Token tasarrufu
+                                mistakes_text = "\n".join(wrong_qs[:5])
                                 
-                                # DÜZELTİLMİŞ PROMPT MANTIĞI: BOŞLARI AZARLAMA MODU
+                                # --- YENİLENEN MOTİVE EDİCİ PROMPT ---
                                 coach_prompt = f"""
-                                Sen dünyanın en sert ama en geliştirici YDS koçusun.
-                                Öğrenci Puanı: {score}. (Toplam 80 soruda: {correct} Doğru, {wrong} Yanlış, {empty} Boş).
+                                Sen öğrencisine değer veren, motive edici, pozitif ve stratejik bir YDS koçusun.
+                                Asla hakaret etme, asla "korkak" gibi kelimeler kullanma. Amacın yapıcı olmak.
                                 
-                                ÖNEMLİ KURALLAR:
-                                1. Eğer BOŞ sayısı 10'dan fazlaysa: Öğrenciye "Mükemmelsin" DEME! Onu sertçe eleştir. "Bilmiyorsan öğren, korkak olma, zamanı yönetemedin mi?" diye sor. Boş bırakmak YDS'de strateji hatasıdır (yanlış doğruyu götürmez).
-                                2. Eğer YANLIŞ sayısı 0 ama BOŞ sayısı çoksa: "Sadece bildiklerini yapmışsın, risk almamışsın, bu seni geliştirmez" de.
-                                3. Eğer gerçekten Puanı 90 üstüyse tebrik et.
+                                Öğrenci Sonucu:
+                                - Toplam Puan: {score}
+                                - Doğru: {correct} / 80
+                                - Yanlış: {wrong}
+                                - Boş: {empty} (Eğer boş sayısı çoksa, bunu bir strateji hatası olarak gör ve nazikçe uyar).
+                                - Sınav Süresi: {duration_str}
                                 
-                                İşte yanlış yaptığı bazı sorular (varsa):
+                                Hatalı Sorulardan Örnekler:
                                 {mistakes_text}
                                 
-                                Çıktı Formatı (Markdown):
-                                ### 📋 Gerçekçi Durum Analizi
-                                * (Burada puanı ve boş sayısını acımasızca yorumla).
+                                Lütfen şu formatta nazik ve yönlendirici bir rapor yaz (Markdown):
                                 
-                                ### 🚨 Tespit Edilen Eksikler
-                                * (Kelime mi, Gramer mi, Okuma mı yoksa "Özgüven/Süre" sorunu mu?).
+                                ### 📋 Durum Analizi
+                                * Puanını ve boş sayısını değerlendir. Eğer çok boş varsa, "Bu potansiyelini tam yansıtmıyor, bir dahaki sefere daha cesur olalım" minvalinde konuş.
+                                * Süreyi nasıl kullandığını yorumla.
                                 
-                                ### 💊 Reçete ve Eylem Planı
-                                * 3 Maddelik net görev ver.
+                                ### 💡 Tespit Edilen Gelişim Alanları
+                                * Hatalarına ve boşlarına bakarak (Kelime, Okuma, Dilbilgisi) eksiğini tahmin et.
+                                
+                                ### 🚀 Bir Sonraki Adım (Eylem Planı)
+                                * 3 adet somut ve uygulanabilir çalışma önerisi ver.
+                                
+                                ### 🌟 Koçun Notu
+                                * Kapanışta moral verici, "Sana inanıyorum" mesajı ver.
                                 """
                                 
                                 coach_res = model.generate_content(coach_prompt).text
@@ -556,7 +577,12 @@ if df is not None:
             st.session_state.marked = set()
             st.session_state.idx = 0
             st.session_state.coach_analysis = None
-            st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
+            
+            # Yeni sınav için süreleri sıfırla
+            now_ms = datetime.now().timestamp() * 1000
+            st.session_state.start_timestamp = now_ms
+            st.session_state.end_timestamp = now_ms + (180 * 60 * 1000)
+            
             st.rerun()
 else: st.warning("Lütfen sınav dosyasını proje klasörüne yükleyin (Örn: Sinav_1.xlsx).")
 
