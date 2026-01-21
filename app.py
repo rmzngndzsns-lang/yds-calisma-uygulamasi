@@ -6,6 +6,7 @@ import google.generativeai as genai
 import os
 import json
 import nest_asyncio
+import altair as alt  # Grafik kütüphanesi
 
 # Döngü yaması
 nest_asyncio.apply()
@@ -19,12 +20,13 @@ defaults = {
     'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
     'user_api_key': "", 'font_size': 16, 'exam_mode': False, 'end_timestamp': 0,
     'current_exam_data': None, 'cached_exam_id': None, 'progress_loaded': False,
-    'dark_mode': False
+    'dark_mode': False,
+    'coach_analysis': None  # Koç analizi için yeni state
 }
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (OVERLAY VE SABİT KUTU DÜZELTMESİ) ---
+# --- 3. CSS (TÜM DÜZELTMELER DAHİL) ---
 if st.session_state.dark_mode:
     bg_color = "#0e1117"
     card_bg = "#262730"
@@ -81,41 +83,33 @@ st.markdown(f"""
     .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; color: {text_color}; }}
     p, label, span, div, h1, h2, h3, h4, h5, h6 {{ color: {text_color}; }}
 
-    /* --- SIDEBAR BUTONLARI İÇİN ÖZEL CSS (OVERLAY EFEKTİ) --- */
-    
-    /* 1. Butonların Boyutunu Sabitle (Büyümeyi Engelle) */
+    /* --- SIDEBAR BUTONLARI (Overlay Efekti) --- */
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
-        height: 50px !important;       /* Sabit Yükseklik */
+        height: 50px !important;
         min-height: 50px !important;
         max-height: 50px !important;
         width: 100% !important;
-        padding: 0px !important;       /* Padding'i sıfırla */
-        position: relative !important; /* İçerik konumlandırma için */
-        overflow: hidden !important;   /* Taşmayı gizle */
+        padding: 0px !important;
+        position: relative !important;
+        overflow: hidden !important;
         border-radius: 8px !important;
     }}
-
-    /* 2. Buton İçindeki Metni (Numara ve İkon) Üst Üste Bindir */
     div[data-testid="stSidebar"] div[data-testid="column"] button div[data-testid="stMarkdownContainer"] p {{
-        display: grid !important;           /* Grid kullanarak üst üste koyacağız */
-        place-items: center !important;     /* Ortala */
+        display: grid !important;
+        place-items: center !important;
         height: 100% !important;
         margin: 0 !important;
-        line-height: 0 !important;          /* Satır aralığını sıfırla (Overlap için kritik) */
+        line-height: 0 !important;
     }}
-
-    /* Numara ve İkonun Stil Ayarı */
-    /* Bu hile ile Python tarafında "Numara \n İkon" gönderdiğimizde üst üste binerler */
     
-    /* --- DİĞER CSS --- */
+    /* --- DİĞER --- */
     div[data-testid="stForm"] {{ background-color: {card_bg}; border: 1px solid {border_color}; padding: 50px 40px; border-radius: 24px; box-shadow: {shadow}; max-width: 450px; margin: auto; }}
     div[role="radiogroup"] label {{ color: {text_color} !important; background-color: transparent !important; }}
     .stButton > button {{ background-color: {button_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; border-radius: 10px !important; font-weight: 500 !important; transition: all 0.2s ease; }}
     .stButton > button:hover {{ background-color: {button_hover} !important; border-color: {primary_color} !important; color: {primary_color} !important; }}
     .stButton > button[kind="primary"] {{ background-color: {primary_color} !important; color: white !important; border: none !important; }}
-    .passage-box {{ background-color: {card_bg}; padding: 25px; border-radius: 12px; border: 1px solid {border_color}; color: {text_color}; overflow-y: auto; max-height: 70vh; line-height: 1.8; }}
-    .question-stem {{ font-weight: 600; border-left: 5px solid {primary_color}; padding-left: 20px; margin-bottom: 25px; color: {text_color}; }}
     
+    /* --- AI BOX --- */
     @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
     .ai-result-box {{ margin-top: 25px; background: {ai_box_bg}; border-radius: 16px; padding: 24px; box-shadow: {ai_shadow}; border-left: 6px solid {ai_box_border}; animation: fadeIn 0.6s ease-out forwards; position: relative; overflow: hidden; }}
     .ai-result-box::before {{ content: '🤖'; position: absolute; right: -10px; bottom: -20px; font-size: 120px; opacity: 0.05; transform: rotate(-15deg); pointer-events: none; }}
@@ -124,14 +118,18 @@ st.markdown(f"""
     .ai-title {{ font-size: 18px; font-weight: 700; color: {ai_title_color}; }}
     .ai-content {{ font-size: 16px; line-height: 1.7; color: {ai_text_color}; text-align: justify; }}
     
+    /* Login & Sidebar */
     section[data-testid="stSidebar"] {{ background-color: {bg_color} !important; border-right: 1px solid {border_color}; }}
     section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{ display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; }}
     div[data-testid="stSidebar"] div[data-testid="column"] button {{ width: 100% !important; border-radius: 8px !important; }}
-    
     .stRadio label {{ user-select: none !important; -webkit-user-select: none !important; }}
     .login-title {{ text-align: center; font-size: 32px; font-weight: 700; color: {primary_color}; margin-bottom: 5px; }}
     .login-subtitle {{ text-align: center; font-size: 14px; color: {text_color}; opacity: 0.7; margin-bottom: 30px; }}
+    
+    .passage-box {{ background-color: {card_bg}; padding: 25px; border-radius: 12px; border: 1px solid {border_color}; color: {text_color}; overflow-y: auto; max-height: 70vh; line-height: 1.8; }}
+    .question-stem {{ font-weight: 600; border-left: 5px solid {primary_color}; padding-left: 20px; margin-bottom: 25px; color: {text_color}; }}
+
     {custom_dark_css}
 </style>
 """, unsafe_allow_html=True)
@@ -281,6 +279,7 @@ with st.sidebar:
         st.session_state.selected_exam_id = new_exam_id
         st.session_state.answers, st.session_state.marked, st.session_state.idx = {}, set(), 0
         st.session_state.finish, st.session_state.data_saved = False, False
+        st.session_state.coach_analysis = None # Analizi sıfırla
         st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
         st.session_state.current_exam_data = None
         st.rerun()
@@ -315,11 +314,6 @@ with st.sidebar:
                         else: icon = "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
                     elif q_idx in st.session_state.marked: icon = "⭐"
                     
-                    # --- REVİZE EDİLEN BUTON ETİKET MANTIĞI ---
-                    # İkon ve Numarayı alt alta gönderiyoruz (\n ile)
-                    # Ancak CSS'deki line-height: 0 ve grid sayesinde üst üste binecekler.
-                    # İkonun önce veya sonra olması z-index etkisini değiştirir.
-                    # Numara üstte, ikon altta kalsın (saydamlık efekti için)
                     if icon:
                         lbl = f"{num}\n{icon}" 
                     else:
@@ -339,6 +333,7 @@ with st.sidebar:
 # --- 8. ANA EKRAN ---
 if df is not None:
     if not st.session_state.finish:
+        # --- SORU EKRANI ---
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
         with control_col1: 
             st.markdown(f"<h3 style='margin:0;padding:0;color:{text_color};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
@@ -439,24 +434,152 @@ if df is not None:
             st.markdown("</div></div>", unsafe_allow_html=True)
 
     else:
-        st.title("📊 Sonuçlar")
+        # --- SONUÇ EKRANI (KOÇ ANALİZİ VE GRAFİKLER) ---
+        st.title("🏆 Sınav Sonuç Paneli")
+        
+        # 1. Puan Hesaplama
         correct = sum(1 for i, a in st.session_state.answers.items() if a == df.iloc[i]['Dogru_Cevap'])
         wrong = len(st.session_state.answers) - correct
         empty = len(df) - len(st.session_state.answers)
         score = correct * 1.25
+        
+        # Veriyi Kaydetme
         if not st.session_state.data_saved:
             save_score_to_csv(st.session_state.username, f"Deneme {st.session_state.selected_exam_id}", score, correct, wrong, empty)
             st.session_state.data_saved = True
             st.balloons()
+            
+        # 2. Metrikler (Üst Bilgi)
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Puan", score)
-        m2.metric("Doğru", correct); m3.metric("Yanlış", wrong); m4.metric("Boş", empty)
+        m1.metric("Toplam Puan", f"{score:.2f}", help="Doğru sayısı x 1.25")
+        m2.metric("✅ Doğru", correct)
+        m3.metric("❌ Yanlış", wrong)
+        m4.metric("⭕ Boş", empty)
         
+        st.divider()
+        
+        # 3. Grafiksel Analizler (2 Kolon)
+        g_col1, g_col2 = st.columns([1, 2])
+        
+        with g_col1:
+            st.subheader("📊 Bu Sınavın Dağılımı")
+            # Pasta Grafik Verisi
+            pie_data = pd.DataFrame({
+                'Durum': ['Doğru', 'Yanlış', 'Boş'],
+                'Sayı': [correct, wrong, empty],
+                'Renk': ['#4caf50', '#f44336', '#9e9e9e'] # Yeşil, Kırmızı, Gri
+            })
+            # Altair ile Pasta Grafik
+            pie_chart = alt.Chart(pie_data).mark_arc(innerRadius=50).encode(
+                theta=alt.Theta(field="Sayı", type="quantitative"),
+                color=alt.Color(field="Durum", type="nominal", scale=alt.Scale(domain=['Doğru', 'Yanlış', 'Boş'], range=['#4caf50', '#f44336', '#9e9e9e']), legend=None),
+                tooltip=['Durum', 'Sayı']
+            )
+            st.altair_chart(pie_chart, use_container_width=True)
+
+        with g_col2:
+            st.subheader("📈 Gelişim Grafiğin")
+            if os.path.exists(SCORES_FILE):
+                hist_df = pd.read_csv(SCORES_FILE)
+                user_hist = hist_df[hist_df['Kullanıcı'] == st.session_state.username].copy()
+                if not user_hist.empty:
+                    # Tarihi okunabilir yap
+                    # Çizgi Grafik
+                    line_chart = alt.Chart(user_hist.reset_index()).mark_line(point=True).encode(
+                        x=alt.X('index', title='Deneme Sırası'),
+                        y=alt.Y('Puan', title='Puan'),
+                        tooltip=['Sınav', 'Puan', 'Tarih'],
+                        color=alt.value(primary_color)
+                    ).interactive()
+                    st.altair_chart(line_chart, use_container_width=True)
+                else:
+                    st.info("Henüz geçmiş sınav veriniz bulunmamaktadır.")
+            else:
+                st.info("İlk sınavınız kaydedildi.")
+        
+        st.divider()
+
+        # 4. AI Koç Analizi Bölümü
+        st.subheader("🧠 YDS Baş Koç Analizi")
+        
+        if st.session_state.coach_analysis:
+            # Analiz zaten yapılmışsa göster
+            st.markdown(f"""
+            <div class="ai-result-box">
+                <div class="ai-header">
+                    <div class="ai-header-icon">🎓</div>
+                    <div class="ai-title">Koç'un Değerlendirmesi</div>
+                </div>
+                <div class="ai-content">
+                    {st.session_state.coach_analysis}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Analiz butonu
+            col_coach_btn, col_empty = st.columns([1, 2])
+            with col_coach_btn:
+                if st.button("🚀 Analizi Başlat", type="primary", use_container_width=True):
+                    if not st.session_state.user_api_key:
+                        st.warning("⚠️ Lütfen AI Ayarları menüsünden API Key girin.")
+                    else:
+                        with st.spinner("🔍 Koç senin yanlışlarını inceliyor ve strateji kuruyor..."):
+                            try:
+                                genai.configure(api_key=st.session_state.user_api_key)
+                                model = genai.GenerativeModel('gemini-2.5-flash')
+                                
+                                # Yanlış yapılan soruları topla
+                                wrong_qs = []
+                                for idx, ans in st.session_state.answers.items():
+                                    row_q = df.iloc[idx]
+                                    if ans != row_q['Dogru_Cevap']:
+                                        wrong_qs.append(f"Soru: {row_q['Soru'][:150]}... | Cevabın: {ans} | Doğru: {row_q['Dogru_Cevap']}")
+                                
+                                # Eğer çok yanlış varsa ilk 10 tanesini gönder (Token limiti için)
+                                mistakes_text = "\n".join(wrong_qs[:10])
+                                
+                                coach_prompt = f"""
+                                Sen dünyanın en iyi YDS (Yabancı Dil Sınavı) hazırlık koçusun. Sert ama adil, motive edici ve nokta atışı tespitler yapan bir tarzın var.
+                                Öğrencinin sınav sonucu: {score} Puan. ({correct} Doğru, {wrong} Yanlış).
+                                
+                                İşte öğrencinin yanlış yaptığı sorulardan örnekler:
+                                {mistakes_text}
+                                
+                                Lütfen şu formatta bir değerlendirme raporu yaz (Markdown kullan):
+                                
+                                ### 📋 Genel Durum
+                                * Öğrencinin seviyesini kısaca yorumla.
+                                
+                                ### 🚨 Tespit Edilen Eksikler
+                                * Yanlışlardan yola çıkarak hangi konularda eksiği olduğunu tahmin et (Örn: Kelime bilgisi mi zayıf, Gramer mi, Okuma mı?).
+                                * (Burada spesifik ol: "Zıtlık bağlaçlarını karıştırıyorsun" gibi).
+                                
+                                ### 💊 Reçete ve Çalışma Programı
+                                * Ona bu eksikleri kapatması için 3 maddelik somut bir eylem planı ver.
+                                * (Örn: "Her gün 20 kelime ezberle", "If Clause type 3 çalış").
+                                
+                                ### 🔥 Motivasyon Notu
+                                * Kapanışta onu gaza getirecek kısa bir söz söyle.
+                                """
+                                
+                                if len(wrong_qs) == 0:
+                                    coach_res = "Mükemmel! Hiç yanlışın yok. Full çektin, seninle gurur duyuyorum! 🌟 Seviyeni korumak için bol bol makale okumaya devam et."
+                                else:
+                                    coach_res = model.generate_content(coach_prompt).text
+                                
+                                st.session_state.coach_analysis = coach_res
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Koç bağlanamadı: {e}")
+
+        st.write("")
+        st.write("")
         if st.button("🔄 Yeni Sınav", type="primary"): 
             st.session_state.finish = False
             st.session_state.answers = {}
             st.session_state.marked = set()
             st.session_state.idx = 0
+            st.session_state.coach_analysis = None
             st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
             st.rerun()
 else: st.warning("Lütfen sınav dosyasını proje klasörüne yükleyin (Örn: Sinav_1.xlsx).")
