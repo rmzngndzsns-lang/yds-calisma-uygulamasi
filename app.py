@@ -24,7 +24,7 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (TAMAMEN REVİZE EDİLMİŞ DARK MODE) ---
+# --- 3. CSS (TAMAMEN REVİZE EDİLMİŞ DARK MODE - EXPANDER VE INPUT DÜZELTMELİ) ---
 if st.session_state.dark_mode:
     # Dark Mode Renkleri
     bg_color = "#0e1117"
@@ -34,7 +34,7 @@ if st.session_state.dark_mode:
     primary_color = "#4f83f5"
     button_bg = "#2b313e" 
     button_hover = "#363945"
-    input_bg = "#262730" # Inputlar için koyu zemin
+    input_bg = "#262730" 
     shadow = "0 4px 15px rgba(0,0,0,0.4)"
     
     ai_box_bg = "linear-gradient(145deg, #1e2028, #23252e)"
@@ -43,9 +43,27 @@ if st.session_state.dark_mode:
     ai_title_color = "#8baaf0"
     ai_shadow = "0 4px 15px rgba(0,0,0,0.4)"
     
-    # Dark Mode için Özel CSS Blokları
+    # Dark Mode için Özel CSS Blokları (Expander ve Input Fix)
     custom_dark_css = f"""
-    /* SELECTBOX (Açılır Menü) Düzeltmesi */
+    /* --- INPUT ALANLARI (API Key Kutusu Dahil) --- */
+    div[data-baseweb="input"] {{
+        background-color: {input_bg} !important;
+        border-color: {border_color} !important;
+        border-radius: 8px !important;
+    }}
+    div[data-baseweb="base-input"] {{
+        background-color: transparent !important;
+    }}
+    input.st-bd, input.st-bc {{
+        color: {text_color} !important;
+        background-color: transparent !important;
+    }}
+    /* Şifre Gözü İkonu Rengi */
+    button[aria-label="Password visibility"] svg {{
+        fill: {text_color} !important;
+    }}
+
+    /* --- SELECTBOX (Açılır Menü) --- */
     div[data-baseweb="select"] > div {{
         background-color: {input_bg} !important;
         border-color: {border_color} !important;
@@ -54,46 +72,45 @@ if st.session_state.dark_mode:
     div[data-baseweb="select"] span {{
         color: {text_color} !important;
     }}
-    /* Dropdown Açılınca Görünen Liste */
+    /* Dropdown Listesi */
     ul[role="listbox"] {{
-        background-color: {input_bg} !important;
+        background-color: {card_bg} !important;
     }}
     li[role="option"] {{
         color: {text_color} !important;
-        background-color: {input_bg} !important;
+        background-color: {card_bg} !important;
     }}
     li[role="option"]:hover, li[role="option"][aria-selected="true"] {{
         background-color: {primary_color} !important;
         color: white !important;
     }}
-
-    /* TEXT INPUT (Yazı Girişi) Düzeltmesi */
-    div[data-baseweb="input"] > div {{
-        background-color: {input_bg} !important;
-        border-color: {border_color} !important;
-        color: {text_color} !important;
-    }}
-    input {{
-        color: {text_color} !important;
-    }}
     
-    /* EXPANDER (Açılır Kutu - AI Ayarları) */
+    /* --- EXPANDER (AI Ayarları Kutusu) --- */
+    /* Expander Başlık Kısmı (Tıklanan Yer) */
     .streamlit-expanderHeader {{
-        background-color: {input_bg} !important;
+        background-color: {card_bg} !important;
         color: {text_color} !important;
         border: 1px solid {border_color} !important;
-        border-radius: 5px;
+        border-radius: 8px !important;
     }}
+    .streamlit-expanderHeader:hover {{
+        color: {primary_color} !important;
+        border-color: {primary_color} !important;
+    }}
+    .streamlit-expanderHeader svg {{
+        fill: {text_color} !important;
+    }}
+    /* Expander İçeriği (Açılan Kısım) */
     div[data-testid="stExpander"] {{
-        background-color: transparent !important;
         border: none !important;
-        color: {text_color} !important;
+        box-shadow: none !important;
     }}
     div[data-testid="stExpander"] > details > div {{
         border: 1px solid {border_color};
         border-top: none;
-        border-radius: 0 0 5px 5px;
-        background-color: {input_bg};
+        border-radius: 0 0 8px 8px;
+        background-color: {bg_color}; /* Sidebar rengiyle aynı olsun */
+        padding: 15px;
     }}
     """
 else:
@@ -122,7 +139,7 @@ st.markdown(f"""
     .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; color: {text_color}; }}
     
     /* GENEL YAZI RENGİ */
-    p, label, span, div {{ color: {text_color}; }}
+    p, label, span, div, h1, h2, h3, h4, h5, h6 {{ color: {text_color}; }}
 
     /* GİRİŞ EKRANI */
     div[data-testid="stForm"] {{
@@ -155,7 +172,7 @@ st.markdown(f"""
         border-color: {primary_color} !important;
         color: {primary_color} !important;
     }}
-    /* Primary Butonlar (Giriş Yap, Sınavı Bitir vb.) */
+    /* Primary Butonlar */
     .stButton > button[kind="primary"] {{
         background-color: {primary_color} !important;
         color: white !important;
