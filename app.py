@@ -146,7 +146,7 @@ def save_score_to_csv(username, exam_name, score, correct, wrong, empty, duratio
         if os.path.exists(SCORES_FILE): df = pd.read_csv(SCORES_FILE)
         else: df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih", "Süre"])
         
-        date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S") # Saniye ekledim benzersiz olsun diye
+        date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         new_row = pd.DataFrame({
             "Kullanıcı": [username], 
@@ -163,7 +163,6 @@ def save_score_to_csv(username, exam_name, score, correct, wrong, empty, duratio
         df.to_csv(SCORES_FILE, index=False)
         return True
     except Exception as e:
-        print(e)
         return False
 
 def autosave_progress():
@@ -438,7 +437,6 @@ if df is not None:
         empty = len(df) - len(st.session_state.answers)
         score = correct * 1.25
         
-        # SÜRE HESAPLAMA
         end_time_ms = datetime.now().timestamp() * 1000
         start_time_ms = st.session_state.start_timestamp
         duration_ms = max(0, end_time_ms - start_time_ms)
@@ -471,7 +469,7 @@ if df is not None:
             st.altair_chart(pie_chart, use_container_width=True)
 
         with g_col2:
-            st.subheader("📈 Tarihsel Gelişim Grafiği")
+            st.subheader("📈 Gelişim Grafiği")
             if os.path.exists(SCORES_FILE):
                 hist_df = pd.read_csv(SCORES_FILE)
                 user_hist = hist_df[hist_df['Kullanıcı'] == st.session_state.username].copy()
@@ -479,13 +477,14 @@ if df is not None:
                 if "Süre" not in user_hist.columns: user_hist["Süre"] = "0 dk"
 
                 if not user_hist.empty:
-                    # --- X EKSENİ DÜZELTMESİ ---
-                    # Her kayıt için sıralı numara oluştur (1, 2, 3...)
+                    # --- X EKSENİ DÜZELTMESİ (ORDINAL) ---
+                    # Sıralı numara veriyoruz: 1, 2, 3...
                     user_hist = user_hist.reset_index(drop=True)
-                    user_hist['Deneme Sırası'] = user_hist.index + 1
+                    user_hist['Deneme No'] = user_hist.index + 1
 
                     base = alt.Chart(user_hist).encode(
-                        x=alt.X('Deneme Sırası', title='Deneme Tekrarı', axis=alt.Axis(tickMinStep=1))
+                        # X eksenini Ordinal (:O) yaparak 1, 2, 3 diye kesin gösteririz
+                        x=alt.X('Deneme No:O', title='Deneme Tekrar Sayısı')
                     )
 
                     area = base.mark_area(line={'color':primary_color}, color=alt.Gradient(
@@ -508,7 +507,7 @@ if df is not None:
         
         st.divider()
 
-        st.subheader("🧠 YDS Baş Koç Analizi (Motive Edici Mod)")
+        st.subheader("🧠 YDS Baş Koç Analizi (Motive Edici)")
         
         if st.session_state.coach_analysis:
             st.markdown(f"""
@@ -572,12 +571,17 @@ if df is not None:
                             except Exception as e: st.error(f"Hata: {e}")
 
         st.write("")
+        
+        # --- DÜZELTME: BUTONA BASINCA KAYIT FLAG'İNİ SIFIRLIYORUZ ---
         if st.button("🔄 Yeni Sınav", type="primary"): 
             st.session_state.finish = False
             st.session_state.answers = {}
             st.session_state.marked = set()
             st.session_state.idx = 0
             st.session_state.coach_analysis = None
+            
+            # Kayıt bayrağını sıfırla ki sonraki sınavı da kaydetsin
+            st.session_state.data_saved = False 
             
             now_ms = datetime.now().timestamp() * 1000
             st.session_state.start_timestamp = now_ms
