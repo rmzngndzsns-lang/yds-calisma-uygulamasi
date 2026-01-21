@@ -21,7 +21,7 @@ defaults = {
     'marked': set(), 'finish': False, 'data_saved': False, 'gemini_res': {}, 
     'user_api_key': "", 'font_size': 16, 'exam_mode': False, 
     'end_timestamp': 0, 
-    'start_timestamp': 0, # Süre takibi için başlangıç zamanı eklendi
+    'start_timestamp': 0, 
     'current_exam_data': None, 'cached_exam_id': None, 'progress_loaded': False,
     'dark_mode': False,
     'coach_analysis': None
@@ -29,7 +29,7 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (OVERLAY + EXPANDER FIX + DARK MODE) ---
+# --- 3. CSS ---
 if st.session_state.dark_mode:
     bg_color = "#0e1117"
     card_bg = "#262730"
@@ -85,7 +85,7 @@ st.markdown(f"""
     .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; color: {text_color}; }}
     p, label, span, div, h1, h2, h3, h4, h5, h6 {{ color: {text_color}; }}
 
-    /* --- SIDEBAR BUTONLARI (Overlay) --- */
+    /* Sidebar Butonları */
     div[data-testid="stSidebar"] div[data-testid="column"] button {{
         height: 50px !important; min-height: 50px !important; max-height: 50px !important;
         width: 100% !important; padding: 0px !important; position: relative !important;
@@ -141,13 +141,12 @@ def load_exam_file_cached(exam_id):
             except: continue
     return None
 
-# --- KAYIT SİSTEMİ (SÜRE EKLENDİ) ---
 def save_score_to_csv(username, exam_name, score, correct, wrong, empty, duration_str):
     try:
         if os.path.exists(SCORES_FILE): df = pd.read_csv(SCORES_FILE)
         else: df = pd.DataFrame(columns=["Kullanıcı", "Sınav", "Puan", "Doğru", "Yanlış", "Boş", "Tarih", "Süre"])
         
-        date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+        date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S") # Saniye ekledim benzersiz olsun diye
         
         new_row = pd.DataFrame({
             "Kullanıcı": [username], 
@@ -157,13 +156,15 @@ def save_score_to_csv(username, exam_name, score, correct, wrong, empty, duratio
             "Yanlış": [wrong], 
             "Boş": [empty], 
             "Tarih": [date_str],
-            "Süre": [duration_str] # Yeni Süre Kolonu
+            "Süre": [duration_str]
         })
         
         df = pd.concat([df, new_row], ignore_index=True)
         df.to_csv(SCORES_FILE, index=False)
         return True
-    except: return False
+    except Exception as e:
+        print(e)
+        return False
 
 def autosave_progress():
     if st.session_state.username and st.session_state.selected_exam_id:
@@ -174,7 +175,7 @@ def autosave_progress():
             'idx': st.session_state.idx,
             'timestamp': datetime.now().isoformat(),
             'end_timestamp': st.session_state.end_timestamp,
-            'start_timestamp': st.session_state.start_timestamp # Başlangıcı kaydet
+            'start_timestamp': st.session_state.start_timestamp
         }
         try:
             with open(progress_file, 'w', encoding='utf-8') as f: json.dump(data, f)
@@ -288,7 +289,6 @@ with st.sidebar:
         st.session_state.finish, st.session_state.data_saved = False, False
         st.session_state.coach_analysis = None
         
-        # Yeni sınav için süreleri sıfırla
         now_ms = datetime.now().timestamp() * 1000
         st.session_state.start_timestamp = now_ms
         st.session_state.end_timestamp = now_ms + (180 * 60 * 1000)
@@ -430,7 +430,7 @@ if df is not None:
             st.markdown("</div></div>", unsafe_allow_html=True)
 
     else:
-        # --- SONUÇ EKRANI (DÜZELTİLMİŞ & SÜRE EKLENMİŞ) ---
+        # --- SONUÇ EKRANI ---
         st.title("🏆 Sınav Sonuç Paneli")
         
         correct = sum(1 for i, a in st.session_state.answers.items() if a == df.iloc[i]['Dogru_Cevap'])
@@ -438,7 +438,7 @@ if df is not None:
         empty = len(df) - len(st.session_state.answers)
         score = correct * 1.25
         
-        # SÜRE HESAPLAMA (Geçen Süre = Şimdi - Başlangıç)
+        # SÜRE HESAPLAMA
         end_time_ms = datetime.now().timestamp() * 1000
         start_time_ms = st.session_state.start_timestamp
         duration_ms = max(0, end_time_ms - start_time_ms)
@@ -446,7 +446,6 @@ if df is not None:
         duration_str = f"{duration_min} dk"
         
         if not st.session_state.data_saved:
-            # Artık süreyi de kaydediyoruz
             save_score_to_csv(st.session_state.username, f"Deneme {st.session_state.selected_exam_id}", score, correct, wrong, empty, duration_str)
             st.session_state.data_saved = True
             st.balloons()
@@ -455,7 +454,7 @@ if df is not None:
         m1.metric("Toplam Puan", f"{score:.2f}", help="Doğru sayısı x 1.25")
         m2.metric("✅ Doğru", correct)
         m3.metric("❌ Yanlış", wrong)
-        m4.metric("⏱️ Süre", duration_str) # Boş yerine Süre gösterdik
+        m4.metric("⏱️ Süre", duration_str)
         
         st.divider()
         
@@ -472,18 +471,22 @@ if df is not None:
             st.altair_chart(pie_chart, use_container_width=True)
 
         with g_col2:
-            st.subheader("📈 Gelişim Grafiği")
+            st.subheader("📈 Tarihsel Gelişim Grafiği")
             if os.path.exists(SCORES_FILE):
                 hist_df = pd.read_csv(SCORES_FILE)
                 user_hist = hist_df[hist_df['Kullanıcı'] == st.session_state.username].copy()
                 
-                # Eğer "Süre" kolonu yoksa (eski dosya), NaN yap
-                if "Süre" not in user_hist.columns:
-                    user_hist["Süre"] = "0 dk"
+                if "Süre" not in user_hist.columns: user_hist["Süre"] = "0 dk"
 
                 if not user_hist.empty:
-                    # Area Chart (Lekeli Alan Grafiği)
-                    base = alt.Chart(user_hist.reset_index()).encode(x=alt.X('index', title='Deneme Tekrarı', axis=alt.Axis(tickMinStep=1)))
+                    # --- X EKSENİ DÜZELTMESİ ---
+                    # Her kayıt için sıralı numara oluştur (1, 2, 3...)
+                    user_hist = user_hist.reset_index(drop=True)
+                    user_hist['Deneme Sırası'] = user_hist.index + 1
+
+                    base = alt.Chart(user_hist).encode(
+                        x=alt.X('Deneme Sırası', title='Deneme Tekrarı', axis=alt.Axis(tickMinStep=1))
+                    )
 
                     area = base.mark_area(line={'color':primary_color}, color=alt.Gradient(
                         gradient='linear',
@@ -525,7 +528,6 @@ if df is not None:
                                 genai.configure(api_key=st.session_state.user_api_key)
                                 model = genai.GenerativeModel('gemini-2.5-flash')
                                 
-                                # Yanlışlar
                                 wrong_qs = []
                                 for idx, ans in st.session_state.answers.items():
                                     row_q = df.iloc[idx]
@@ -534,7 +536,6 @@ if df is not None:
                                 
                                 mistakes_text = "\n".join(wrong_qs[:5])
                                 
-                                # --- YENİLENEN MOTİVE EDİCİ PROMPT ---
                                 coach_prompt = f"""
                                 Sen öğrencisine değer veren, motive edici, pozitif ve stratejik bir YDS koçusun.
                                 Asla hakaret etme, asla "korkak" gibi kelimeler kullanma. Amacın yapıcı olmak.
@@ -578,7 +579,6 @@ if df is not None:
             st.session_state.idx = 0
             st.session_state.coach_analysis = None
             
-            # Yeni sınav için süreleri sıfırla
             now_ms = datetime.now().timestamp() * 1000
             st.session_state.start_timestamp = now_ms
             st.session_state.end_timestamp = now_ms + (180 * 60 * 1000)
