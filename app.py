@@ -24,130 +24,109 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (DARK MODE, STİL DÜZELTMELERİ VE AI KUTUSU TASARIMI) ---
-# AI Kutusu için özel renk paletleri ve stiller
+# --- 3. CSS (DARK MODE, STİL DÜZELTMELERİ VE LOGIN TASARIMI) ---
 if st.session_state.dark_mode:
     # Dark Mode Renkleri
+    bg_color = "#0e1117"
+    card_bg = "#262730"
+    text_color = "#fafafa"
+    border_color = "#41444e"
+    primary_color = "#4f83f5"
+    shadow = "0 4px 15px rgba(0,0,0,0.4)"
+    
     ai_box_bg = "linear-gradient(145deg, #1e2028, #23252e)"
     ai_box_border = "#4f83f5"
     ai_text_color = "#e0e0e0"
     ai_title_color = "#8baaf0"
     ai_shadow = "0 4px 15px rgba(0,0,0,0.4)"
-    
-    dark_css = """
-    /* ANA GÖVDE */
-    .stApp { background-color: #0e1117 !important; color: #fafafa !important; }
-    
-    /* SIDEBAR */
-    section[data-testid="stSidebar"] { background-color: #1a1d24 !important; }
-    section[data-testid="stSidebar"] * { color: #fafafa !important; }
-
-    /* KUTULAR */
-    .passage-box, .login-container, .control-panel { 
-        background-color: #262730 !important; color: #fafafa !important; border-color: #41444e !important; 
-    }
-    .question-stem { 
-        color: #fafafa !important; background-color: #262730 !important; border-left-color: #4f83f5 !important;
-    }
-    h1, h2, h3, h4, h5, h6, p, span, div, label, li { color: #fafafa !important; }
-    
-    /* INPUT DÜZELTMELERİ */
-    div[data-baseweb="input"] { background-color: #262730 !important; border-color: #41444e !important; }
-    .stTextInput input { background-color: #262730 !important; color: #fafafa !important; border: none !important; }
-    .stTextInput button { background-color: #262730 !important; color: #fafafa !important; border: none !important; }
-    .stTextInput button:hover { background-color: #363945 !important; }
-    .stTextInput button svg { fill: #fafafa !important; }
-
-    /* EXPANDER */
-    .streamlit-expanderHeader { background-color: #262730 !important; color: #fafafa !important; border-radius: 4px; }
-    .streamlit-expanderHeader:hover { background-color: #363945 !important; color: #4f83f5 !important; }
-    details[data-testid="stExpander"] { background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }
-
-    /* SELECTBOX */
-    div[data-baseweb="select"] > div { background-color: #262730 !important; border-color: #41444e !important; color: #fafafa !important; }
-    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"] { background-color: #262730 !important; }
-    li[role="option"] { background-color: #262730 !important; color: #fafafa !important; }
-    li[role="option"][aria-selected="true"], li[role="option"]:hover { background-color: #4f83f5 !important; color: white !important; }
-    
-    /* BUTONLAR */
-    .stButton > button { background-color: #262730 !important; color: #fafafa !important; border: 1px solid #41444e !important; }
-    .stButton > button:hover { border-color: #4f83f5 !important; color: #4f83f5 !important; }
-    
-    /* DİĞER */
-    .stRadio label { color: #fafafa !important; }
-    div[data-testid="stMetricValue"] { color: #fafafa !important; }
-    div[data-testid="stMetricLabel"] { color: #c5c5c5 !important; }
-    """
 else:
-    # Light Mode - Pastel Tasarım
+    # Light Mode Renkleri
+    bg_color = "#f8fafc"
+    card_bg = "#ffffff"
+    text_color = "#334155"
+    border_color = "#e2e8f0"
+    primary_color = "#2563eb"
+    shadow = "0 20px 40px -5px rgba(0,0,0,0.08)"
+    
     ai_box_bg = "linear-gradient(145deg, #f0f4ff, #eef2ff)"
-    ai_box_border = "#6366f1" # Pastel Indigo
-    ai_text_color = "#334155" # Slate 700
-    ai_title_color = "#4338ca" # Indigo 700
-    ai_shadow = "0 10px 25px -5px rgba(99, 102, 241, 0.15), 0 8px 10px -6px rgba(99, 102, 241, 0.1)"
-    dark_css = ""
+    ai_box_border = "#6366f1"
+    ai_text_color = "#334155"
+    ai_title_color = "#4338ca"
+    ai_shadow = "0 10px 25px -5px rgba(99, 102, 241, 0.15)"
 
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
     
-    .stApp {{ font-family: 'Poppins', sans-serif; background-color: {'#0e1117' if st.session_state.dark_mode else '#f8fafc'}; }}
-    {dark_css}
+    .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; color: {text_color}; }}
     
-    /* SIDEBAR GENİŞLİK */
-    section[data-testid="stSidebar"] {{ min-width: 380px !important; max-width: 380px !important; }}
+    /* --- YENİLENMİŞ GİRİŞ EKRANI TASARIMI --- */
+    /* Formu bir kart gibi tasarlıyoruz */
+    div[data-testid="stForm"] {{
+        background-color: {card_bg};
+        border: 1px solid {border_color};
+        padding: 50px 40px;
+        border-radius: 24px;
+        box-shadow: {shadow};
+        max-width: 450px;
+        margin: auto;
+    }}
+    
+    /* Giriş Ekranı Input Alanı */
+    .login-input input {{
+        background-color: {'#1a1d24' if st.session_state.dark_mode else '#f1f5f9'} !important;
+        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#cbd5e1'} !important;
+        border-radius: 12px !important;
+        padding: 10px 15px !important;
+        color: {text_color} !important;
+    }}
+    
+    /* Giriş Ekranı Başlıkları */
+    .login-title {{
+        text-align: center;
+        font-size: 32px;
+        font-weight: 700;
+        color: {primary_color};
+        margin-bottom: 5px;
+    }}
+    .login-subtitle {{
+        text-align: center;
+        font-size: 14px;
+        color: {'#9ca3af' if st.session_state.dark_mode else '#64748b'};
+        margin-bottom: 30px;
+    }}
 
-    /* SORU HARİTASI GRID YAPISI */
-    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{
-        display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; margin-bottom: 8px !important;
-    }}
-    div[data-testid="stSidebar"] div[data-testid="column"] {{ width: 100% !important; flex: none !important; padding: 0 !important; margin: 0 !important; }}
-    div[data-testid="stSidebar"] div[data-testid="column"] button {{
-        width: 100% !important; height: 48px !important; padding: 4px !important;
-        font-size: 13px !important; font-weight: 600 !important; border-radius: 8px !important;
-        display: flex !important; flex-direction: column !important; align-items: center !important;
-        justify-content: center !important; line-height: 1.2 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }}
-    
-    /* UI ELEMENTLERİ */
-    .login-container {{
-        max-width: 400px; margin: 60px auto; padding: 40px;
-        background: {'#262730' if st.session_state.dark_mode else 'white'}; 
-        border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-        text-align: center; border: 1px solid {'#41444e' if st.session_state.dark_mode else '#eef2f6'};
-    }}
+    /* SIDEBAR */
+    section[data-testid="stSidebar"] {{ background-color: {'#1a1d24' if st.session_state.dark_mode else '#ffffff'} !important; border-right: 1px solid {border_color}; }}
+    section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
+
+    /* KUTULAR VE ELEMANLAR */
     .passage-box {{ 
-        background-color: {'#262730' if st.session_state.dark_mode else '#ffffff'}; 
+        background-color: {card_bg}; 
         padding: 25px; border-radius: 12px; 
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#dfe6e9'}; 
-        color: {'#fafafa' if st.session_state.dark_mode else '#2d3436'}; 
+        border: 1px solid {border_color}; 
+        color: {text_color}; 
         overflow-y: auto; max-height: 70vh;
-    }}
-    .question-stem {{ 
-        font-weight: 600; border-left: 5px solid {'#4f83f5' if st.session_state.dark_mode else '#2563eb'}; 
-        padding-left: 15px; margin-bottom: 20px; 
-        color: {'#fafafa' if st.session_state.dark_mode else '#1e293b'}; background-color: transparent;
-    }}
-    .control-panel {{
-        position: sticky !important; top: 0; z-index: 999;
-        background: {'#262730' if st.session_state.dark_mode else 'white'};
-        padding: 15px 0; margin-bottom: 20px; 
-        border-bottom: 2px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    }}
-    .legend-box {{
-        background-color: {'#262730' if st.session_state.dark_mode else '#f8fafc'};
-        border: 1px solid {'#41444e' if st.session_state.dark_mode else '#e5e7eb'};
-        padding: 8px; border-radius: 8px; font-size: 11px;
-        display: flex; justify-content: space-between; margin-bottom: 10px;
-        color: {'#fafafa' if st.session_state.dark_mode else '#333'};
+        line-height: 1.8;
     }}
     
-    /* --- YENİ AI ANALİZ KUTUSU TASARIMI --- */
-    @keyframes fadeIn {{
-        from {{ opacity: 0; transform: translateY(10px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
+    .question-stem {{ 
+        font-weight: 600; 
+        border-left: 5px solid {primary_color}; 
+        padding-left: 20px; 
+        margin-bottom: 25px; 
+        color: {text_color};
     }}
+
+    /* BUTONLAR */
+    .stButton > button {{ 
+        border-radius: 10px !important; 
+        font-weight: 500 !important;
+        transition: all 0.2s ease;
+    }}
+    
+    /* AI SONUÇ KUTUSU */
+    @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
     
     .ai-result-box {{
         margin-top: 25px;
@@ -156,69 +135,24 @@ st.markdown(f"""
         padding: 24px;
         box-shadow: {ai_shadow};
         border-left: 6px solid {ai_box_border};
-        border-top: 1px solid rgba(255,255,255,0.1);
         animation: fadeIn 0.6s ease-out forwards;
-        position: relative;
-        overflow: hidden;
+        position: relative; overflow: hidden;
     }}
-    
-    /* Dekoratif Arka Plan İkonu */
     .ai-result-box::before {{
-        content: '🤖';
-        position: absolute;
-        right: -10px;
-        bottom: -20px;
-        font-size: 120px;
-        opacity: 0.05;
-        transform: rotate(-15deg);
-        pointer-events: none;
+        content: '🤖'; position: absolute; right: -10px; bottom: -20px;
+        font-size: 120px; opacity: 0.05; transform: rotate(-15deg); pointer-events: none;
     }}
-
-    .ai-header {{
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 16px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid rgba(0,0,0, 0.05);
-    }}
+    .ai-header {{ display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0, 0.05); }}
+    .ai-header-icon {{ font-size: 24px; background: {ai_box_border}; color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }}
+    .ai-title {{ font-size: 18px; font-weight: 700; color: {ai_title_color}; }}
+    .ai-content {{ font-size: 16px; line-height: 1.7; color: {ai_text_color}; text-align: justify; }}
     
-    .ai-header-icon {{
-        font-size: 24px;
-        background: {ai_box_border};
-        color: white;
-        width: 40px; height: 40px;
-        display: flex; align-items: center; justify-content: center;
-        border-radius: 50%;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }}
+    /* NAVİGASYON BUTONLARI */
+    div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{ display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; }}
+    div[data-testid="stSidebar"] div[data-testid="column"] button {{ width: 100% !important; border-radius: 8px !important; }}
     
-    .ai-title {{
-        font-size: 18px;
-        font-weight: 700;
-        color: {ai_title_color};
-        letter-spacing: 0.5px;
-    }}
-    
-    .ai-content {{
-        font-size: 16px;
-        line-height: 1.7;
-        color: {ai_text_color};
-        font-weight: 400;
-        text-align: justify;
-    }}
-    
-    /* AI İçerik Vurguları */
-    .ai-content strong {{
-        font-weight: 600;
-        color: {ai_box_border};
-    }}
-    
-    /* MOBİLDE KOPYALA MENÜSÜNÜ ENGELLEMEK İÇİN */
-    .stRadio label {{
-        user-select: none !important; 
-        -webkit-user-select: none !important;
-    }}
+    /* MOBİL DÜZELTMELER */
+    .stRadio label {{ user-select: none !important; -webkit-user-select: none !important; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -281,20 +215,35 @@ def load_progress():
             except: pass
     return False
 
-# --- 5. GİRİŞ EKRANI ---
+# --- 5. GİRİŞ EKRANI (YENİLENMİŞ TASARIM) ---
 if st.session_state.username is None:
+    # Sayfayı ortalamak için boşluk kolonları kullanıyoruz
     col1, col2, col3 = st.columns([1, 2, 1])
+    
     with col2:
-        st.markdown(f'<div class="login-container"><h1 style="color:{"#4f83f5" if st.session_state.dark_mode else "#2563eb"};">YDS Pro</h1><p>Giriş Yapın</p></div>', unsafe_allow_html=True)
+        # Form Container (CSS ile tek parça kutu haline getirildi)
         with st.form("login_form"):
-            name = st.text_input("Ad Soyad:", placeholder="İsim giriniz...")
-            submitted = st.form_submit_button("🚀 Giriş Yap")
+            # Başlıkları Formun İÇİNE aldık, böylece hepsi tek bir kutuda görünecek
+            st.markdown('<div class="login-title">YDS Pro</div>', unsafe_allow_html=True)
+            st.markdown('<div class="login-subtitle">Giriş Yapın</div>', unsafe_allow_html=True)
+            
+            # Input Alanı
+            name = st.text_input("Ad Soyad:", placeholder="İsim giriniz...", label_visibility="visible")
+            
+            # Biraz boşluk
+            st.write("")
+            
+            # Giriş Butonu (Tam Genişlik)
+            # use_container_width=True sayesinde buton input ile aynı genişlikte olur
+            submitted = st.form_submit_button("🚀 Giriş Yap", type="primary", use_container_width=True)
+            
             if submitted:
                 if name.strip():
                     st.session_state.username = name.strip()
                     st.session_state.end_timestamp = (datetime.now() + timedelta(minutes=180)).timestamp() * 1000
                     st.rerun()
-                else: st.error("İsim gerekli.")
+                else:
+                    st.error("Lütfen isminizi giriniz.")
     st.stop()
 
 if not st.session_state.progress_loaded:
@@ -333,7 +282,6 @@ with st.sidebar:
             </script>""", height=60
         )
     
-    # MOD VE AYARLAR
     c_set1, c_set2 = st.columns(2)
     with c_set1:
         mode = st.toggle("Sınav Modu", value=st.session_state.exam_mode)
@@ -365,7 +313,7 @@ with st.sidebar:
         st.caption(f"📝 {answered}/{total} soru yanıtlandı")
         
         st.markdown("**🗺️ Soru Haritası**")
-        st.markdown('<div class="legend-box"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
+        st.markdown('<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:10px;padding:5px;border:1px solid #ccc;border-radius:5px;"><span>✅ Doğru</span><span>❌ Yanlış</span><span>⭐ İşaret</span></div>', unsafe_allow_html=True)
 
         for row_start in range(0, len(df), 5):
             cols = st.columns(5)
@@ -399,7 +347,7 @@ if df is not None:
         # ÜST PANEL
         control_col1, control_col2, control_col3, control_col4, control_col5 = st.columns([10, 1, 1, 1, 1])
         with control_col1: 
-            st.markdown(f"<h3 style='margin:0;padding:0;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='margin:0;padding:0;color:{text_color};'>Soru {st.session_state.idx + 1}</h3>", unsafe_allow_html=True)
         with control_col2: 
             if st.button("A➖", key="font_dec"): 
                 st.session_state.font_size = max(12, st.session_state.font_size - 2)
@@ -409,7 +357,7 @@ if df is not None:
                 st.session_state.font_size = min(30, st.session_state.font_size + 2)
                 st.rerun()
         with control_col4: 
-            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{"#fafafa" if st.session_state.dark_mode else "#1e293b"};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center;padding-top:8px;font-size:12px;color:{text_color};'>{st.session_state.font_size}px</div>", unsafe_allow_html=True)
         with control_col5:
             is_m = st.session_state.idx in st.session_state.marked
             if st.button("⭐" if is_m else "☆", key="mark_tgl"):
@@ -451,7 +399,6 @@ if df is not None:
         st.write("")
         c_act1, c_act2 = st.columns([1, 1])
         
-        # --- GÜNCELLENMİŞ AI BUTON VE STRATEJİ MANTIĞI ---
         with c_act1:
             if st.button("🤖 AI Çözümle", use_container_width=True):
                 if not st.session_state.user_api_key: st.warning("⚠️ API Key Girin")
@@ -461,7 +408,6 @@ if df is not None:
                             genai.configure(api_key=st.session_state.user_api_key)
                             model = genai.GenerativeModel('gemini-2.5-flash')
                             
-                            # YENİ STRATEJİK PROMPT
                             custom_prompt = f"""
                             Sen uzman bir YDS (Yabancı Dil Sınavı) İngilizce öğretmenisin. 
                             Aşağıdaki soruyu analiz et ve öğrenciye özel ders verir gibi açıkla.
@@ -500,10 +446,8 @@ if df is not None:
             if st.session_state.idx < len(df)-1 and c_n.button("Sonraki ➡️", use_container_width=True): 
                 st.session_state.idx += 1; st.rerun()
             
-        # --- YENİLENEN GLASSMORPHISM AI KUTUSU ---
         if st.session_state.idx in st.session_state.gemini_res: 
             res_content = st.session_state.gemini_res[st.session_state.idx]
-            
             st.markdown(f"""
             <div class="ai-result-box">
                 <div class="ai-header">
@@ -512,9 +456,7 @@ if df is not None:
                 </div>
                 <div class="ai-content">
                     """, unsafe_allow_html=True)
-            
             st.markdown(res_content)
-            
             st.markdown("</div></div>", unsafe_allow_html=True)
 
     else:
@@ -532,10 +474,9 @@ if df is not None:
         m2.metric("Doğru", correct); m3.metric("Yanlış", wrong); m4.metric("Boş", empty)
         if st.button("🔄 Yeni Sınav", type="primary"): 
             st.session_state.finish = False; st.session_state.answers = {}; st.session_state.idx = 0; st.rerun()
-else: st.warning("Dosya bulunamadı.")
+else: st.warning("Lütfen sınav dosyasını proje klasörüne yükleyin (Örn: Sinav_1.xlsx).")
 
-# --- 9. JAVASCRIPT: ŞIK ELEME ÖZELLİĞİ ---
-# Bilgisayarda Sağ Tık, Mobilde Uzun Basma (Basılı Tutma)
+# --- 9. JAVASCRIPT: ŞIK ELEME ---
 components.html("""
 <script>
     function toggleStrikethrough(element) {
@@ -554,13 +495,11 @@ components.html("""
             if (label.getAttribute('data-strike-listener') === 'true') return;
             label.setAttribute('data-strike-listener', 'true');
 
-            // PC: Sağ Tık
             label.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
                 toggleStrikethrough(this);
             }, false);
 
-            // MOBİL: Uzun Basma
             let pressTimer;
             label.addEventListener('touchstart', function(e) {
                 pressTimer = setTimeout(() => {
