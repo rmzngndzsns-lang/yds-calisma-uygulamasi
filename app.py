@@ -24,9 +24,8 @@ defaults = {
 for k, v in defaults.items():
     if k not in st.session_state: st.session_state[k] = v
 
-# --- 3. CSS (TAMAMEN REVİZE EDİLMİŞ DARK MODE - EXPANDER VE INPUT DÜZELTMELİ) ---
+# --- 3. CSS (OVERLAY VE SABİT KUTU DÜZELTMESİ) ---
 if st.session_state.dark_mode:
-    # Dark Mode Renkleri
     bg_color = "#0e1117"
     card_bg = "#262730"
     text_color = "#e0e0e0" 
@@ -36,85 +35,29 @@ if st.session_state.dark_mode:
     button_hover = "#363945"
     input_bg = "#262730" 
     shadow = "0 4px 15px rgba(0,0,0,0.4)"
-    
     ai_box_bg = "linear-gradient(145deg, #1e2028, #23252e)"
     ai_box_border = "#4f83f5"
     ai_text_color = "#e0e0e0"
     ai_title_color = "#8baaf0"
     ai_shadow = "0 4px 15px rgba(0,0,0,0.4)"
     
-    # Dark Mode için Özel CSS Blokları (Expander ve Input Fix)
     custom_dark_css = f"""
-    /* --- INPUT ALANLARI (API Key Kutusu Dahil) --- */
-    div[data-baseweb="input"] {{
-        background-color: {input_bg} !important;
-        border-color: {border_color} !important;
-        border-radius: 8px !important;
-    }}
-    div[data-baseweb="base-input"] {{
-        background-color: transparent !important;
-    }}
-    input.st-bd, input.st-bc {{
-        color: {text_color} !important;
-        background-color: transparent !important;
-    }}
-    /* Şifre Gözü İkonu Rengi */
-    button[aria-label="Password visibility"] svg {{
-        fill: {text_color} !important;
-    }}
-
-    /* --- SELECTBOX (Açılır Menü) --- */
-    div[data-baseweb="select"] > div {{
-        background-color: {input_bg} !important;
-        border-color: {border_color} !important;
-        color: {text_color} !important;
-    }}
-    div[data-baseweb="select"] span {{
-        color: {text_color} !important;
-    }}
-    /* Dropdown Listesi */
-    ul[role="listbox"] {{
-        background-color: {card_bg} !important;
-    }}
-    li[role="option"] {{
-        color: {text_color} !important;
-        background-color: {card_bg} !important;
-    }}
-    li[role="option"]:hover, li[role="option"][aria-selected="true"] {{
-        background-color: {primary_color} !important;
-        color: white !important;
-    }}
-    
-    /* --- EXPANDER (AI Ayarları Kutusu) --- */
-    /* Expander Başlık Kısmı (Tıklanan Yer) */
-    .streamlit-expanderHeader {{
-        background-color: {card_bg} !important;
-        color: {text_color} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 8px !important;
-    }}
-    .streamlit-expanderHeader:hover {{
-        color: {primary_color} !important;
-        border-color: {primary_color} !important;
-    }}
-    .streamlit-expanderHeader svg {{
-        fill: {text_color} !important;
-    }}
-    /* Expander İçeriği (Açılan Kısım) */
-    div[data-testid="stExpander"] {{
-        border: none !important;
-        box-shadow: none !important;
-    }}
-    div[data-testid="stExpander"] > details > div {{
-        border: 1px solid {border_color};
-        border-top: none;
-        border-radius: 0 0 8px 8px;
-        background-color: {bg_color}; /* Sidebar rengiyle aynı olsun */
-        padding: 15px;
-    }}
+    div[data-baseweb="input"] {{ background-color: {input_bg} !important; border-color: {border_color} !important; border-radius: 8px !important; }}
+    div[data-baseweb="base-input"] {{ background-color: transparent !important; }}
+    input.st-bd, input.st-bc {{ color: {text_color} !important; background-color: transparent !important; }}
+    button[aria-label="Password visibility"] svg {{ fill: {text_color} !important; }}
+    div[data-baseweb="select"] > div {{ background-color: {input_bg} !important; border-color: {border_color} !important; color: {text_color} !important; }}
+    div[data-baseweb="select"] span {{ color: {text_color} !important; }}
+    ul[role="listbox"] {{ background-color: {card_bg} !important; }}
+    li[role="option"] {{ color: {text_color} !important; background-color: {card_bg} !important; }}
+    li[role="option"]:hover, li[role="option"][aria-selected="true"] {{ background-color: {primary_color} !important; color: white !important; }}
+    .streamlit-expanderHeader {{ background-color: {card_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; border-radius: 8px !important; }}
+    .streamlit-expanderHeader:hover {{ color: {primary_color} !important; border-color: {primary_color} !important; }}
+    .streamlit-expanderHeader svg {{ fill: {text_color} !important; }}
+    div[data-testid="stExpander"] {{ border: none !important; box-shadow: none !important; }}
+    div[data-testid="stExpander"] > details > div {{ border: 1px solid {border_color}; border-top: none; border-radius: 0 0 8px 8px; background-color: {bg_color}; padding: 15px; }}
     """
 else:
-    # Light Mode Renkleri
     bg_color = "#f8fafc"
     card_bg = "#ffffff"
     text_color = "#334155"
@@ -124,7 +67,6 @@ else:
     button_hover = "#f1f5f9"
     input_bg = "#ffffff"
     shadow = "0 20px 40px -5px rgba(0,0,0,0.08)"
-    
     ai_box_bg = "linear-gradient(145deg, #f0f4ff, #eef2ff)"
     ai_box_border = "#6366f1"
     ai_text_color = "#334155"
@@ -137,124 +79,59 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
     
     .stApp {{ font-family: 'Poppins', sans-serif; background-color: {bg_color}; color: {text_color}; }}
-    
-    /* GENEL YAZI RENGİ */
     p, label, span, div, h1, h2, h3, h4, h5, h6 {{ color: {text_color}; }}
 
-    /* GİRİŞ EKRANI */
-    div[data-testid="stForm"] {{
-        background-color: {card_bg};
-        border: 1px solid {border_color};
-        padding: 50px 40px;
-        border-radius: 24px;
-        box-shadow: {shadow};
-        max-width: 450px;
-        margin: auto;
-    }}
+    /* --- SIDEBAR BUTONLARI İÇİN ÖZEL CSS (OVERLAY EFEKTİ) --- */
     
-    /* RADYO BUTONLARI */
-    div[role="radiogroup"] label {{
-        color: {text_color} !important;
-        background-color: transparent !important;
-    }}
-    
-    /* BUTONLAR (Genel) */
-    .stButton > button {{ 
-        background-color: {button_bg} !important;
-        color: {text_color} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 10px !important;
-        font-weight: 500 !important;
-        transition: all 0.2s ease;
-    }}
-    .stButton > button:hover {{
-        background-color: {button_hover} !important;
-        border-color: {primary_color} !important;
-        color: {primary_color} !important;
-    }}
-    /* Primary Butonlar */
-    .stButton > button[kind="primary"] {{
-        background-color: {primary_color} !important;
-        color: white !important;
-        border: none !important;
+    /* 1. Butonların Boyutunu Sabitle (Büyümeyi Engelle) */
+    div[data-testid="stSidebar"] div[data-testid="column"] button {{
+        height: 50px !important;       /* Sabit Yükseklik */
+        min-height: 50px !important;
+        max-height: 50px !important;
+        width: 100% !important;
+        padding: 0px !important;       /* Padding'i sıfırla */
+        position: relative !important; /* İçerik konumlandırma için */
+        overflow: hidden !important;   /* Taşmayı gizle */
+        border-radius: 8px !important;
     }}
 
-    /* SINAV ALANI */
-    .passage-box {{ 
-        background-color: {card_bg}; 
-        padding: 25px; border-radius: 12px; 
-        border: 1px solid {border_color}; 
-        color: {text_color}; 
-        overflow-y: auto; max-height: 70vh;
-        line-height: 1.8;
-    }}
-    .question-stem {{ 
-        font-weight: 600; 
-        border-left: 5px solid {primary_color}; 
-        padding-left: 20px; 
-        margin-bottom: 25px; 
-        color: {text_color};
+    /* 2. Buton İçindeki Metni (Numara ve İkon) Üst Üste Bindir */
+    div[data-testid="stSidebar"] div[data-testid="column"] button div[data-testid="stMarkdownContainer"] p {{
+        display: grid !important;           /* Grid kullanarak üst üste koyacağız */
+        place-items: center !important;     /* Ortala */
+        height: 100% !important;
+        margin: 0 !important;
+        line-height: 0 !important;          /* Satır aralığını sıfırla (Overlap için kritik) */
     }}
 
-    /* AI KUTUSU */
+    /* Numara ve İkonun Stil Ayarı */
+    /* Bu hile ile Python tarafında "Numara \n İkon" gönderdiğimizde üst üste binerler */
+    
+    /* --- DİĞER CSS --- */
+    div[data-testid="stForm"] {{ background-color: {card_bg}; border: 1px solid {border_color}; padding: 50px 40px; border-radius: 24px; box-shadow: {shadow}; max-width: 450px; margin: auto; }}
+    div[role="radiogroup"] label {{ color: {text_color} !important; background-color: transparent !important; }}
+    .stButton > button {{ background-color: {button_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; border-radius: 10px !important; font-weight: 500 !important; transition: all 0.2s ease; }}
+    .stButton > button:hover {{ background-color: {button_hover} !important; border-color: {primary_color} !important; color: {primary_color} !important; }}
+    .stButton > button[kind="primary"] {{ background-color: {primary_color} !important; color: white !important; border: none !important; }}
+    .passage-box {{ background-color: {card_bg}; padding: 25px; border-radius: 12px; border: 1px solid {border_color}; color: {text_color}; overflow-y: auto; max-height: 70vh; line-height: 1.8; }}
+    .question-stem {{ font-weight: 600; border-left: 5px solid {primary_color}; padding-left: 20px; margin-bottom: 25px; color: {text_color}; }}
+    
     @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-    .ai-result-box {{
-        margin-top: 25px;
-        background: {ai_box_bg};
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: {ai_shadow};
-        border-left: 6px solid {ai_box_border};
-        animation: fadeIn 0.6s ease-out forwards;
-        position: relative; overflow: hidden;
-    }}
-    .ai-result-box::before {{
-        content: '🤖'; position: absolute; right: -10px; bottom: -20px;
-        font-size: 120px; opacity: 0.05; transform: rotate(-15deg); pointer-events: none;
-    }}
+    .ai-result-box {{ margin-top: 25px; background: {ai_box_bg}; border-radius: 16px; padding: 24px; box-shadow: {ai_shadow}; border-left: 6px solid {ai_box_border}; animation: fadeIn 0.6s ease-out forwards; position: relative; overflow: hidden; }}
+    .ai-result-box::before {{ content: '🤖'; position: absolute; right: -10px; bottom: -20px; font-size: 120px; opacity: 0.05; transform: rotate(-15deg); pointer-events: none; }}
     .ai-header {{ display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0, 0.05); }}
     .ai-header-icon {{ font-size: 24px; background: {ai_box_border}; color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }}
     .ai-title {{ font-size: 18px; font-weight: 700; color: {ai_title_color}; }}
     .ai-content {{ font-size: 16px; line-height: 1.7; color: {ai_text_color}; text-align: justify; }}
-
-    /* SIDEBAR */
+    
     section[data-testid="stSidebar"] {{ background-color: {bg_color} !important; border-right: 1px solid {border_color}; }}
     section[data-testid="stSidebar"] * {{ color: {text_color} !important; }}
     div[data-testid="stSidebar"] div[data-testid="stHorizontalBlock"] {{ display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; }}
-    div[data-testid="stSidebar"] div[data-testid="column"] button {{ 
-        width: 100% !important; 
-        border-radius: 8px !important;
-        position: relative !important;
-        overflow: visible !important;
-    }}
+    div[data-testid="stSidebar"] div[data-testid="column"] button {{ width: 100% !important; border-radius: 8px !important; }}
     
-    /* TRANSPARAN İKON KATMANI */
-    .icon-overlay {{
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 28px;
-        opacity: 0.25;
-        pointer-events: none;
-        z-index: 1;
-    }}
-    .button-number {{
-        position: relative;
-        z-index: 2;
-        font-weight: 600;
-    }}
-
-    /* DİĞERLERİ */
     .stRadio label {{ user-select: none !important; -webkit-user-select: none !important; }}
     .login-title {{ text-align: center; font-size: 32px; font-weight: 700; color: {primary_color}; margin-bottom: 5px; }}
     .login-subtitle {{ text-align: center; font-size: 14px; color: {text_color}; opacity: 0.7; margin-bottom: 30px; }}
-
-    /* DARK MODE ÖZEL YAMALARI */
     {custom_dark_css}
 </style>
 """, unsafe_allow_html=True)
@@ -367,7 +244,6 @@ with st.sidebar:
     st.success(f"👤 **{st.session_state.username}**")
     
     if not st.session_state.finish:
-        # NoSleep ve Sayaç Scripti
         components.html(
             f"""
             <div id="countdown" style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:bold;color:#dc2626;text-align:center;padding:8px;background:#fee2e2;border-radius:8px;border:1px solid #fecaca;">⏳ Hesapla...</div>
@@ -439,15 +315,18 @@ with st.sidebar:
                         else: icon = "✅" if u_a == df.iloc[q_idx]['Dogru_Cevap'] else "❌"
                     elif q_idx in st.session_state.marked: icon = "⭐"
                     
-                    # HTML ile transparan ikon oluştur
+                    # --- REVİZE EDİLEN BUTON ETİKET MANTIĞI ---
+                    # İkon ve Numarayı alt alta gönderiyoruz (\n ile)
+                    # Ancak CSS'deki line-height: 0 ve grid sayesinde üst üste binecekler.
+                    # İkonun önce veya sonra olması z-index etkisini değiştirir.
+                    # Numara üstte, ikon altta kalsın (saydamlık efekti için)
                     if icon:
-                        btn_html = f'<div style="position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span class="button-number">{num}</span><span class="icon-overlay">{icon}</span></div>'
-                        lbl = btn_html
+                        lbl = f"{num}\n{icon}" 
                     else:
                         lbl = num
-                    
+
                     b_type = "primary" if q_idx == st.session_state.idx else "secondary"
-                    if st.button(lbl, key=f"nav_{q_idx}", type=b_type, use_container_width=True):
+                    if st.button(lbl, key=f"nav_{q_idx}", type=b_type):
                         st.session_state.idx = q_idx
                         st.rerun()
         
@@ -531,7 +410,7 @@ if df is not None:
                             ### 1. 🎯 Soru Tipi ve Yaklaşım Stratejisi
                             ### 2. 💡 Detaylı Çözüm
                             ### 3. ❌ Çeldiriciler Neden Yanlış?
-                            ### 4. Türkçe Çeviri
+                            ### 4. 🇹🇷 Türkçe Çeviri
                             Lütfen samimi, teşvik edici ve öğretici bir ton kullan.
                             """
                             res = model.generate_content(custom_prompt).text
