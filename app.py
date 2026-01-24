@@ -328,7 +328,7 @@ if df is not None:
                             options_str = "\n".join([f"{c}: {row[c]}" for c in "ABCDE" if pd.notna(row[c])])
                             
                             genai.configure(api_key=st.session_state.user_api_key)
-                            model = genai.GenerativeModel('gemini-2.0-flash') # Güncel model
+                            model = genai.GenerativeModel('gemini-2.5-flash') # Güncel model
                             custom_prompt = f"""
                             Sen uzman bir YDS (Yabancı Dil Sınavı) İngilizce öğretmenisin. 
                             
